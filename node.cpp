@@ -1,0 +1,126 @@
+#include "node.h"
+
+int Node::order;
+int Node::orderExp;
+int Node::maxNodeSrcs;
+double Node::rootLeng;
+int Node::numNodes;
+// Tables Node::tables;
+
+
+void Node::setNodeParams(const Config& config) {
+    order = config.order; // ceil(-std::log(config.EPS) / std::log(2));
+    orderExp = [&]() -> std::size_t {
+        switch (config.prec) {
+            case Precision::LOW:    return 8;
+            case Precision::MEDIUM: return 17;
+            case Precision::HIGH:   return 26;
+        }
+        }();
+    maxNodeSrcs = config.maxNodeSrcs;
+    rootLeng = config.L; // TODO: define from max l_infty norm of all src pos
+    numNodes = 0;
+}
+
+/*
+void Node::buildTables(const Config& config) {
+    tables = Tables(order, config.prec);
+    assert(orderExp == tables.quadCoeffs_.size());
+}*/
+
+/* Node(particles,branchIdx,base)
+ * particles : list of particles contained in this node
+ * branchidx : index of this node relative to its base node
+ * base      : pointer to base node
+ */
+Node::Node(
+    const RWGVec& rwg,
+    const int branchIdx,
+    Node* const base)
+    : rwg(rwg), branchIdx(branchIdx), base(base),
+    nodeLeng(base == nullptr ? rootLeng : base->nodeLeng / 2.0),
+    center(base == nullptr ? zeroVec :
+        base->center + nodeLeng / 2.0 * Math::idx2pm(branchIdx)),
+    label(0)
+{
+    for (int l = 0; l <= order; ++l) 
+        localCoeffs.push_back(vecXcd::Zero(2*l+1));
+
+    numNodes++;
+}
+
+/* buildInteractionList()
+ * Find interaction nodes, and assign each to a dirlist.
+ */
+void Node::buildInteractionList() {
+    assert(!isRoot());
+    assert(!nbors.empty());
+
+    auto notContains = [](const NodeVec& vec, const std::shared_ptr<Node>& val) {
+        return std::find(vec.begin(), vec.end(), val) == vec.end();
+    };
+
+    NodeVec iList;
+    for (const auto& baseNbor : base->nbors) {
+        if (baseNbor->isNodeType<Leaf>() && notContains(nbors, baseNbor)) {
+            leafIlist.push_back(baseNbor);
+            continue;
+        }
+        for (const auto& branch : baseNbor->branches)
+            if (notContains(nbors, branch))
+                iList.push_back(branch);
+    }
+
+    assert(iList.size() <= pow(6, DIM) - pow(3, DIM));
+
+    // pick minDist \in (nodeLeng, 2.0*nodeLeng) to avoid rounding errors
+    const double minDist = 1.5 * nodeLeng;
+
+}
+
+/* pushSelfToNearNonNbors()
+ * Add this node to list 3 of leaf.
+ * (if leaf is in list 4 of self, self is in list 3 of leaf) 
+ */
+void Node::pushSelfToNearNonNbors() {
+    if (leafIlist.empty()) return;
+
+    for (const auto& node : leafIlist) {
+        auto leaf = dynamic_pointer_cast<Leaf>(node);
+        leaf->pushToNearNonNbors(getSelf()); // call shared_from_this()
+    }
+}
+
+/* getShiftedLocalCoeffs(branchIdx)
+ * (L2L) Return local coeffs shifted to center of branch labeled by branchIdx
+ * branchIdx : index of branch \in {0, ..., 7}
+ */
+/*std::vector<vecXcd> Node::getShiftedLocalCoeffs(const int branchIdx) const {
+
+}*/
+
+/* evalLeafIlistSols()
+ * (P2L) Add contribution from list 4 to local coeffs
+ */
+void Node::evalLeafIlistSols() {
+  
+}
+
+/* evalPairSols(srcNode)
+ * (P2P) Evaluate sols at particles in this node due to particles in srcNode
+ * and vice versa 
+ * srcNode : source node
+ */
+void Node::evalPairSols(const std::shared_ptr<Node>& srcNode) {
+    const int numObss = rwg.size(), numSrcs = srcNode->rwg.size();
+}
+
+/* evalSelfSols()
+ * (P2P) Evaluate sols at all particles in this node due to all other particles
+ * in this node
+ */
+void Node::evalSelfSols() {
+    const int numRWG = rwg.size();
+
+}
+
