@@ -20,7 +20,11 @@ public:
 
     vec3d getCenter() { return vCenter; }
 
-    cmplx buildExcitation();
+    cmplx getCurrent() { return current; }
+
+    cmplx buildRHS();
+
+    cmplx buildCurrent();
 
 private:
     vec3d v0;
@@ -35,5 +39,7 @@ private:
     double leng;
 
     std::shared_ptr<Src> Einc;
-    double b;
+    cmplx rhs;
+    cmplx current;
+
 };

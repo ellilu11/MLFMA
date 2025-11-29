@@ -178,35 +178,67 @@ namespace Math {
         };
     }
 
-    // TODO: Generate recursively
-    matXcd wignerD_l(const pair2d angles, const int l) {
-        using namespace std;
-        const auto [th, ph] = angles;
+    /* legendreL(x,l)
+     * Recursively evaluate the lth order Legendre polynomial 
+     * and its 1st derivative at the point x
+     * x : evaluation point
+     * l : order of Legendre polynomial
+     */
+    pair2d legendreL(double x, int l) {
+        double p;
+        double pm2 = 1.0;
+        double pmm = x;
 
-        auto sumCoeff = [th, l](int m, int n, int s) {
-            int a0 = l+m-s, a1 = n-m+s, a2 = s, a3 = l-n-s;
-            return pow(-1.0, n-m+s) *
-                pow(cos(th/2.0), a0+a3) * pow(sin(th/2.0), a1+a2) /
-                (factorial(a0) * factorial(a1) * factorial(a2) * factorial(a3));
-            };
-
-        matXcd mat = matXcd::Zero(2*l+1, 2*l+1);
-        for (int n = -l; n <= l; ++n) {
-            int n_ = n+l;
-            double pm_n = (n < 0) ? pm(n) : 1.0;
-            cmplx exp_n = expI(static_cast<double>(-n)*ph);
-            for (int m = -l; m <= l; ++m) {
-                int m_ = m+l;
-                double pm_m = (m < 0) ? pm(m) : 1.0;
-                for (int s = max(m-n, 0); s <= min(l+m, l-n); ++s)
-                    mat(n_, m_) += sumCoeff(m, n, s);
-
-                mat(n_, m_) *= exp_n
-                    * pm_n / pm_m
-                    * sqrt(factorial(l+n)*factorial(l-n)*factorial(l+m)*factorial(l-m));
-            }
+        for (int i = 2; i <= l; ++i) {
+            p = ((2.0*i-1)*x*pmm - (i-1)*pm2) / static_cast<double>(i);
+            pm2 = pmm;
+            pmm = p;
         }
 
-        return mat;
+        double dp = l*(x*pmm - pm2) / (x*x - 1.0);
+
+        return pair2d(p, dp);
     }
-}
+
+    /* gaussLegendreTheta(l)
+    * Return lth order Gauss-Legendre nodes and weights on the interval [0,\pi]
+    * l : quadrature order
+    * EPS : minimum error to terminate Newton-Raphson
+    */
+    std::pair<realVec,realVec> gaussLegendreTheta(int l, const double EPS) {
+        realVec nodes(l);
+        realVec weights(l);
+        const int kmax = l/2; // # positive nodes = integer part of l/2
+
+        if (l%2) { // if order is odd, middle node is at \pi/2
+            nodes[kmax] = PI / 2.0;
+            auto [p, dp] = legendreL(0.0, l);
+            weights[kmax] = PI / (dp*dp);
+        }
+
+        for (int k = 0; k < kmax; ++k) {
+            double x_k = cos(PI * (4.0*(kmax-k)-1) / (4.0*l + 2.0));
+            double dp_k;
+            while (1) {
+                auto [p, dp] = legendreL(x_k, l);
+                x_k -= p/dp; // apply Newton-Raphson
+                if (abs(p/dp) <= EPS) {
+                    dp_k = dp;
+                    break;
+                }
+            }
+
+            const size_t kplus = l%2 ? kmax+1+k : kmax+k;
+            const size_t kminus = kmax-1-k;
+                
+            nodes[kplus] = PI/2.0*(x_k + 1.0);
+            nodes[kminus] = PI/2.0*(-x_k + 1.0);
+
+            weights[kplus] = PI / ((1.0-x_k*x_k) * dp_k*dp_k);
+            weights[kminus] = weights[kplus];
+        }
+
+        return std::pair<realVec,realVec>(nodes, weights);
+    }
+
+} // close Math::

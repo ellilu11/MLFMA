@@ -46,23 +46,27 @@ RWG::RWG(const Eigen::Vector4i& idx,
     leng = (v0-v1).norm();
 };
 
-cmplx RWG::buildExcitation() {
+cmplx RWG::buildRHS() {
 
-    cmplx b(0,0);
+    cmplx rhs(0,0);
 
     // use 3-point quadrature rule (for now)
     std::vector<vec3d> midPlus = { vCenter, (v0 + vPlus)/2.0, (v1 + vPlus)/2.0 };
     std::vector<vec3d> midMinus = { vCenter, (v0 + vMinus)/2.0, (v1 + vMinus)/2.0 };
 
     for (const auto& node : midPlus)
-        b += -leng / (6.0 * triPlus->getArea()) * 
+       rhs += -leng / (6.0 * triPlus->getArea()) * 
             (node - vPlus).dot(Einc->amplitude * Einc->pol) * 
             Math::expI(Einc->wavevec.dot(node));
 
     for (const auto& node : midMinus)
-        b -= -leng / (6.0 * triPlus->getArea()) *
+        rhs -= -leng / (6.0 * triPlus->getArea()) *
             (node - vPlus).dot(Einc->amplitude * Einc->pol) *
             Math::expI(Einc->wavevec.dot(node));
 
-    return b;
+    return rhs;
 }
+
+//cmplx RWG::buildCurrent() {
+//
+//}

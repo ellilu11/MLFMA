@@ -3,10 +3,10 @@
 LeafVec Leaf::leaves;
 
 Leaf::Leaf(
-    const RWGVec& particles,
+    const RWGVec& rwg,
     const int branchIdx,
     Stem* const base)
-    : Node(particles, branchIdx, base)
+    : Node(rwg, branchIdx, base)
 {
 }
 
@@ -49,9 +49,11 @@ void Leaf::buildLists() {
 }
 
 /* buildMpoleCoeffs()
- * (P2M) Build mpole expansions from particles in this node  
+ * (P2M) Build mpole expansions from RWG in this node  
  */
 void Leaf::buildMpoleCoeffs() {
+
+    // call rwg->getCurrent()
 }
 
 /* propagateExpCoeffs()

@@ -17,6 +17,8 @@ std::vector<vec3d> importVertices(const filesystem::path& fpath) {
         else
             throw std::runtime_error("Unable to parse line");
     }
+
+    return vList;
 }
 
 TriVec importTriangles(

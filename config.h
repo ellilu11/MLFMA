@@ -51,13 +51,14 @@ struct Config {
     Config(const std::string& fileName) {
         std::ifstream is(fileName);
         is >> prec
-           >> order >> nsrcs >> L  >> maxNodeSrcs  >> evalDirect;
+           >> order >> nsrcs >> L >> k >> maxNodeSrcs  >> evalDirect;
     }
 
     Precision prec;
     int order;
     int nsrcs;
     double L;
+    double k;
     int maxNodeSrcs;
     bool evalDirect;
 };

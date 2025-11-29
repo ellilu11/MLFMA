@@ -34,8 +34,10 @@ public:
     static const int getNumNodes() { return numNodes; }
     
     static void setNodeParams(const Config&);
-    
-    // static void buildTables(const Config&);
+
+    static void setThetaSamples(const Config&);
+
+    static void buildTables(const Config&);
 
 public:
     RWGVec getParticles() const { return rwg; }
@@ -104,14 +106,18 @@ protected:
     static int order;
     static int orderExp;
     static int maxNodeSrcs;
+    static int maxLevel;
     static double rootLeng;
-    static int numNodes;
+    static std::vector<realVec> thetas;
+    static std::vector<realVec> thetaWeights;
     // static Tables tables;
+    inline static int numNodes = 0;
 
     RWGVec rwg;
     const int branchIdx;
     Node* const base;
     const double nodeLeng;
+    const int level;
     const vec3d center;
 
     NodeVec branches;

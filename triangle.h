@@ -35,7 +35,4 @@ private:
     std::array<vec3d,3> vertices;
     vec3d center;
     double area;
-
-    double current;
-
 };
