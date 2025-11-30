@@ -24,7 +24,7 @@ int main() {
 
     vector<vec3d> vertices = importVertices("config/vertices.txt");
 
-    cout << vertices.size() << '\n';
+    // cout << vertices.size() << '\n';
 
     TriVec tris = importTriangles("config/faces.txt", vertices);
     int Ntris;
@@ -34,11 +34,11 @@ int main() {
     RWGVec srcs = importRWG("config/rwgs.txt", vertices, tris, Einc);
     int Nsrcs = srcs.size();
 
-    Node::setNodeParams(config);
+    Node::setNodeParams(config,Einc);
 
     // cout << " Source file:       " << fpath.generic_string() << '\n';
     cout << " # Sources:         " << Nsrcs << '\n';
-    cout << " Root length:       " << config.L << '\n';
+    cout << " Root length:       " << config.rootLeng << '\n';
     cout << " Expansion order:   " << config.order << '\n';
     cout << " Exponential order: " << Node::getExponentialOrder() << '\n';
     cout << " Max node RWGs:    "  << config.maxNodeSrcs << '\n' << '\n';
@@ -55,11 +55,14 @@ int main() {
     else
         root = make_shared<Leaf>(srcs, 0, nullptr);
 
-    Node::setThetaSamples(Einc);
-
     cout << "   # Nodes: " << Node::getNumNodes() << '\n';
     cout << "   # Leaves: " << Leaf::getNumLeaves() << '\n';
     cout << "   Max node level: " << Node::getMaxLvl << '\n' << '\n';
+
+    // ============ Construct directional quantities ========= //
+
+    Node::setThetaSamples();
+    Node::buildTables(config);
 
     return 0;
 

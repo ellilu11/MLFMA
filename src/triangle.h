@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <random>
+#include "config.h"
 #include "math.h"
 
 class Triangle;
@@ -17,9 +18,10 @@ public:
 
     Triangle(const vec3i& vIdx, const std::vector<vec3d>& vList) 
         : vIdx(vIdx),
-          vertices( { vList[vIdx[0]], vList[vIdx[1]], vList[vIdx[2]] } )
-          // center( (vertices[0] + vertices[1] + vertices[2]) / 3.0 )
+          vertices( { vList[vIdx[0]], vList[vIdx[1]], vList[vIdx[2]] } ),
+          center( (vertices[0] + vertices[1] + vertices[2]) / 3.0 )
     {
+        buildQuadNodes(Precision::MEDIUM);
     };
 
     vec3i getVidx() { return vIdx; }
@@ -30,9 +32,18 @@ public:
 
     double getArea() const { return area; }
 
+    void buildQuadNodes(const Precision);
+
+    std::pair<std::vector<vec3d>,double> getQuads() { 
+        return std::make_pair(quadNodes,quadWeight); 
+    }
+
 private:
     vec3i vIdx;
     std::array<vec3d,3> vertices;
     vec3d center;
     double area;
+
+    std::vector<vec3d> quadNodes;
+    double quadWeight;
 };

@@ -7,7 +7,7 @@
 #include "clock.h"
 #include "config.h"
 #include "rwg.h"
-// #include "tables.h"
+#include "tables.h"
 
 constexpr int DIM = 3;
 constexpr int numDir = 26;
@@ -35,11 +35,11 @@ public:
     
     static const int getNumNodes() { return numNodes; }
 
-    static void setNodeParams(const Config&);
+    static void setNodeParams(const Config&, const std::shared_ptr<Src>&);
 
-    static void setThetaSamples(const std::shared_ptr<Src>&);
+    static void setThetaSamples();
 
-    // static void buildTables(const Config&);
+    static void buildTables(const Config&);
 
 public:
     RWGVec getRWGs() const { return rwgs; }
@@ -60,9 +60,9 @@ public:
 
     NodeVec getLeafIlist() const { return leafIlist; }
     
-    std::vector<vecXcd> getMpoleCoeffs() const { return coeffs; }
+    std::vector<vec3cd> getMpoleCoeffs() const { return coeffs; }
     
-    std::vector<vecXcd> getLocalCoeffs() const { return localCoeffs; }
+    std::vector<vec3cd> getLocalCoeffs() const { return localCoeffs; }
 
     const bool isRoot() const { return base == nullptr; }
     
@@ -82,7 +82,7 @@ public:
     
     void pushSelfToNearNonNbors();
    
-    std::vector<vecXcd> getShiftedLocalCoeffs(const int) const;
+    std::vector<vec2cd> getShiftedLocalCoeffs(const int) const;
 
     void evalLeafIlistSols();
 
@@ -110,10 +110,11 @@ protected:
     static int maxNodeSrcs;
     static int maxLevel;
     static double rootLeng;
+    static double k;
     static int L;
     static std::vector<realVec> thetas;
     static std::vector<realVec> thetaWeights;
-    // static Tables tables;
+    static Tables tables;
     inline static int numNodes = 0;
 
     RWGVec rwgs;
@@ -128,9 +129,8 @@ protected:
     std::array<NodeVec,6> dirList; // list 2, indexed by direction
     NodeVec leafIlist; // list 4
 
-    std::vector<vecXcd> coeffs;
-    std::array<std::vector<vecXcd>,6> expCoeffs;
-    std::vector<vecXcd> localCoeffs;
+    std::vector<vec3cd> coeffs;
+    std::vector<vec3cd> localCoeffs;
 
     int label;
 };

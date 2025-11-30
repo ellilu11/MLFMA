@@ -5,12 +5,15 @@ int Node::orderExp;
 int Node::maxNodeSrcs;
 int Node::maxLevel;
 double Node::rootLeng;
+double Node::k;
 int Node::L;
 std::vector<realVec> Node::thetas;
 std::vector<realVec> Node::thetaWeights;
-// Tables Node::tables;
+Tables Node::tables;
 
-void Node::setNodeParams(const Config& config) {
+void Node::setNodeParams(
+    const Config& config, const std::shared_ptr<Src>& Einc) {
+
     order = config.order; // ceil(-std::log(config.EPS) / std::log(2));
     orderExp = [&]() -> std::size_t {
         switch (config.prec) {
@@ -20,34 +23,32 @@ void Node::setNodeParams(const Config& config) {
         }
         }();
     maxNodeSrcs = config.maxNodeSrcs;
-    rootLeng = config.L; // TODO: define from max l_infty norm of all rwg centers
-
+    rootLeng = config.rootLeng; // TODO: define from max l_infty norm of all rwg centers
+    k = Einc->k;
 }
-
-/*
-void Node::buildTables(const Config& config) {
-    tables = Tables(order, config.prec);
-    assert(orderExp == tables.quadCoeffs_.size());
-}*/
 
 /* setThetaSamples(config)
  * Compute L and theta samples at each level
- * src : Source excitation (need src->k)
  */
-void Node::setThetaSamples(const std::shared_ptr<Src>& src) {
+void Node::setThetaSamples() {
 
     for (int lvl = maxLevel; lvl >= 0; --lvl) {
         const double nodeLeng = rootLeng / pow(2.0, lvl);
 
         // Use excess bandwidth formula
-        L = ceil(1.73*src->k*nodeLeng +
-            2.16*pow(orderExp, 2.0/3.0)*pow(src->k*nodeLeng, 1.0/3.0));
+        L = ceil(1.73*k*nodeLeng +
+            2.16*pow(orderExp, 2.0/3.0)*pow(k*nodeLeng, 1.0/3.0));
 
-        auto [nodes, weights] = Math::gaussLegendreTheta(L+1, 1.0E-9);
+        const auto [nodes, weights] = Math::gaussLegendreTheta(L+1, 1.0E-9);
 
         thetas[lvl] = nodes;
         thetaWeights[lvl] = weights;
     }
+}
+
+void Node::buildTables(const Config& config) {
+    tables = Tables(maxLevel,k,thetas);
+    // assert(orderExp == tables.quadCoeffs_.size());
 }
 
 /* Node(particles,branchIdx,base)
@@ -66,8 +67,8 @@ Node::Node(
         base->center + nodeLeng / 2.0 * Math::idx2pm(branchIdx)),
     label(0)
 {
-    for (int l = 0; l <= order; ++l) 
-        localCoeffs.push_back(vecXcd::Zero(2*l+1));
+    // for (int l = 0; l <= order; ++l) 
+    //    localCoeffs.push_back(vec2cd::Zero(2*l+1));
 
     maxLevel = level;
     numNodes++;

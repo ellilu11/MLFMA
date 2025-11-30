@@ -41,3 +41,26 @@ TriVec importTriangles(
 
     return triangles;
 }
+
+void Triangle::buildQuadNodes(const Precision prec) {
+
+    switch (prec) {
+        case Precision::LOW :
+            quadNodes.push_back(center);
+            quadWeight = 1.0/2.0;
+            break;
+
+        case Precision::MEDIUM :
+            quadNodes.resize(3);
+            quadNodes[0] = 2.0/3.0*vertices[0] + 1.0/6.0*vertices[1] + 1.0/6.0*vertices[2];
+            quadNodes[1] = 1.0/6.0*vertices[0] + 2.0/3.0*vertices[1] + 1.0/6.0*vertices[2];
+            quadNodes[2] = 1.0/6.0*vertices[0] + 1.0/6.0*vertices[1] + 2.0/3.0*vertices[2];
+            quadWeight = 1.0/6.0;
+            break;
+
+        case Precision::HIGH :
+            quadNodes.resize(7);
+            // TODO: 7-point quadrature
+            break;
+    }
+}

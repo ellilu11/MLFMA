@@ -18,9 +18,16 @@ public:
         const TriVec&,
         const std::shared_ptr<Src>);
 
-    vec3d getCenter() { return vCenter; }
+    std::shared_ptr<Triangle> getTriPlus() const { return triPlus; }
+    std::shared_ptr<Triangle> getTriMinus() const { return triMinus; }
 
-    cmplx getCurrent() { return current; }
+    vec3d getCenter() const { return vCenter; }
+
+    vec3d getVplus() const { return vPlus; }
+
+    vec3d getVminus() const { return vMinus; }
+
+    cmplx getCurrent() const { return current; }
 
     cmplx buildRHS();
 

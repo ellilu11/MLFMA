@@ -15,8 +15,9 @@ using pair2d = std::pair<double, double>;
 
 using vec3i = Eigen::Vector3i;
 using vec3d = Eigen::Vector3d;
+using vec2cd = Eigen::Vector2cd;
 using vec3cd = Eigen::Vector3cd;
-using vecXcd = Eigen::VectorXcd;
+// using vecXcd = Eigen::VectorXcd;
 
 using mat3d = Eigen::Matrix3d;
 using matXcd = Eigen::MatrixXcd;
@@ -133,7 +134,7 @@ namespace Math {
 
         auto toPhi = [](double x, double y) {
             if (x == 0 && y == 0) return 0.0; // pick phi = 0.0
-            return std::atan2(y, x);
+            return atan2(y, x);
             };
 
         return vec3d(r, std::acos(z/r), toPhi(x, y));
@@ -142,17 +143,24 @@ namespace Math {
     inline vec3d fromSph(const vec3d& R) {
         auto r = R[0], th = R[1], ph = R[2];
         return vec3d(
-            r * std::sin(th) * std::cos(ph),
-            r * std::sin(th) * std::sin(ph),
-            r * std::cos(th));
+            r * sin(th) * cos(ph),
+            r * sin(th) * sin(ph),
+            r * cos(th));
     }
 
     inline vec3d fromCyl(const vec3d& S) {
         auto r = S[0], ph = S[1], z = S[2];
         return vec3d(
-            r * std::cos(ph),
-            r * std::sin(ph),
+            r * cos(ph),
+            r * sin(ph),
             z);
+    }
+
+    inline vec3d vecSph(const double r, const double th, const double ph) {
+        return r * vec3d(
+            sin(th) * cos(ph),
+            sin(th) * sin(ph),
+            cos(th));
     }
 
     inline mat3d IminusRR(const double th, const double ph) {
@@ -166,6 +174,14 @@ namespace Math {
             std::sqrt(factorial(l-abs_m) / static_cast<double>(factorial(l+abs_m))) * // Ylm coeffs
             pm(abs_m) * std::pow(2.0, l); // legendreLM coeffs
     }
+
+    //inline mat3d matToSph(const double th, const double ph) {
+    //    return mat3d{
+    //        {  sin(th)*cos(ph),  cos(th)*cos(ph), -sin(ph)/sin(th) },
+    //        {  sin(th)*sin(ph),  cos(th)*sin(ph),  cos(ph)/sin(th) },
+    //        {  cos(th),         -sin(th),          0.0             }
+    //    };
+    //}
 
     inline mat3d matFromSph(const double th, const double ph) {
         return mat3d{
@@ -224,7 +240,7 @@ namespace Math {
         for (int k = 0; k < kmax; ++k) {
             double x_k = cos(PI * (4.0*(kmax-k)-1) / (4.0*l + 2.0));
             double dp_k;
-            while (1) {
+            while (true) {
                 auto [p, dp] = legendreL(x_k, l);
                 x_k -= p/dp; // apply Newton-Raphson
                 if (abs(p/dp) <= EPS) {
@@ -235,7 +251,7 @@ namespace Math {
 
             const size_t kplus = l%2 ? kmax+1+k : kmax+k;
             const size_t kminus = kmax-1-k;
-                
+            
             nodes[kplus] = PI/2.0*(x_k + 1.0);
             nodes[kminus] = PI/2.0*(-x_k + 1.0);
 

@@ -52,22 +52,39 @@ void Leaf::buildLists() {
  * (S2M) Build mpole expansions from RWG in this node  
  */
 void Leaf::buildMpoleCoeffs() {
-
     const int nth = thetas[level].size();
     const int nph = 2*(L+1);
+    coeffs.resize(nth*nph, vec3cd::Zero());
 
-    for (const auto& rwg : rwgs) {
-        for (int ith = 0; ith < nth; ++ith) {
-            const double th = thetas[level][ith];
-            for (int iph = 0; iph < nph; ++iph) {
-                const double ph = 2.0*PI*iph/static_cast<double>(nph);
-                auto ImRR = Math::IminusRR(th, ph); // precompute this
+    for (int ith = 0; ith < nth; ++ith) {
+        // const double th = thetas[level][ith];
+        for (int iph = 0; iph < nph; ++iph) {
+            // const double ph = 2.0*PI*iph/static_cast<double>(nph);
+            size_t idx = 0;
+            const auto ImRR = tables.ImRR[level][idx];
+            const auto kvec = tables.kvec[level][idx];
 
+            vec3cd dirCoeff = vec3cd::Zero();
+            for (const auto& rwg : rwgs) {
+
+                auto triPlus = rwg->getTriPlus();
+                auto [nodesPlus,weightPlus] = triPlus->getQuads();
+                for (const auto& node : nodesPlus)
+                    dirCoeff += weightPlus * ImRR * (rwg->getVplus() - node)
+                        * Math::expI(kvec.dot(center-node));
+                        
+                auto triMinus = rwg->getTriMinus();
+                auto [nodesMinus, weightMinus] = triMinus->getQuads();
+                for (const auto& node : nodesMinus)
+                    dirCoeff += weightMinus * ImRR * (node - rwg->getVminus())
+                        * Math::expI(kvec.dot(center-node));
+                
+                dirCoeff = rwg->getCurrent() * dirCoeff;
             }
+            
+            coeffs[idx++] = dirCoeff;
         }
     }
-
-    // call rwg->getCurrent()
 }
 
 /* propagateExpCoeffs()

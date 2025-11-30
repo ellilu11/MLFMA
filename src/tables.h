@@ -4,28 +4,54 @@
 
 struct Tables {
     Tables() = default;
-    Tables(const int order, const Precision prec) {
-        buildYlmTables(order);
-        buildQuadTables(prec);
-        buildExpTables(order);
+    Tables(const int maxLevel, const double k, std::vector<realVec>& thetas) {
+        buildDirTables(maxLevel, k, thetas);
+        // buildYlmTables(order);
     }
 
-    void buildYlmTables(const int);
-    void buildDirTables(const Precision);
+
+    void buildDirTables(const int, const double, std::vector<realVec>&);
+    // void buildYlmTables(const int);
+
+    // dir tables
+    std::vector<std::vector<mat3d>> ImRR;
+    std::vector<std::vector<vec3d>> kvec;
 
     // Ylm tables
-    std::vector<realVec> coeffYlm_;
+    /*std::vector<realVec> coeffYlm_;
     std::vector<realVec> fallingFact_;
     std::vector<realVec> legendreSum_;
     std::vector<realVec> fracCoeffYlm_;
     std::vector<realVec> A_;
-    std::vector<realVec> Aexp_;
-
-    // quad tables
-    std::vector<pair2d> quadCoeffs_;
-    std::vector<int> quadLengs_;
+    std::vector<realVec> Aexp_;*/
 };
 
+void Tables::buildDirTables(
+    const int maxLevel, const double k, std::vector<realVec>& thetas) {
+    for (int level = 0; level <= maxLevel; ++level) {
+
+        const int nth = thetas[level].size();
+        const int nph = 2*nth;
+
+        std::vector<mat3d> ImRR_lvl;
+        std::vector<vec3d> kvec_lvl;
+
+        for (int ith = 0; ith < nth; ++ith) {
+            const double th = thetas[level][ith];
+            for (int iph = 0; iph < nph; ++iph) {
+                const double ph = 2.0*PI*iph/static_cast<double>(nph);
+
+                ImRR_lvl.push_back(Math::IminusRR(th, ph));
+                kvec_lvl.push_back(Math::vecSph(k, th, ph));
+            }
+        }
+
+        ImRR.push_back(ImRR_lvl);
+        kvec.push_back(kvec_lvl);
+    }
+}
+
+/*
 void Tables::buildYlmTables(const int order) {
     auto binom = [](double x, int k) {
         return Math::fallingFactorial(x, k) / Math::factorial(k);
@@ -56,8 +82,4 @@ void Tables::buildYlmTables(const int order) {
         A_.push_back(A_l);
         Aexp_.push_back(Aexp_l);
     }
-}
-
-void Tables::buildDirTables(const Precision prec) {
-
-}
+}*/
