@@ -27,6 +27,8 @@ public:
 
     vec3d getVminus() const { return vMinus; }
 
+    double getLeng() const { return leng; }
+
     cmplx getCurrent() const { return current; }
 
     cmplx buildRHS();

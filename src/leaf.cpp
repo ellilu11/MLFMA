@@ -49,19 +49,21 @@ void Leaf::buildLists() {
 }
 
 /* buildMpoleCoeffs()
- * (S2M) Build mpole expansions from RWG in this node  
+ * (S2M) Build multipole coefficients from RWG in this node  
  */
 void Leaf::buildMpoleCoeffs() {
     const int nth = thetas[level].size();
-    const int nph = 2*(L+1);
+    const int nph = 2*nth;
     coeffs.resize(nth*nph, vec3cd::Zero());
 
+    assert(tables.ImKK[level].size() == nth*nph);
+    assert(tables.kvec[level].size() == nth*nph);
+
+    size_t idx = 0;
     for (int ith = 0; ith < nth; ++ith) {
-        // const double th = thetas[level][ith];
         for (int iph = 0; iph < nph; ++iph) {
-            // const double ph = 2.0*PI*iph/static_cast<double>(nph);
-            size_t idx = 0;
-            const auto ImRR = tables.ImRR[level][idx];
+
+            const auto ImKK = tables.ImKK[level][idx];
             const auto kvec = tables.kvec[level][idx];
 
             vec3cd dirCoeff = vec3cd::Zero();
@@ -69,17 +71,17 @@ void Leaf::buildMpoleCoeffs() {
 
                 auto triPlus = rwg->getTriPlus();
                 auto [nodesPlus,weightPlus] = triPlus->getQuads();
-                for (const auto& node : nodesPlus)
-                    dirCoeff += weightPlus * ImRR * (rwg->getVplus() - node)
-                        * Math::expI(kvec.dot(center-node));
-                        
+                for (const auto& quadNode : nodesPlus)
+                    dirCoeff += weightPlus * ImKK * (rwg->getVplus() - quadNode)
+                        * Math::expI(kvec.dot(center-quadNode));
+                
                 auto triMinus = rwg->getTriMinus();
                 auto [nodesMinus, weightMinus] = triMinus->getQuads();
-                for (const auto& node : nodesMinus)
-                    dirCoeff += weightMinus * ImRR * (node - rwg->getVminus())
-                        * Math::expI(kvec.dot(center-node));
+                for (const auto& quadNode : nodesMinus)
+                    dirCoeff += weightMinus * ImKK * (quadNode - rwg->getVminus())
+                        * Math::expI(kvec.dot(center-quadNode));
                 
-                dirCoeff = rwg->getCurrent() * dirCoeff;
+                dirCoeff = rwg->getCurrent() * rwg->getLeng() * dirCoeff;
             }
             
             coeffs[idx++] = dirCoeff;

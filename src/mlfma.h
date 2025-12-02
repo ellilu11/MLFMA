@@ -14,6 +14,7 @@
 #include "node.cpp"
 #include "rwg.cpp"
 #include "stem.cpp"
+#include "tables.cpp"
 #include "triangle.cpp"
 
 // TODO: Reference additional headers your program requires here.

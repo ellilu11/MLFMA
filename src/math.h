@@ -99,6 +99,14 @@ namespace Math {
         return bits;
     }
 
+    inline size_t coord2Idx(size_t row, size_t col, int leng) {
+        return row*leng + col;
+    }
+
+    inline pair2i idx2Coord(size_t idx, int leng) {
+        return pair2i(idx/leng, idx%leng);
+    }
+
     inline double pm(const int k) {
         return k % 2 ? -1.0 : 1.0;
     }
@@ -205,7 +213,7 @@ namespace Math {
      * x : evaluation point
      * l : order of Legendre polynomial
      */
-    pair2d legendreL(double x, int l) {
+    pair2d legendreL(const double x, const int l) {
         double p;
         double pm2 = 1.0;
         double pmm = x;
@@ -222,19 +230,27 @@ namespace Math {
     }
 
     /* gaussLegendreTheta(l)
-    * Return lth order Gauss-Legendre nodes and weights on the interval [0,\pi]
-    * l : quadrature order
+    * Return lth order Gauss-Legendre nodes and weights on the interval [a,b]
+    * l   : quadrature order
     * EPS : minimum error to terminate Newton-Raphson
+    * a   : lower bound of interval (default -1.0)
+    * b   : upper bound of interval (default 1.0)
     */
-    std::pair<realVec,realVec> gaussLegendreTheta(int l, const double EPS) {
+    std::pair<realVec,realVec> gaussLegendre(
+        const int l, const double EPS, const double a = -1.0, const double b = 1.0) {
+
+        const double leng = b - a;
+        const double mid = (a + b)/2.0;
+        assert(leng > 0);
+
         realVec nodes(l);
         realVec weights(l);
         const int kmax = l/2; // # positive nodes = integer part of l/2
 
-        if (l%2) { // if order is odd, middle node is at \pi/2
-            nodes[kmax] = PI / 2.0;
+        if (l%2) { // if order is odd, middle node is at (a+b)/2
+            nodes[kmax] = mid;
             auto [p, dp] = legendreL(0.0, l);
-            weights[kmax] = PI / (dp*dp);
+            weights[kmax] = leng / (dp*dp);
         }
 
         for (int k = 0; k < kmax; ++k) {
@@ -252,14 +268,58 @@ namespace Math {
             const size_t kplus = l%2 ? kmax+1+k : kmax+k;
             const size_t kminus = kmax-1-k;
             
-            nodes[kplus] = PI/2.0*(x_k + 1.0);
-            nodes[kminus] = PI/2.0*(-x_k + 1.0);
+            nodes[kplus] = leng/2.0*x_k + mid;
+            nodes[kminus] = -leng/2.0*x_k + mid;
 
-            weights[kplus] = PI / ((1.0-x_k*x_k) * dp_k*dp_k);
+            weights[kplus] = leng / ((1.0-x_k*x_k) * dp_k*dp_k);
             weights[kminus] = weights[kplus];
         }
 
         return std::pair<realVec,realVec>(nodes, weights);
+    }
+
+    /* getNearGLNodeIdx(x, m)
+    * Get the index of the Gauss-Legendre node of order m 
+    * nearest (and less than) the point x on the interval [a, b]
+    * x : evaluation point
+    * m : order of near nodes
+    * a : lower bound of interval
+    * b : upper bound of interval
+    */
+    size_t getNearGLNodeIdx(double xi, int m, double a = -1.0, double b = 1.0) {
+ 
+        const double leng = b - a;
+        const double mid = (a + b)/2.0;
+        assert(leng > 0);
+
+        const double x = 2.0*(xi - mid) / leng; // Change to interval [-1,1]
+
+        const int s = m/2 - ((4*m+2) * acos(x) / PI + 1)/4;
+
+        return std::max(1, s);
+    }
+
+    /* evalLagrangePoly(x, xs, k)
+    * Evaluate the Lagrange basis polynomial taking on 1 at xs[k]
+    * and 0 at xs[j] for j \neq k, at the point x
+    * x  : evaluation point
+    * xs : Lagrange nodes
+    * k  : index of Lagrange polynomial \in {0,1,...,order}
+    */
+    double evalLagrangeBasisPoly(
+        const double x, const std::vector<double>& xs, const int k) {
+
+        const int order = xs.size()-1;
+        assert(k <= order);
+      
+        double product = 1.0;
+
+        for (int j = 0; j <= order; ++j) {
+            if (j == k) continue;
+            product *= (x - xs[j]) / (xs[k] - xs[j]);
+        }
+
+        return product;
     }
 
 } // close Math::

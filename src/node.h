@@ -37,7 +37,7 @@ public:
 
     static void setNodeParams(const Config&, const std::shared_ptr<Src>&);
 
-    static void setThetaSamples();
+    static void buildThetaSamples();
 
     static void buildTables(const Config&);
 
@@ -110,8 +110,8 @@ protected:
     static int maxNodeSrcs;
     static int maxLevel;
     static double rootLeng;
-    static double k;
-    static int L;
+    static double wavenum;
+    static std::vector<realVec> phis;
     static std::vector<realVec> thetas;
     static std::vector<realVec> thetaWeights;
     static Tables tables;

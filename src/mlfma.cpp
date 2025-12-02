@@ -10,13 +10,12 @@ int main() {
 
     // ===== Tests ===== //
     //for (int l = 1; l <= 5; ++l) {
-    //    auto [nodes, weights] = Math::gaussLegendreTheta(l, 1.0E-9);
+    //    auto [nodes, weights] = Math::gaussLegendre(l, 1.0E-9, 0.0, PI);
     //    cout << "l = " << l << " ";
     //    for (int k = 0; k < l; ++k)
     //        cout << '(' << nodes[k] << ',' << weights[k] << ") ";
     //    cout << '\n';
     //}
-
     //return 0;
 
     // ==================== Import geometry ==================== //
@@ -61,9 +60,15 @@ int main() {
 
     // ============ Construct directional quantities ========= //
 
-    Node::setThetaSamples();
+    Node::buildThetaSamples();
     Node::buildTables(config);
 
     return 0;
 
+    // ==================== Upward pass ===================== //
+    cout << " Computing upward pass...\n";
+
+    root->buildMpoleCoeffs();
+
+    return 0;
 }

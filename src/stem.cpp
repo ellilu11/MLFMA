@@ -61,6 +61,69 @@ void Stem::buildLists() {
  * (M2M) Build mpole coeffs by merging branch mpole coeffs 
  */
 void Stem::buildMpoleCoeffs() {
+    const int nth = thetas[level].size();
+    const int nph = phis[level].size();
+    coeffs.resize(nth*nph, vec3cd::Zero());
+
+    const int mth = thetas[level+1].size();
+    const int mph = phis[level+1].size();
+
+    for (const auto& branch : branches) {
+        branch->buildMpoleCoeffs();
+        auto branchCoeffs = branch->getMpoleCoeffs();
+
+        // Shift branch coeffs to center of this box
+        const auto rvec = center - branch->getCenter();
+        size_t l = 0;
+        std::vector<vec3cd> shiftedBranchCoeffs;
+
+        for (int jth = 0; jth < mth; ++jth){
+            for (int jph = 0; jph < mph; ++jph) {
+
+                const auto kvec = tables.kvec[level+1][l];
+                shiftedBranchCoeffs.push_back(
+                    Math::expI(kvec.dot(rvec)) * branchCoeffs[l++]
+                );
+            }
+        }
+
+        // Interpolate over theta
+        std::vector<vec3cd> interpedBranchCoeffs(nth*mph, vec3cd::Zero()); 
+        size_t m = 0;
+        for (int ith = 0; ith < nth; ++ith) { // over parent theta to interpolate
+            auto t = tables.T[level][ith];
+
+            for (int jph = 0; jph < mph; ++jph) { // over child phi (uninterpolated)
+
+                for (int jth = t+1-order; jth <= t+order; ++jth) { // over child theta interpolating parent theta
+                    const size_t k = jth - (t+1-order);
+                    interpedBranchCoeffs[m] +=
+                        tables.interpTheta[level][ith][k]
+                        * shiftedBranchCoeffs[jth*mph + jph];
+                }
+
+                m++;
+            }
+        }
+
+        // Interpolate over phi
+        size_t n = 0;
+        for (int ith = 0; ith < nth; ++ith) { // over parent theta (interpolated)
+
+            for (int iph = 0; iph < nph; ++iph) { // over parent phi to interpolate
+                auto s = tables.S[level][ith]; // don't need to lookup for every ith
+
+                for (int jph = s+1-order; jph <= s+order; ++jph) { // over child phi interpolating parent phi
+                    const size_t k = jph - (s+1-order);
+                    coeffs[n] +=
+                        tables.interpPhi[level][iph][k]
+                        * interpedBranchCoeffs[ith*mph + jph];
+                }
+
+                n++;
+            }
+        }
+    }
 }
 
 /* propagateExpCoeffs()

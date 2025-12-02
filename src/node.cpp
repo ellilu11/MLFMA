@@ -5,8 +5,8 @@ int Node::orderExp;
 int Node::maxNodeSrcs;
 int Node::maxLevel;
 double Node::rootLeng;
-double Node::k;
-int Node::L;
+double Node::wavenum;
+std::vector<realVec> Node::phis;
 std::vector<realVec> Node::thetas;
 std::vector<realVec> Node::thetaWeights;
 Tables Node::tables;
@@ -24,30 +24,38 @@ void Node::setNodeParams(
         }();
     maxNodeSrcs = config.maxNodeSrcs;
     rootLeng = config.rootLeng; // TODO: define from max l_infty norm of all rwg centers
-    k = Einc->k;
+    wavenum = Einc->wavenum;
 }
 
-/* setThetaSamples(config)
- * Compute L and theta samples at each level
+/* buildThetaSamples(config)
+ * Compute theta and phi samples at each level
  */
-void Node::setThetaSamples() {
+void Node::buildThetaSamples() {
 
     for (int lvl = maxLevel; lvl >= 0; --lvl) {
         const double nodeLeng = rootLeng / pow(2.0, lvl);
 
         // Use excess bandwidth formula
-        L = ceil(1.73*k*nodeLeng +
-            2.16*pow(orderExp, 2.0/3.0)*pow(k*nodeLeng, 1.0/3.0));
+        const int L = ceil(1.73*wavenum*nodeLeng +
+            2.16*pow(orderExp, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0));
 
-        const auto [nodes, weights] = Math::gaussLegendreTheta(L+1, 1.0E-9);
+        const int nph = 2*(L+1);
+        realVec nodesPhi;
+        for (int iph = 0; iph < nph; ++iph)
+            nodesPhi.push_back(2.0*PI*iph/static_cast<double>(nph));
+        phis.push_back(nodesPhi);
 
-        thetas[lvl] = nodes;
-        thetaWeights[lvl] = weights;
+        const auto [nodes, weights] = 
+            Math::gaussLegendre(L+1, 1.0E-9, 0.0, PI);
+
+        thetas.push_back(nodes);
+        thetaWeights.push_back(weights);
+
     }
 }
 
 void Node::buildTables(const Config& config) {
-    tables = Tables(maxLevel,k,thetas);
+    tables = Tables(maxLevel,wavenum,thetas);
     // assert(orderExp == tables.quadCoeffs_.size());
 }
 
@@ -97,10 +105,6 @@ void Node::buildInteractionList() {
     }
 
     assert(iList.size() <= pow(6, DIM) - pow(3, DIM));
-
-    // pick minDist \in (nodeLeng, 2.0*nodeLeng) to avoid rounding errors
-    const double minDist = 1.5 * nodeLeng;
-
 }
 
 /* pushSelfToNearNonNbors()
