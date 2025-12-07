@@ -34,6 +34,7 @@ int main() {
 
     // ==================== Set up domain ==================== //
     cout << " Setting up domain...\n";
+    auto fmm_start = Clock::now();
     auto start = Clock::now();
 
     shared_ptr<Node> root;
@@ -80,4 +81,26 @@ int main() {
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     return 0;
+
+    // ==================== Downward pass ==================== //
+    cout << " Computing downward pass...\n";
+    start = Clock::now();
+
+    root->buildLocalCoeffs();
+
+    end = Clock::now();
+    duration_ms = end - start;
+
+    // ================== Evaluate solutions ================= //
+    cout << " Evaluating solutions...\n";
+    start = Clock::now();
+
+    Leaf::evaluateSols();
+
+    end = Clock::now();
+    duration_ms = end - start;
+    Time fmm_duration_ms = end - fmm_start;
+
+    cout << " FMM total elapsed time: " << fmm_duration_ms.count() << " ms\n";
+
 }

@@ -61,24 +61,24 @@ void Stem::buildLists() {
  * (M2M) Build mpole coeffs by merging branch mpole coeffs 
  */
 void Stem::buildMpoleCoeffs() {
-    const int nth = thetas[level].size();
-    const int nph = phis[level].size();
+    const auto [nth, nph] = getNumAngles(level);
+    const auto [mth, mph] = getNumAngles(level+1);
+
     coeffs.resize(nth*nph, vec2cd::Zero());
 
-    const int mth = thetas[level+1].size();
-    const int mph = phis[level+1].size();
-
-    // std::cout << level << ' ' << nth << ' ' << nph << ' ' << mth << ' ' << mph << '\n';
-
     for (const auto& branch : branches) {
+        if (branch->getRWGs().empty()) continue;
+
         branch->buildMpoleCoeffs();
-        auto branchCoeffs = branch->getMpoleCoeffs();
+
+        const auto branchCoeffs = branch->getMpoleCoeffs();
 
         // Shift branch coeffs to center of this box
         const auto shift = center - branch->getCenter();
-        size_t l = 0;
+
         std::vector<vec2cd> shiftedBranchCoeffs;
 
+        size_t l = 0;
         for (int jth = 0; jth < mth; ++jth){
             for (int jph = 0; jph < mph; ++jph) {
 
@@ -90,6 +90,7 @@ void Stem::buildMpoleCoeffs() {
 
         // Interpolate over theta
         std::vector<vec2cd> interpedBranchCoeffs(nth*mph, vec2cd::Zero()); 
+
         size_t m = 0;
         for (int ith = 0; ith < nth; ++ith) {
             auto t = tables.ts[level][ith];
@@ -151,19 +152,26 @@ void Stem::buildMpoleCoeffs() {
             std::cout << '(' << level << ',' << ith << ',' << iph << ") " << coeffs[ith*nph+iph] << '\n';*/
 }
 
-/* propagateExpCoeffs()
- * (M2X) Convert mpole coeffs into outgoing exp coeffs
- * (X2X) Translate outgoing exp coeffs to nodes in all dirlists
- */ 
-void Stem::propagateExpCoeffs() {
-}
-
 /* buildLocalCoeffs() 
- * (X2L) Receive incoming exp coeffs and add to local coeffs
- * (P2L) Add contribution from list 4 nodes t to local coeffs
+ * (M2L) Translate mpole coeffs of interaction nodes into local coeffs at center
  * (L2L) Shift base local coeffs to center and add to local coeffs
  */
 void Stem::buildLocalCoeffs() {
-   
+    if (!isRoot()) {
+
+        buildMpoleToLocalCoeffs();
+
+        evalLeafIlistSols();
+
+        if (!base->isRoot()) {
+            auto shiftedLocalCoeffs = base->getShiftedLocalCoeffs(branchIdx);
+
+            for (int l = 0; l <= order; ++l)
+                localCoeffs[l] += shiftedLocalCoeffs[l];
+        }
+    }
+
+    for (const auto& branch : branches)
+        branch->buildLocalCoeffs();
 }
 

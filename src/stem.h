@@ -26,8 +26,6 @@ public:
 
     void buildMpoleCoeffs() override;
 
-    void propagateExpCoeffs() override;
-
     void buildLocalCoeffs() override;
 
 };

@@ -48,12 +48,12 @@ public:
 
     void buildMpoleCoeffs() override;
 
-    void propagateExpCoeffs() override;
-
     void buildLocalCoeffs() override;
 
     // ========== Test methods ==========
-    vec3d getLeafSols(const vec3d);
+    vec2cd getLeafSols(const vec3d);
+
+    static void testFarFieldFromLeaves(const std::vector<vec3d>&);
 
 private:
     static LeafVec leaves;

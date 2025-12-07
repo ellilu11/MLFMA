@@ -9,6 +9,7 @@ double Node::wavenum;
 std::vector<realVec> Node::phis;
 std::vector<realVec> Node::thetas;
 std::vector<realVec> Node::thetaWeights;
+std::vector<int> Node::Ls;
 Tables Node::tables;
 
 void Node::setNodeParams(
@@ -27,36 +28,6 @@ void Node::setNodeParams(
     wavenum = Einc->wavenum;
 }
 
-/* buildAngularSamples()
- * Compute theta and phi samples at each level
- */
-void Node::buildAngularSamples() {
-
-    for (int lvl = 0; lvl <= maxLevel; ++lvl) {
-        const double nodeLeng = rootLeng / pow(2.0, lvl);
-
-        // Use excess bandwidth formula
-        const int L = ceil(1.73*wavenum*nodeLeng +
-            2.16*pow(prec, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0));
-
-        const int nph = 2*(L+1);
-        realVec nodesPhi;
-        for (int iph = 0; iph < nph; ++iph)
-            nodesPhi.push_back(2.0*PI*iph/static_cast<double>(nph));
-        phis.push_back(nodesPhi);
-
-        const auto [nodes, weights] = Interp::gaussLegendre(L+1, 1.0E-9, 0.0, PI);
-
-        thetas.push_back(nodes);
-        thetaWeights.push_back(weights);
-    }
-}
-
-void Node::buildTables(const Config& config) {
-    tables = Tables(maxLevel, config.order, wavenum, thetas, phis);
-    // assert(prec == tables.quadCoeffs_.size());
-}
-
 /* Node(particles,branchIdx,base)
  * particles : list of particles contained in this node
  * branchidx : index of this node relative to its base node
@@ -73,10 +44,39 @@ Node::Node(
         base->center + nodeLeng / 2.0 * Math::idx2pm(branchIdx)),
     label(0)
 {
-    // for (int l = 0; l <= order; ++l) 
-    //    localCoeffs.push_back(vec2cd::Zero(2*l+1));
-
     numNodes++;
+}
+
+/* buildAngularSamples()
+ * Compute theta and phi samples at each level
+ */
+void Node::buildAngularSamples() {
+
+    for (int lvl = 0; lvl <= maxLevel; ++lvl) {
+        const double nodeLeng = rootLeng / pow(2.0, lvl);
+
+        // Use excess bandwidth formula
+        const int L = ceil(1.73*wavenum*nodeLeng +
+            2.16*pow(prec, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0));
+
+        Ls.push_back(L);
+
+        const int nph = 2*(L+1);
+        realVec nodesPhi;
+        for (int iph = 0; iph < nph; ++iph)
+            nodesPhi.push_back(2.0*PI*iph/static_cast<double>(nph));
+        phis.push_back(nodesPhi);
+
+        const auto [nodes, weights] = Interp::gaussLegendre(L+1, 1.0E-9, 0.0, PI);
+
+        thetas.push_back(nodes);
+        thetaWeights.push_back(weights);
+    }
+}
+
+void Node::buildTables(const Config& config) {
+    tables = Tables(
+        maxLevel, config.order, thetas, phis, Ls, wavenum, rootLeng);
 }
 
 /* buildInteractionList()
@@ -90,7 +90,6 @@ void Node::buildInteractionList() {
         return std::find(vec.begin(), vec.end(), val) == vec.end();
     };
 
-    NodeVec iList;
     for (const auto& baseNbor : base->nbors) {
         if (baseNbor->isNodeType<Leaf>() && notContains(nbors, baseNbor)) {
             leafIlist.push_back(baseNbor);
@@ -117,16 +116,64 @@ void Node::pushSelfToNearNonNbors() {
     }
 }
 
+/* buildMpoleToLocalCoeffs()
+ * (M2L) Translate mpole coeffs of interaction nodes into local coeffs at center
+ */
+void Node::buildMpoleToLocalCoeffs() {
+    if (isRoot()) return;
+
+    const auto [nth, nph] = getNumAngles(level);
+    localCoeffs.resize(nth*nph, vec2cd::Zero());
+
+    /*for (const auto& node : iList) {
+        const auto mpoleCoeffs = node->getMpoleCoeffs();
+
+        const auto R = center - node->getCenter();
+        const auto r = R.norm();
+        const auto rhat = R / r;
+        
+        const auto iDist = Math::getIdxOfVal(R, tables.normedDists);
+
+        const int t = 0; // std::floor()
+
+        size_t idx = 0;
+        for (int ith = 0; ith < nth; ++ith) {
+            for (int iph = 0; iph < nph; ++iph) {
+
+                const vec3d kvec = tables.kvec[level][idx];
+
+                const double psi = kvec.dot(rhat) / kvec.norm();
+
+                auto lagrangeCoeff = Interp::evalLagrangeBasis(psi, psis, i);
+
+                double translCoeff = 0.0;
+
+                for (int i = t+1-order; i <= t+order; ++i) {
+                    translCoeff +=
+                        tables.transl[level][iDist][i] *
+                        lagrangeCoeff;
+                }
+
+                localCoeffs[idx] += translCoeff * mpoleCoeffs[idx];
+
+                idx++;
+            }
+        }
+    }*/
+}
+
 /* getShiftedLocalCoeffs(branchIdx)
  * (L2L) Return local coeffs shifted to center of branch labeled by branchIdx
  * branchIdx : index of branch \in {0, ..., 7}
  */
-/*std::vector<vecXcd> Node::getShiftedLocalCoeffs(const int branchIdx) const {
+std::vector<vec2cd> Node::getShiftedLocalCoeffs(const int branchIdx) const {
+    std::vector<vec2cd> shiftedLocalCoeffs;
 
-}*/
+    return shiftedLocalCoeffs;
+}
 
 /* evalLeafIlistSols()
- * (P2L) Add contribution from list 4 to local coeffs
+ * (S2L) Add contribution from list 4 to local coeffs
  */
 void Node::evalLeafIlistSols() {
   
@@ -154,28 +201,32 @@ void Node::evalSelfSols() {
  * Return sols at spherical point R due to all RWGs in this node
  * using farfield approximation
  */
-vec3cd Node::getFarSols(const vec3d R) {
+vec2cd Node::getFarSols(const vec3d R) {
     auto r = R[0];
     auto rhat = Math::fromSph(R) / r;
+    auto ImRR = Math::IminusRR(R[1], R[2]);
 
-    vec3cd fvec;
+    vec3cd fvec = vec3cd::Zero();
 
     for (const auto& rwg : rwgs) {
+        vec3cd rwgCoeff = vec3cd::Zero();
+
         auto triPlus = rwg->getTriPlus();
         auto [nodesPlus, weightPlus] = triPlus->getQuads();
         for (const auto& quadNode : nodesPlus)
-            fvec += weightPlus * (rwg->getVplus() - quadNode)
-                * Math::expI(-wavenum*rhat.dot(quadNode));
+            rwgCoeff += weightPlus * Math::expI(-wavenum*rhat.dot(quadNode)) 
+                        * (rwg->getVplus() - quadNode);
 
         auto triMinus = rwg->getTriMinus();
         auto [nodesMinus, weightMinus] = triMinus->getQuads();
         for (const auto& quadNode : nodesMinus)
-            fvec += weightMinus * (quadNode - rwg->getVminus())
-                * Math::expI(-wavenum*rhat.dot(quadNode));
+            rwgCoeff += weightMinus * Math::expI(-wavenum*rhat.dot(quadNode)) 
+                        * (quadNode - rwg->getVminus());
         
-        fvec *= rwg->getCurrent() * rwg->getLeng();
+        fvec += rwg->getCurrent() * rwg->getLeng() * rwgCoeff;
     }
 
-    return -iu * wavenum * Math::expI(wavenum*r) / (4.0*PI*r) 
-            * Math::IminusRR(R[1], R[2]) * fvec;
+    return -iu * wavenum 
+            * Math::expI(wavenum*r) / (4.0*PI*r) 
+            * Math::matToThPh(R[1], R[2]) * (ImRR * fvec);
 }

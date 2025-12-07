@@ -6,23 +6,28 @@ struct Tables {
     Tables() = default;
     Tables(const int maxLevel,
         const int order,
-        const double wavenum, 
         std::vector<realVec>& thetas, 
-        std::vector<realVec>& phis) 
+        std::vector<realVec>& phis,
+        std::vector<int>& Ls,
+        const double wavenum,
+        const double rootLeng)
     {
-        buildAngularTables(maxLevel, wavenum, thetas, phis);
+        buildAngularTables(maxLevel, thetas, phis, wavenum);
         buildInterpThetaTable(maxLevel, order, thetas);
         buildInterpPhiTable(maxLevel, order, phis);
+        buildTranslationTable(maxLevel, order, Ls, wavenum, rootLeng);
+
     }
 
     void buildAngularTables(
-        const int, const double, const std::vector<realVec>&, const std::vector<realVec>&);
+        const int, const std::vector<realVec>&, const std::vector<realVec>&, const double);
 
     void buildInterpThetaTable(const int, const int, const std::vector<realVec>&);
 
     void buildInterpPhiTable(const int, const int, const std::vector<realVec>&);
 
-    // void buildYlmTables(const int);
+    void buildTranslationTable(
+        const int, const int, const std::vector<int>&, const double, const double);
 
     // Angular tables
     std::vector<std::vector<mat3d>> ImKK;
@@ -37,11 +42,10 @@ struct Tables {
     std::vector<std::vector<realVec>> interpPhi;
     std::vector<std::vector<size_t>> ss;
 
-    // Ylm tables
-    /*std::vector<realVec> coeffYlm_;
-    std::vector<realVec> fallingFact_;
-    std::vector<realVec> legendreSum_;
-    std::vector<realVec> fracCoeffYlm_;
-    std::vector<realVec> A_;
-    std::vector<realVec> Aexp_;*/
+    std::vector<std::vector<realVec>> interpPsi;
+
+    // M2L translation tables
+    std::vector<std::vector<cmplxVec>> transl;
+    realVec normedDists;
+
 };

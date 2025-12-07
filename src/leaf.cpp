@@ -53,8 +53,10 @@ void Leaf::buildLists() {
  * (S2M) Build multipole coefficients from RWG in this node  
  */
 void Leaf::buildMpoleCoeffs() {
-    const int nth = thetas[level].size();
-    const int nph = phis[level].size();
+    if (rwgs.empty()) return;
+
+    const auto [nth, nph] = getNumAngles(level);
+
     coeffs.resize(nth*nph, vec2cd::Zero());
 
     /*auto triCoeff = [this](std::shared_ptr<Triangle> tri, mat3d ImKK, vec3d kvec, bool isPlus) {
@@ -81,53 +83,57 @@ void Leaf::buildMpoleCoeffs() {
                 auto vPlus = rwg->getVplus();
                 auto [nodesPlus,weightPlus] = triPlus->getQuads();
                 for (const auto& quadNode : nodesPlus)
-                    rwgCoeff += weightPlus * Math::expI(kvec.dot(center-quadNode))
-                        * ImKK * (vPlus - quadNode);
+                    rwgCoeff += weightPlus * Math::expI(kvec.dot(center-quadNode)) 
+                                    * (vPlus - quadNode);
                 
                 auto triMinus = rwg->getTriMinus();
                 auto vMinus = rwg->getVminus();
                 auto [nodesMinus, weightMinus] = triMinus->getQuads();
                 for (const auto& quadNode : nodesMinus)
                     rwgCoeff += weightMinus * Math::expI(kvec.dot(center-quadNode)) 
-                        * ImKK * (quadNode - vMinus);
+                                    * (quadNode - vMinus);
                 
                 dirCoeff += rwg->getCurrent() * rwg->getLeng() * rwgCoeff;
             }
 
             // Get theta and phi components
-            coeffs[idx++] = tables.matToThPh[level][idx] * dirCoeff;
-            // dirCoeff = tables.matToThPh[level][idx] * dirCoeff;
+            coeffs[idx] = tables.matToThPh[level][idx] * (ImKK * dirCoeff);
 
-            // std::cout << '(' << ith << ',' << iph << ") " << coeffs[idx=1] << '\n';
+            // std::cout << '(' << ith << ',' << iph << ") " << coeffs[idx] << '\n';
+
+            idx++;
         }
     }
     // std::cout << '\n';
 }
 
-/* propagateExpCoeffs()
- * (M2X) Convert mpole coeffs into exp coeffs
- * (X2X) Translate exp coeffs to nodes in all dirlists
- */
-void Leaf::propagateExpCoeffs() {
-}
-
 /* buildLocalCoeffs()
- * (X2L) Receive incoming exp coeffs and add to local coeffs
- * (P2L) Add contribution from list 4 nodes t to local coeffs
+ * (M2L) Translate mpole coeffs of interaction nodes into local coeffs at center
  * (L2L) Shift base local coeffs to center and add to local coeffs
  */
 void Leaf::buildLocalCoeffs() {
+    if (isRoot()) return;
 
+    buildMpoleToLocalCoeffs();
+
+    evalLeafIlistSols();
+
+    if (!base->isRoot()) {
+        auto shiftedLocalCoeffs = base->getShiftedLocalCoeffs(branchIdx);
+
+        for (int l = 0; l <= order; ++l)
+            localCoeffs[l] += shiftedLocalCoeffs[l];
+    }
 }
 
 /* evalFarSols()
- * (L2P) Evaluate sols from local expansion due to far nodes
+ * (L2T) Evaluate sols from local expansion due to far nodes
  */
 void Leaf::evalFarSols() {
 }
 
 /* evalNearNonNborSols()
- * (M2P) Evaluate sols from mpole expansion due to list 3 nodes
+ * (M2T) Evaluate sols from mpole expansion due to list 3 nodes
  */
 void Leaf::evalNearNonNborSols() {
 }
@@ -153,4 +159,18 @@ std::vector<LeafPair> Leaf::findNearNborPairs(){
  * Sum solutions at all particles in all leaves 
  */ 
 void Leaf::evaluateSols() {
+
+    for (const auto& leaf : leaves) {
+        leaf->evalFarSols();
+
+        leaf->evalNearNonNborSols();
+
+        leaf->evalSelfSols();
+    }
+
+    for (const auto& pair : findNearNborPairs()) {
+        auto [obsLeaf, srcLeaf] = pair;
+        obsLeaf->evalPairSols(srcLeaf);
+    }
+
 }

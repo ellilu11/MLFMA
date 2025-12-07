@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include <iostream>
 #include <array>
 #include <complex>
+#include <iostream>
 #include <memory>
 #include <vector>
 

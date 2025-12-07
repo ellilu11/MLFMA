@@ -1,10 +1,10 @@
 #include "tables.h"
 
 void Tables::buildAngularTables(
-    const int maxLevel, 
-    const double wavenum, 
+    const int maxLevel,
     const std::vector<realVec>& thetas,
-    const std::vector<realVec>& phis) {
+    const std::vector<realVec>& phis,
+    const double wavenum) {
     for (int level = 0; level <= maxLevel; ++level) {
 
         const int nth = thetas[level].size();
@@ -111,8 +111,10 @@ void Tables::buildInterpPhiTable(
             // Assemble child phis interpolating parent phi
             realVec branchPhis;
             for (int jph = s+1-order; jph <= s+order; ++jph)
+
                 // Wrap jph if not in [0, mph-1]
                 // size_t jph_wrapped = Math::wrapIdxToRange(jph, mph); 
+                
                 branchPhis.push_back(2.0*PI*jph/static_cast<double>(mph));
 
             for (size_t k = 0; k <= 2*order-1; ++k)
@@ -128,35 +130,57 @@ void Tables::buildInterpPhiTable(
     }
 }
 
-/*
-void Tables::buildYlmTables(const int order) {
-    auto binom = [](double x, int k) {
-        return Math::fallingFactorial(x, k) / Math::factorial(k);
-        };
+void Tables::buildTranslationTable(
+    const int maxLevel, const int order, const std::vector<int>& Ls, 
+    const double rootLeng, const double wavenum) {
 
-    for (int l = 0; l <= 2*order; ++l) {
-        realVec coeffYlm_l, fallingFact_l, legendreSum_l, fracCoeffYlm_l, A_l, Aexp_l;
+    using namespace Math;
 
-        for (int m = 0; m <= l; ++m) {
-            coeffYlm_l.push_back(Math::coeffYlm(l, m));
-            fallingFact_l.push_back(Math::fallingFactorial(l, m));
-            legendreSum_l.push_back(binom(l, m) * binom((l+m-1)/2.0, l));
-            fracCoeffYlm_l.push_back(sqrt((l-m)/static_cast<double>(l+m)));
+    constexpr double q = 3.5; // TODO: Optimize this
+
+    normedDists = []() {
+        realVec dists;
+
+        for (int dz = 2; dz <= 3; ++dz)
+            for (int dy = 0; dy <= 3; ++dy)
+                for (int dx = 0; dx <= 3; ++dx)
+                    dists.push_back(vec3d(dx, dy, dz).norm());
+
+        std::sort(dists.begin(), dists.end());
+        dists.erase(std::unique(dists.begin(), dists.end()), dists.end());
+
+        return dists;
+    } ();
+
+    for (size_t level = 0; level <= maxLevel; ++level) {
+        const auto L = Ls[level];
+        const int nps = std::floor(q*L);
+        const double nodeLeng = rootLeng / pow(2.0, level);
+
+        std::vector<cmplxVec> transl_lvl;
+        
+        for (int iDist = 0; iDist < normedDists.size(); ++iDist) {
+            const auto dr = normedDists[iDist];
+
+            cmplxVec transl_lvl_k;
+
+            for (int ips = 0; ips < nps; ++ips) {
+                const double psi = PI * ips / (nps - 1.0); // or / nps ?
+                cmplx coeff = 0.0;
+
+                for (int l = 0; l <= L; ++l)
+                    coeff +=
+                        powI(l) * (2.0*l+1.0) *
+                        sphericalHankel1(wavenum*dr*nodeLeng, l) *
+                        legendreL(cos(psi), l).first;
+
+                transl_lvl_k.push_back(coeff);
+            }
+
+            transl_lvl.push_back(transl_lvl_k);
+
         }
 
-        auto pm_l = Math::pm(l);
-        for (int m = -l; m <= l; ++m) {
-            A_l.push_back(pm_l /
-                std::sqrt(static_cast<double>(Math::factorial(l-m)*Math::factorial(l+m))));
-            Aexp_l.push_back(1.0 /
-                std::sqrt(static_cast<double>(Math::factorial(l-m)*Math::factorial(l+m))));
-        }
-
-        coeffYlm_.push_back(coeffYlm_l);
-        fallingFact_.push_back(fallingFact_l);
-        legendreSum_.push_back(legendreSum_l);
-        fracCoeffYlm_.push_back(fracCoeffYlm_l);
-        A_.push_back(A_l);
-        Aexp_.push_back(Aexp_l);
+        transl.push_back(transl_lvl);
     }
-}*/
+};

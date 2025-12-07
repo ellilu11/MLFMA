@@ -1,88 +1,13 @@
 #pragma once
 
-#include <Eigen/Dense>
-#include <algorithm>
 #include <cmath>
+#include "types.h"
 
 #define _USE_MATH_DEFINES
-
-using realVec = std::vector<double>;
-using cmplx = std::complex<double>;
-using cmplxVec = std::vector<cmplx>;
-
-using pair2i = std::pair<int, int>;
-using pair2d = std::pair<double, double>;
-
-using vec3i = Eigen::Vector3i;
-using vec3d = Eigen::Vector3d;
-using vec2cd = Eigen::Vector2cd;
-using vec3cd = Eigen::Vector3cd;
-// using vecXcd = Eigen::VectorXcd;
-
-using mat3d = Eigen::Matrix3d;
-using mat23d = Eigen::Matrix<double,2,3>;
 
 constexpr cmplx iu(0, 1);
 const double PI = std::acos(-1.0);
 const vec3d zeroVec = vec3d::Zero();
-
-template <typename T>
-std::vector<T> operator+ (const std::vector<T>& zs, const std::vector<T>& ws) {
-    std::vector<T> sum;
-    for (size_t i = 0; i < zs.size(); ++i)
-        sum.push_back(zs[i] + ws[i]);
-    return sum;
-}
-
-std::ostream& operator<< (std::ostream& os, const vec3d& X) {
-    os << X[0] << " " << X[1] << " " << X[2];
-    return os;
-}
-
-std::ostream& operator<< (std::ostream& os, const vec2cd& X) {
-    os << X[0] << " " << X[1];
-    return os;
-}
-
-std::ostream& operator<< (std::ostream& os, const vec3cd& X) {
-    os << X[0] << " " << X[1] << " " << X[2];
-    return os;
-}
-
-std::istream& operator>>(std::istream& is, vec3d& X) {
-    double x, y, z;
-    if (is >> x >> y >> z)
-        X = vec3d{ x, y, z };
-    return is;
-}
-
-std::istream& operator>>(std::istream& is, vec3i& X) {
-    int x, y, z;
-    if (is >> x >> y >> z)
-        X = vec3i{ x, y, z };
-    return is;
-}
-
-std::istream& operator>>(std::istream& is, Eigen::Vector4i& X) {
-    int x, y, z, w;
-    if (is >> x >> y >> z >> w)
-        X = Eigen::Vector4i{ x, y, z, w };
-    return is;
-}
-
-/*
-template <typename T>
-std::istream& operator>>(std::istream& is, std::vector<T>& X) {
-    T x, y, z;
-    if (is >> x >> y >> z)
-        X = std::vector<T>{ x, y, z };
-    return is;
-}*/
-
-std::array<bool, 3> operator> (const vec3d& x, const vec3d& y) {
-    std::array<bool, 3> bools{ x[0] > y[0], x[1] > y[1], x[2] > y[2] };
-    return bools;
-}
 
 namespace Math {
 
@@ -134,11 +59,11 @@ namespace Math {
         }
     }
 
-    double factorial(double n) {
+    inline double factorial(double n) {
         return n == 0 ? 1 : n * factorial(n-1);
     }
 
-    double fallingFactorial(double x, int k) {
+    inline double fallingFactorial(double x, int k) {
         return k == 0 ? 1 : x * fallingFactorial(x - 1, k - 1);
     }
 
@@ -220,7 +145,7 @@ namespace Math {
         };
     }
 
-    size_t flipIdxToRange(const int i, const int size) {
+    inline size_t flipIdxToRange(const int i, const int size) {
         int uint_i = i;
 
         if (i < 0)
@@ -232,7 +157,7 @@ namespace Math {
         return uint_i;
     }
 
-    size_t wrapIdxToRange(const int i, const int size) {
+    inline size_t wrapIdxToRange(const int i, const int size) {
         int uint_i = i;
 
         if (i < 0)
@@ -244,27 +169,74 @@ namespace Math {
         return uint_i;
     }
 
-    /* legendreL(x,l)
-     * Recursively evaluate the lth order Legendre polynomial
-     * and its 1st derivative at the point x
-     * x : evaluation point
-     * l : order of Legendre polynomial
-     */
-    pair2d legendreL(const double x, const int l) {
-        double p;
-        double pm2 = 1.0;
-        double pmm = x;
+    /*inline int getIdxOfVal(const double val, const realVec& list) {
 
-        for (int i = 2; i <= l; ++i) {
-            p = ((2.0*i-1)*x*pmm - (i-1)*pm2) / static_cast<double>(i);
-            pm2 = pmm;
-            pmm = p;
+    auto idx = std::find_if( list.begin(), list.end(),
+        [val](double val0) {
+        return std::abs(val - val0) < 1.0E-6;
         }
+    );
 
-        double dp = l*(x*pmm - pm2) / (x*x - 1.0);
+    return idx;
+    }*/
 
-        return pair2d(p, dp);
-    }
+    pair2d legendreL(const double, const int);
+
+    cmplx sphericalHankel1(const double, const int);
 
 } // close Math::
 
+/* legendreL(x,l)
+ * Recursively evaluate the lth order Legendre polynomial
+ * and its 1st derivative at the point x
+ * x : evaluation point
+ * l : order of Legendre polynomial
+ */
+pair2d Math::legendreL(const double x, const int l) {
+    double p;
+    double pm2 = 1.0;
+    double pmm = x;
+
+    for (int i = 2; i <= l; ++i) {
+        p = ((2.0*i-1)*x*pmm - (i-1)*pm2) / static_cast<double>(i);
+        pm2 = pmm;
+        pmm = p;
+    }
+
+    double dp = l*(x*pmm - pm2) / (x*x - 1.0);
+
+    return std::make_pair(p, dp);
+}
+
+/* sphericalHankel1(x,n)
+     * Recursively evaluate the spherical Hankel function
+     * of the 1st kind of order n at the point x
+     * x : evaluation point
+     * n : order of Hankel function
+     */
+cmplx Math::sphericalHankel1(const double x, const int n) {
+
+    cmplx H1_nmm = -iu*expI(x) / x;
+
+    if (!n) return H1_nmm;
+
+    cmplx H1_n = -expI(x) * (1.0/x + iu/(x*x));
+
+    for (int i = 0; i < n-1; ++i) {
+        cmplx H1_npp = (2*n-1)/x * H1_n - H1_nmm;
+        H1_nmm = H1_n;
+        H1_n = H1_npp;
+    }
+
+    return H1_n;
+
+    /*
+    else if (n == 1)
+        return
+    else {
+        assert(n >= 2);
+        return
+            (2*n-1)/x * sphericalHankel1(x, n-1) -
+            sphericalHankel1(x, n-2);
+    }*/
+}

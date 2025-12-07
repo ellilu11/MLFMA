@@ -30,11 +30,15 @@ public:
 
     // static void setExpansionOrder(const int p) { order = p; }
     
-    static const int getExponentialOrder() { return prec; }
+    static int getPrecision() { return prec; }
 
-    static const int getMaxLvl() { return maxLevel; }
+    static int getMaxLvl() { return maxLevel; }
     
-    static const int getNumNodes() { return numNodes; }
+    static int getNumNodes() { return numNodes; }
+
+    static pair2i getNumAngles(const int level) { 
+        return std::make_pair(thetas[level].size(), phis[level].size());
+    }
 
     static void setNodeParams(const Config&, const std::shared_ptr<Src>&);
 
@@ -57,7 +61,7 @@ public:
     
     NodeVec getNbors() const { return nbors; }
 
-    NodeVec getDirList(const int dir) const { return dirList[dir]; }
+    NodeVec getIlist() const { return iList; }
 
     NodeVec getLeafIlist() const { return leafIlist; }
     
@@ -82,6 +86,8 @@ public:
     void buildInteractionList();
     
     void pushSelfToNearNonNbors();
+
+    void buildMpoleToLocalCoeffs();
    
     std::vector<vec2cd> getShiftedLocalCoeffs(const int) const;
 
@@ -91,7 +97,7 @@ public:
 
     void evalSelfSols();
 
-    vec3cd getFarSols(const vec3d);
+    vec2cd getFarSols(const vec3d);
    
     virtual std::shared_ptr<Node> getSelf() = 0;
     
@@ -101,14 +107,12 @@ public:
     
     virtual void buildMpoleCoeffs() = 0;
     
-    virtual void propagateExpCoeffs() = 0;
-    
     virtual void buildLocalCoeffs() = 0;
     
     virtual void printNode(std::ofstream&) = 0;
 
     // ========== Test methods ==========
-    void testFarField(const int, const int);
+    // void testFarField(const int, const int);
 
 protected:
     static int order;
@@ -120,6 +124,7 @@ protected:
     static std::vector<realVec> phis;
     static std::vector<realVec> thetas;
     static std::vector<realVec> thetaWeights;
+    static std::vector<int> Ls;
     static Tables tables;
     inline static int numNodes = 0;
 
@@ -132,7 +137,7 @@ protected:
 
     NodeVec branches;
     NodeVec nbors; // list 1
-    std::array<NodeVec,6> dirList; // list 2, indexed by direction
+    NodeVec iList; // list 2
     NodeVec leafIlist; // list 4
 
     std::vector<vec2cd> coeffs;
