@@ -19,6 +19,7 @@ public:
         const std::shared_ptr<Src>);
 
     std::shared_ptr<Triangle> getTriPlus() const { return triPlus; }
+
     std::shared_ptr<Triangle> getTriMinus() const { return triMinus; }
 
     vec3d getCenter() const { return vCenter; }
@@ -35,7 +36,7 @@ public:
 
     void buildCurrent();
 
-
+    vec3cd getRadAlongDir(const vec3d&, const vec3d&) const;
 
 private:
     vec3d v0;

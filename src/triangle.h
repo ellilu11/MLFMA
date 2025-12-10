@@ -24,8 +24,6 @@ public:
         buildQuads(Precision::MEDIUM); // Fix later
     };
 
-    friend class RWG;
-
     vec3i getVidx() { return vIdx; }
 
     std::array<vec3d, 3> getVertices() { return vertices; }

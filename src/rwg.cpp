@@ -35,15 +35,17 @@ RWG::RWG(const Eigen::Vector4i& idx,
       vCenter((v0+v1)/2.0),
       Einc(Einc)
 {
-    for (const auto& vIdx : triPlus->vIdx)
+    for (const auto& vIdx : triPlus->getVidx())
         if (vIdx != idx[0] && vIdx != idx[1])
             vPlus = vertices[vIdx];
 
-    for (const auto& vIdx : triMinus->vIdx)
+    for (const auto& vIdx : triMinus->getVidx())
         if (vIdx != idx[0] && vIdx != idx[1])
             vMinus = vertices[vIdx];
 
     leng = (v0-v1).norm();
+
+    // buildRHS();
 
     buildCurrent();
 
@@ -55,23 +57,49 @@ void RWG::buildRHS() {
 
     cmplx rhs(0,0);
 
-    // TODO: Rewrite this
-    /*std::vector<vec3d> midPlus = { vCenter, (v0 + vPlus)/2.0, (v1 + vPlus)/2.0 };
-    std::vector<vec3d> midMinus = { vCenter, (v0 + vMinus)/2.0, (v1 + vMinus)/2.0 };
+    const auto& kvec = Einc->wavenum * Einc->wavevec;
 
-    for (const auto& node : midPlus)
-       rhs += -leng / (6.0 * triPlus->getArea()) * 
-            (node - vPlus).dot(Einc->amplitude * Einc->pol) * 
-            Math::expI(Einc->wavevec.dot(node));
+    auto [nodesPlus, weightPlus] = triPlus->getQuads();
+    for (const auto& quadNode : nodesPlus)
+        rhs += weightPlus * exp(iu*kvec.dot(quadNode)) 
+                    * (quadNode - vPlus).dot(Einc->pol);
 
-    for (const auto& node : midMinus)
-        rhs -= -leng / (6.0 * triPlus->getArea()) *
-            (node - vPlus).dot(Einc->amplitude * Einc->pol) *
-            Math::expI(Einc->wavevec.dot(node));
-    */
+    auto [nodesMinus, weightMinus] = triMinus->getQuads();
+    for (const auto& quadNode : nodesMinus)
+        rhs += weightMinus * exp(iu*kvec.dot(quadNode))
+                    * (vMinus - quadNode).dot(Einc->pol);
+
+    rhs *= -Einc->amplitude * leng;
     
 }
 
 void RWG::buildCurrent() {
     current = 1.0;
+
+    // TODO: Predict current from rhs vector
+
+}
+
+/* getRadAlongDir(X,kvec)
+ * Return the integrated radiated amplitude due to this
+ * RWG at cartesian point X along direction kvec
+ * X    : observation point
+ * kvec : wavevector 
+ */ 
+vec3cd RWG::getRadAlongDir(
+    const vec3d& X, const vec3d& kvec) const {
+    
+    vec3cd coeff = vec3cd::Zero();
+
+    auto [nodesPlus, weightPlus] = triPlus->getQuads();
+    for (const auto& quadNode : nodesPlus)
+        coeff += weightPlus * exp(iu*kvec.dot(X-quadNode))
+                    * (vPlus - quadNode);
+
+    auto [nodesMinus, weightMinus] = triMinus->getQuads();
+    for (const auto& quadNode : nodesMinus)
+        coeff += weightMinus * exp(iu*kvec.dot(X-quadNode))
+                    * (quadNode - vMinus);
+
+    return current * leng * coeff;
 }

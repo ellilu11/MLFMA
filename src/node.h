@@ -71,6 +71,8 @@ public:
     NodeVec getLeafIlist() const { return leafIlist; }
     
     std::vector<vec3cd> getMpoleCoeffs() const { return coeffs; }
+
+    std::pair<vec3cd, vec3cd> getPolarCoeffs() const { return polarCoeffs; }
     
     std::vector<vec2cd> getLocalCoeffs() const { return localCoeffs; }
 
@@ -154,6 +156,7 @@ protected:
     NodeVec leafIlist; // list 4
 
     std::vector<vec3cd> coeffs;
+    std::pair<vec3cd, vec3cd> polarCoeffs;
     std::vector<vec2cd> localCoeffs;
 
     int label;

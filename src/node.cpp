@@ -62,7 +62,7 @@ void Node::buildAngularSamples() {
             ceil(5.0*
                 (1.73*wavenum*nodeLeng +
                 2.16*pow(prec, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0)));
-
+            
         Ls.push_back(L);
 
         const int nph = 2*(L+1);
@@ -131,9 +131,9 @@ void Node::buildMpoleToLocalCoeffs() {
     localCoeffs.resize(nth*nph, vec2cd::Zero());
 
     /*for (const auto& node : iList) {
-        const auto mpoleCoeffs = node->getMpoleCoeffs();
+        const auto& mpoleCoeffs = node->getMpoleCoeffs();
 
-        const auto R = center - node->getCenter();
+        const auto& R = center - node->getCenter();
         const auto r = R.norm();
         const auto rhat = R / r;
         
@@ -147,14 +147,15 @@ void Node::buildMpoleToLocalCoeffs() {
 
                 const vec3d kvec = tables.kvec[level][idx];
 
-                // const double psi = kvec.dot(rhat) / kvec.norm();
+                const double psi = kvec.dot(rhat) / kvec.norm();
 
                 double translCoeff = 0.0;
 
                 for (int i = t+1-order; i <= t+order; ++i) {
                     translCoeff +=
                         tables.transl[level][iDist][i] *
-                        tables.interpPsi[iPsi][i];
+                        Interp::evalLagrangeBasis(psi,psis,i);
+                        // tables.interpPsi[iPsi][i];
                 }
 
                 localCoeffs[idx] += translCoeff * mpoleCoeffs[idx];
@@ -239,7 +240,7 @@ std::vector<vec3cd> Node::getFarSolsFromCoeffs(double r) {
  */
 std::vector<vec3cd> Node::getFarSols(double r) {
 
-    assert(r >= 10.0 * rootLeng); // verify farfield condition
+    assert(r >= 5.0 * rootLeng); // verify farfield condition
 
     const cmplx C = -iu * c0 * wavenum * mu0
         * exp(iu*wavenum*r) / (4.0*PI*r);
@@ -253,27 +254,12 @@ std::vector<vec3cd> Node::getFarSols(double r) {
 
         for (int iph = 0; iph < nph; ++iph) {
 
-            const auto ImKK = tables.ImKK[level][idx];
-            const auto kvec = tables.kvec[level][idx];
+            const auto& ImKK = tables.ImKK[level][idx];
+            const auto& kvec = tables.kvec[level][idx];
 
             vec3cd dirCoeff = vec3cd::Zero();
-            for (const auto& rwg : rwgs) {
-                vec3cd rwgCoeff = vec3cd::Zero();
-
-                auto triPlus = rwg->getTriPlus();
-                auto [nodesPlus, weightPlus] = triPlus->getQuads();
-                for (const auto& quadNode : nodesPlus)
-                    rwgCoeff += weightPlus * exp(-iu*kvec.dot(quadNode))
-                    * (rwg->getVplus() - quadNode);
-
-                auto triMinus = rwg->getTriMinus();
-                auto [nodesMinus, weightMinus] = triMinus->getQuads();
-                for (const auto& quadNode : nodesMinus)
-                    rwgCoeff += weightMinus * exp(-iu*kvec.dot(quadNode))
-                    * (quadNode - rwg->getVminus());
-
-                dirCoeff += rwg->getCurrent() * rwg->getLeng() * rwgCoeff;
-            }
+            for (const auto& rwg : rwgs)
+                dirCoeff += rwg->getRadAlongDir(center, kvec);
 
             sols[idx] = C * ImKK * dirCoeff;
 

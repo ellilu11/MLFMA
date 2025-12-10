@@ -57,54 +57,42 @@ void Leaf::buildMpoleCoeffs() {
 
     const auto [nth, nph] = getNumAngles(level);
 
-    coeffs.resize(nth*nph, vec3cd::Zero());
-
     size_t idx = 0;
     for (int ith = 0; ith < nth; ++ith) {
-        // const double th = thetas[level][ith];
-        // std::cout << ith << ' ' << th << '\n';
 
         for (int iph = 0; iph < nph; ++iph) {
-            // const double ph = phis[level][iph];
-            // if (ith == 0) std::cout << iph << ' ' << ph << '\n';
 
-            const auto ImKK = tables.ImKK[level][idx];
-            const auto kvec = tables.kvec[level][idx];
+            const auto& ImKK = tables.ImKK[level][idx];
+            const auto& kvec = tables.kvec[level][idx];
 
             vec3cd dirCoeff = vec3cd::Zero();
-            for (const auto& rwg : rwgs) { // TODO: Optimize this loop
-                vec3cd rwgCoeff = vec3cd::Zero();
+            for (const auto& rwg : rwgs)
+                dirCoeff += rwg->getRadAlongDir(center, kvec);
 
-                auto triPlus = rwg->getTriPlus();
-                auto vPlus = rwg->getVplus();
-                auto [nodesPlus,weightPlus] = triPlus->getQuads();
-                for (const auto& quadNode : nodesPlus)
-                    rwgCoeff += weightPlus * std::exp(iu*kvec.dot(center-quadNode)) 
-                                    * (vPlus - quadNode);
-                
-                auto triMinus = rwg->getTriMinus();
-                auto vMinus = rwg->getVminus();
-                auto [nodesMinus, weightMinus] = triMinus->getQuads();
-                for (const auto& quadNode : nodesMinus)
-                    rwgCoeff += weightMinus * std::exp(iu*kvec.dot(center-quadNode)) 
-                                    * (quadNode - vMinus);
-                
-                dirCoeff += rwg->getCurrent() * rwg->getLeng() * rwgCoeff;
-            }
+            // in spherical components
+            // coeffs.push_back(tables.matToSph[level][idx] * (ImKK * dirCoeff));
 
-            // in spherical coordinates
-            // coeffs[idx] = tables.matToSph[level][idx] * (ImKK * dirCoeff);
+            // in spherical (no radial) components
+            // coeffs.push_back(tables.matToThPh[level][idx] * (ImKK * dirCoeff));
 
-            // in spherical coordinates, no radial component
-            // coeffs[idx] = tables.matToThPh[level][idx] * (ImKK * dirCoeff);
+            // in cartesian components
+            coeffs.push_back(ImKK * dirCoeff);
 
-            // in cartesian coordinates
-            coeffs[idx] = ImKK * dirCoeff;
-
-            // std::cout << coeffs[idx] << '\n';
             idx++;
         }
     }
+
+    // Get polar coeffs in cartesian components
+    vec3cd northCoeff = vec3cd::Zero();
+    for (const auto& rwg : rwgs)
+        northCoeff += rwg->getRadAlongDir(center, vec3d(0,0,wavenum));
+    polarCoeffs.first = Math::IminusRR(0, 0) * northCoeff;
+
+    vec3cd southCoeff = vec3cd::Zero();
+    for (const auto& rwg : rwgs)
+        southCoeff += rwg->getRadAlongDir(center, vec3d(0,0,-wavenum));
+    polarCoeffs.second = Math::IminusRR(0, PI) * southCoeff;
+
 }
 
 /* buildLocalCoeffs()

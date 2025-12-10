@@ -63,6 +63,7 @@ void Stem::buildLists() {
 void Stem::buildMpoleCoeffs() {
     const auto [nth, nph] = getNumAngles(level);
     const auto [mth, mph] = getNumAngles(level+1);
+    assert(!(mph%2)); // mph needs to be even
 
     coeffs.resize(nth*nph, vec3cd::Zero());
 
@@ -70,22 +71,20 @@ void Stem::buildMpoleCoeffs() {
         if (branch->getRWGs().empty()) continue;
 
         branch->buildMpoleCoeffs();
-
-        const auto branchCoeffs = branch->getMpoleCoeffs();
+        const auto& branchCoeffs = branch->getMpoleCoeffs();
 
         // Shift branch coeffs to center of this box
-        const auto shift = center - branch->getCenter();
-
-        std::vector<vec3cd> shiftedBranchCoeffs;
-
+        const auto& shift = center - branch->getCenter();
+        std::vector<vec3cd> shiftedCoeffs;
         size_t l = 0;
   
         for (int jth = 0; jth < mth; ++jth) {
             for (int jph = 0; jph < mph; ++jph) {
 
-                const auto kvec = tables.kvec[level+1][l];
-                shiftedBranchCoeffs.push_back(
-                    Math::expI(kvec.dot(shift)) * branchCoeffs[l++]);
+                const auto& kvec = tables.kvec[level+1][l];
+
+                shiftedCoeffs.push_back(
+                    exp(iu*kvec.dot(shift)) * branchCoeffs[l++]);
 
             }
         }
@@ -104,22 +103,30 @@ void Stem::buildMpoleCoeffs() {
                     // Flip jph if not in [0, mth-1]
                     const int jth_flipped = Math::flipIdxToRange(jth, mth);
 
-                    bool outOfRange = jth != jth_flipped; // jth < 0 || jth >= mth;
+                    const bool outOfRange = jth != jth_flipped; // jth < 0 || jth >= mth;
 
-                    int m2 = jth_flipped*mph + jph;
+                    int jph_shifted = jph;
 
                     // if theta \notin [0, pi] then if:
                     // phi \in (0, pi) add pi, phi \in (pi, 2pi) subtract pi
                     if (outOfRange)
-                        m2 += ((jph < mph/2) ? mph/2 : -mph/2);
+                        jph_shifted += ((jph < mph/2) ? mph/2 : -mph/2);
+
+                    const int m_shifted = jth_flipped*mph + jph_shifted;
 
                     interpedCoeffs[m] +=
-                        tables.interpTheta[level][ith][k]
-                        * shiftedBranchCoeffs[m2]
-                        * Math::pm(outOfRange);
+                        tables.interpTheta[level][ith][k] * shiftedCoeffs[m_shifted];
+                        // * Math::pm(outOfRange); // only for spherical components!
 
-                }
+                    /*if (outOfRange && jph == mph-1)
+                        std::cout
+                            << ith << ' '
+                            << thetas[level+1][jth_flipped] << ' '
+                            << phis[level+1][jph_shifted] << ' '
+                            << tables.interpTheta[level][ith][k] << '\n';*/
 
+                }            
+                
                 m++;
             }
         }
@@ -144,6 +151,14 @@ void Stem::buildMpoleCoeffs() {
                 n++;
             }
         }
+
+        // Shift polar branch coeffs to center and merge (no interp)
+        polarCoeffs.first += exp(iu*vec3d(0, 0, 1).dot(shift)) 
+            * branch->getPolarCoeffs().first;
+
+        polarCoeffs.second += exp(iu*vec3d(0, 0, -1).dot(shift))
+            * branch->getPolarCoeffs().second;
+
     } // for (const auto& branch : branches)
 
     /*for (int ith = 0; ith < nth; ++ith)
