@@ -81,7 +81,7 @@ int main() {
     duration_ms = end - start;
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    return 0;
+    // return 0;
 
     // ==================== Downward pass ==================== //
     cout << " Computing downward pass...\n";

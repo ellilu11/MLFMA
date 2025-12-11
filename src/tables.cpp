@@ -54,31 +54,31 @@ void Tables::buildInterpThetaTable(
         const int nth = thetas[level].size();
         const int mth = thetas[level+1].size();
 
-        for (size_t ith = 0; ith < nth; ++ith) {
+        for (size_t jth = 0; jth < nth; ++jth) {
             realVec interpTheta_lvl_th;
-            const double theta = thetas[level][ith];
+            const double theta = thetas[level][jth];
 
             // Find idx of child theta nearest parent theta
             const int t = Interp::getNearGLNodeIdx(theta, mth, 0.0, PI);
 
             // Assemble child thetas interpolating parent theta
             realVec branchThetas;
-            for (int jth = t+1-order; jth <= t+order; ++jth) {
+            for (int ith = t+1-order; ith <= t+order; ++ith) {
 
-                // Flip jth if not in [0, mth-1]
-                int jth_flipped = Math::flipIdxToRange(jth, mth);
+                // Flip ith if not in [0, mth-1]
+                int ith_flipped = Math::flipIdxToRange(ith, mth);
 
-                auto branchTheta = thetas[level+1][jth_flipped];
+                auto branchTheta = thetas[level+1][ith_flipped];
 
                 // Extend interpolating thetas to outside [0, 2pi] as needed
-                if (jth < 0)
+                if (ith < 0)
                     branchTheta *= -1.0;
-                else if (jth >= mth)
+                else if (ith >= mth)
                     branchTheta = 2.0*PI - branchTheta;
 
                 branchThetas.push_back(branchTheta);
 
-                // std::cout << ith << ' ' << jth << ' ' << branchTheta << '\n';
+                // std::cout << jth << ' ' << ith << ' ' << branchTheta << '\n';
             }
 
             // std::cout << '\n';
@@ -113,22 +113,22 @@ void Tables::buildInterpPhiTable(
         const int nph = phis[level].size();
         const int mph = phis[level+1].size();
 
-        for (size_t iph = 0; iph < nph; ++iph) {
+        for (size_t jph = 0; jph < nph; ++jph) {
             realVec interpPhi_lvl_ph;
-            const double phi = phis[level][iph];
+            const double phi = phis[level][jph];
 
             // Find idx of child phi nearest parent phi
             const int s = std::floor(mph * phi / (2.0 * PI));
 
             // Assemble child phis interpolating parent phi
             realVec branchPhis;
-            for (int jph = s+1-order; jph <= s+order; ++jph) {
+            for (int iph = s+1-order; iph <= s+order; ++iph) {
 
-                // Wrap jph if not in [0, mph-1]
-                // size_t jph_wrapped = Math::wrapIdxToRange(jph, mph); 
-                // auto branchPhi = phis[level+1][jph_wrapped];
+                // Wrap iph if not in [0, mph-1]
+                // size_t iph_wrapped = Math::wrapIdxToRange(iph, mph); 
+                // auto branchPhi = phis[level+1][iph_wrapped];
 
-                auto branchPhi = 2.0*PI*jph/static_cast<double>(mph);
+                auto branchPhi = 2.0*PI*iph/static_cast<double>(mph);
 
                 branchPhis.push_back(branchPhi);
             }

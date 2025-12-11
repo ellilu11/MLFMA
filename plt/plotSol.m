@@ -26,7 +26,7 @@ end
 % nvec = 1:nangles;
 
 % Select levels and field components to plot
-lvl1 = 4; lvl2 = 5;
+lvl1 = 1; lvl2 = 4;
 comp = 1; % E_x = 1, E_y = 2, E_z = 3
 
 %% Reshape fld matrices
@@ -50,7 +50,7 @@ for iph = 1:nph(lvl1)
     ylim([0 ymax]);
     xlabel('th');
     title('ph = '+string(phis1(iph)))
-    pause(0.2);
+    pause(0.05);
 end
 
 %% Plot as function of phi
@@ -62,5 +62,5 @@ for ith = 1:nth(lvl1)
     ylim([0 ymax]);
     xlabel('ph');
     title('th = '+string(thetas1(ith)))
-    pause(0.2);
+    pause(0.05);
 end

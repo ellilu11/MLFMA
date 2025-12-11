@@ -78,10 +78,10 @@ void Stem::buildMpoleCoeffs() {
         const auto& shift = center - branch->getCenter();
 
         std::vector<vec3cd> shiftedCoeffs;
+
         size_t l = 0;
-  
-        for (int jth = 0; jth < mth; ++jth) {
-            for (int jph = 0; jph < mph; ++jph) {
+        for (int ith = 0; ith < mth; ++ith) {
+            for (int iph = 0; iph < mph; ++iph) {
 
                 const auto& kvec = tables.kvec[level+1][l];
 
@@ -95,29 +95,29 @@ void Stem::buildMpoleCoeffs() {
         std::vector<vec3cd> interpedCoeffs(nth*mph, vec3cd::Zero()); 
 
         size_t m = 0;
-        for (int ith = 0; ith < nth; ++ith) {
-            auto t = tables.ts[level][ith];
+        for (int jth = 0; jth < nth; ++jth) {
+            const int t = tables.ts[level][jth];
 
-            for (int jph = 0; jph < mph; ++jph) {
+            for (int iph = 0; iph < mph; ++iph) {
 
-                for (int jth = t+1-order, k = 0; jth <= t+order; ++jth, ++k) {
+                for (int ith = t+1-order, k = 0; ith <= t+order; ++ith, ++k) {
 
-                    // Flip jph if not in [0, mth-1]
-                    const int jth_flipped = Math::flipIdxToRange(jth, mth);
+                    // Flip iph if not in [0, mth-1]
+                    const int ith_flipped = Math::flipIdxToRange(ith, mth);
 
-                    const bool outOfRange = jth != jth_flipped; // jth < 0 || jth >= mth;
+                    const bool outOfRange = ith != ith_flipped; // jth < 0 || jth >= mth;
 
-                    int jph_shifted = jph;
+                    int iph_shifted = iph;
 
                     // if theta \notin [0, pi] then if:
                     // phi \in (0, pi) add pi, phi \in (pi, 2pi) subtract pi
                     if (outOfRange)
-                        jph_shifted += ((jph < mph/2) ? mph/2 : -mph/2);
+                        iph_shifted += ((iph < mph/2) ? mph/2 : -mph/2);
 
-                    const int m_shifted = jth_flipped*mph + jph_shifted;
+                    const int m_shifted = ith_flipped*mph + iph_shifted;
 
                     interpedCoeffs[m] +=
-                        tables.interpTheta[level][ith][k] * shiftedCoeffs[m_shifted];
+                        tables.interpTheta[level][jth][k] * shiftedCoeffs[m_shifted];
                         // * Math::pm(outOfRange); // only for spherical components!
                 }            
                 
@@ -127,19 +127,19 @@ void Stem::buildMpoleCoeffs() {
         
         // Interpolate over phi
         size_t n = 0;
-        for (int ith = 0; ith < nth; ++ith) { 
+        for (int jth = 0; jth < nth; ++jth) { 
 
-            for (int iph = 0; iph < nph; ++iph) { 
-                auto s = tables.ss[level][iph]; // don't need to lookup for every ith
+            for (int jph = 0; jph < nph; ++jph) { 
+                const int s = tables.ss[level][jph]; // TODO: don't need to lookup for every ith
 
-                for (int jph = s+1-order, k = 0; jph <= s+order; ++jph, ++k) {
+                for (int iph = s+1-order, k = 0; iph <= s+order; ++iph, ++k) {
 
-                    // Wrap jph if not in [0, mph-1]
-                    const int jph_wrapped = Math::wrapIdxToRange(jph, mph); 
+                    // Wrap iph if not in [0, mph-1]
+                    const int iph_wrapped = Math::wrapIdxToRange(iph, mph); 
 
                     coeffs[n] +=
-                        tables.interpPhi[level][iph][k]
-                        * interpedCoeffs[ith*mph + jph_wrapped];
+                        tables.interpPhi[level][jph][k]
+                        * interpedCoeffs[jth*mph + iph_wrapped];
                 }
 
                 n++;
@@ -166,18 +166,19 @@ void Stem::buildMpoleCoeffs() {
  */
 std::vector<vec3cd> Stem::getShiftedLocalCoeffs(const int branchIdx) const {
 
-    std::vector<vec3cd> outCoeffs;
-
     const auto [nth, nph] = getNumAngles(level);
     const auto [mth, mph] = getNumAngles(level+1);
 
+    std::vector<vec3cd> outCoeffs(mth*mph, vec3cd::Zero());
+
+    // Shift local coeffs to center of branch
     const auto& shift = branches[branchIdx]->getCenter() - center;
 
     std::vector<vec3cd> shiftedCoeffs;
-    size_t l = 0;
 
-    for (int ith = 0; ith < nth; ++ith) {
-        for (int iph = 0; iph < nph; ++iph) {
+    size_t l = 0;
+    for (int jth = 0; jth < nth; ++jth) {
+        for (int jph = 0; jph < nph; ++jph) {
 
             const auto& kvec = tables.kvec[level][l];
 
@@ -187,9 +188,53 @@ std::vector<vec3cd> Stem::getShiftedLocalCoeffs(const int branchIdx) const {
         }
     }
 
-    // Anterpolate over phi
-
     // Anterpolate over theta
+    std::vector<vec3cd> anterpedCoeffs(mth*nph, vec3cd::Zero());
+
+    size_t m = 0;
+    for (int ith = 0; ith < mth; ++ith) { // over child thetas to anterpolate
+
+        for (int jph = 0; jph < nph; ++jph) { // over parent phis (unanterpolated)
+
+            for (int jth = 0; jth < nth; ++jth) { // over parent thetas anterpolating child thetas
+
+                const int t = tables.ts[level][jth]; // TODO: don't need to lookup for every ith & jph
+                
+                // shift from ith \in [t+1-order,t+order] to k \in [0,2*order-1]   
+                const int k = ith - (t+1-order); 
+                
+                if (k < 0 || k >= 2*order) continue;
+  
+                anterpedCoeffs[m] +=
+                    tables.interpTheta[level][jth][k] * shiftedCoeffs[m];
+            }
+
+            m++;
+        }
+    }
+
+    // Anterpolate over phi
+    size_t n = 0;
+    for (int ith = 0; ith < mth; ++ith) { // over child thetas (anterpolated)
+
+        for (int iph = 0; iph < mph; ++iph) { // over child phis to anterpolate
+
+            for (int jph = 0; jph < nph; ++jph) { // over parent phis anterpolating child phis
+
+                const int s = tables.ss[level][jph]; // TODO: don't need to lookup for every ith & iph
+
+                // shift from iph \in [s+1-order,s+order] to k \in [0,2*order-1]
+                const int k = iph - (s+1-order); 
+
+                if (k < 0 || k >= 2*order) continue;
+
+                outCoeffs[n] +=
+                    tables.interpPhi[level][jph][k] * anterpedCoeffs[n];
+            }
+
+            n++;
+        }
+    }
 
     return outCoeffs;
 }
