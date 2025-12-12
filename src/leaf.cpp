@@ -53,7 +53,7 @@ void Leaf::buildLists() {
  * (S2M) Build multipole coefficients from RWG in this node  
  */
 void Leaf::buildMpoleCoeffs() {
-    if (rwgs.empty()) return;
+    if (isSrcless()) return;
 
     const auto [nth, nph] = getNumAngles(level);
 
@@ -110,10 +110,8 @@ void Leaf::buildLocalCoeffs() {
     if (!base->isRoot()) {
         auto baseStem = static_cast<Stem*>(base);
 
-        auto shiftedLocalCoeffs = baseStem->getShiftedLocalCoeffs(branchIdx);
-
-        for (int l = 0; l <= order; ++l)
-            localCoeffs[l] += shiftedLocalCoeffs[l];
+        localCoeffs = 
+            localCoeffs + baseStem->getShiftedLocalCoeffs(branchIdx);
     }
 }
 

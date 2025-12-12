@@ -6,7 +6,7 @@ struct Src {
     Src()
         : 
         amplitude(1.0), 
-        wavenum(0.1),
+        wavenum(1.0),
         pol(vec3d{ 1,0,0 }),
         wavevec(vec3d{ 0,0,1 })
     {

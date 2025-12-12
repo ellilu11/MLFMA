@@ -34,7 +34,7 @@ std::pair<realVec, realVec> Interp::gaussLegendre(
 
     if (l%2) { // if order is odd, middle node is at (a+b)/2
         nodes[kmax] = mid;
-        auto [p, dp] = Math::legendreL(0.0, l);
+        auto [p, dp] = Math::legendreP(0.0, l);
         weights[kmax] = leng / (dp*dp);
     }
 
@@ -42,7 +42,7 @@ std::pair<realVec, realVec> Interp::gaussLegendre(
         double x_k = cos(PI * (4.0*(kmax-k)-1) / (4.0*l + 2.0));
         double dp_k;
         while (true) {
-            auto [p, dp] = Math::legendreL(x_k, l);
+            auto [p, dp] = Math::legendreP(x_k, l);
             x_k -= p/dp; // apply Newton-Raphson
             if (abs(p/dp) <= EPS) {
                 dp_k = dp;
@@ -97,14 +97,12 @@ int Interp::getNearGLNodeIdx(
 double Interp::evalLagrangeBasis(
     const double x, const realVec& xs, const int k) {
 
-    const int order = xs.size()-1;
-    assert(k <= order);
+    // assert(k < xs.size());
 
     double product = 1.0;
 
-    for (int j = 0; j <= order; ++j) {
+    for (int j = 0; j < xs.size(); ++j) {
         if (j == k) continue;
-        assert(xs[k] != xs[j]);
 
         product *= (x - xs[j]) / (xs[k] - xs[j]);
     }

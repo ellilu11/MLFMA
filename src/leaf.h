@@ -28,11 +28,11 @@ public:
         f << center << " " << nodeLeng << " " << label << '\n';
     }
 
-    static const int getNumLeaves() { return leaves.size(); }
+    static int getNumLeaves() { return leaves.size(); }
 
-    const NodeVec getNearNonNbors() const { return nearNonNbors; }
+    NodeVec getNearNonNbors() const { return nearNonNbors; }
 
-    const NodeVec getNearNbors() const { return nearNbors; }
+    NodeVec getNearNbors() const { return nearNbors; }
 
     void evalFarSols();
 

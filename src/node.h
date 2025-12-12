@@ -16,6 +16,7 @@ constexpr int numDir = 26;
 // TODO: move into config
 constexpr double c0 = 299792458.0; 
 constexpr double mu0 = 1.256637E-6; 
+constexpr double q = 3.5; // TODO: optimize this
 
 enum class Dir {
     W, E, S, N, D, U,
@@ -54,15 +55,15 @@ public:
 public:
     RWGVec getRWGs() const { return rwgs; }
     
-    const int getBranchIdx() const { return branchIdx; }
+    int getBranchIdx() const { return branchIdx; }
     
-    const double getLeng() const { return nodeLeng; }
+    double getLeng() const { return nodeLeng; }
     
-    const vec3d getCenter() const { return center; }
+    vec3d getCenter() const { return center; }
     
     Node* getBase() const { return base; }
     
-    const NodeVec getBranches() const { return branches; }
+    NodeVec getBranches() const { return branches; }
     
     NodeVec getNbors() const { return nbors; }
 
@@ -76,10 +77,12 @@ public:
     
     std::vector<vec3cd> getLocalCoeffs() const { return localCoeffs; }
 
-    const bool isRoot() const { return base == nullptr; }
+    bool isRoot() const { return base == nullptr; }
     
     template <typename T>
-    const bool isNodeType() const { return typeid(*this) == typeid(T); }
+    bool isNodeType() const { return typeid(*this) == typeid(T); }
+
+    bool isSrcless() const { return rwgs.empty(); }
 
     // void resetSols() { for (const auto& p : rwg) p->resetSol(); }
 
@@ -127,13 +130,15 @@ public:
 
     static void printAngularSamples(int);
 
+    static Tables getTables(){ return tables; }
+
 protected:
     static int order;
     static int prec;
     static int maxNodeSrcs;
     static int maxLevel;
     static double rootLeng;
-    static double wavenum;
+    static double wavenum; // TODO: move this and above into config
     static std::vector<realVec> phis;
     static std::vector<realVec> thetas;
     static std::vector<realVec> thetaWeights;
@@ -153,7 +158,8 @@ protected:
     NodeVec iList; // list 2
     NodeVec leafIlist; // list 4
 
-    std::vector<vec3cd> coeffs;
+    // TODO: template the vec type
+    std::vector<vec3cd> coeffs; 
     std::pair<vec3cd, vec3cd> polarCoeffs;
     std::vector<vec3cd> localCoeffs;
 

@@ -168,7 +168,7 @@ namespace Math {
     return idx;
     }*/
 
-    pair2d legendreL(double, int);
+    pair2d legendreP(double, int);
 
     cmplx sphericalHankel1(double, int);
 
@@ -184,7 +184,26 @@ namespace Math {
  * x : evaluation point
  * l : order of Legendre polynomial
  */
-pair2d Math::legendreL(double x, int l) {
+pair2d Math::legendreP(double x, int n) {
+
+    double P_nmm = 1.0;
+
+    if (!n) return std::make_pair(P_nmm, 0.0);
+
+    double P_n = x;
+
+    for (int i = 1; i < n; ++i) {
+        double P_npp = ((2.0*i+1)*x*P_n - i*P_nmm) / static_cast<double>(i+1);
+        P_nmm = P_n;
+        P_n = P_npp;
+    }
+
+    double dP_n = n*(x*P_n - P_nmm) / (x*x - 1.0);
+
+    return std::make_pair(P_n, dP_n);
+}
+
+/*pair2d Math::legendreL(double x, int l) {
     double p;
     double pm2 = 1.0;
     double pmm = x;
@@ -198,7 +217,7 @@ pair2d Math::legendreL(double x, int l) {
     double dp = l*(x*pmm - pm2) / (x*x - 1.0);
 
     return std::make_pair(p, dp);
-}
+}*/
 
 /* sphericalHankel1(x,n)
  * Recursively evaluate the spherical Hankel function
@@ -208,29 +227,19 @@ pair2d Math::legendreL(double x, int l) {
  */
 cmplx Math::sphericalHankel1(double x, int n) {
 
-    cmplx H1_nmm = -iu*expI(x) / x;
+    cmplx H1_nmm = -iu*exp(iu*x) / x;
 
     if (!n) return H1_nmm;
 
-    cmplx H1_n = -expI(x) * (1.0/x + iu/(x*x));
+    cmplx H1_n = -exp(iu*x) * (1.0/x + iu/(x*x));
 
-    for (int i = 0; i < n-1; ++i) {
-        cmplx H1_npp = (2*n-1)/x * H1_n - H1_nmm;
+    for (int i = 1; i < n; ++i) {
+        cmplx H1_npp = (2.0*i + 1.0)/x * H1_n - H1_nmm;
         H1_nmm = H1_n;
         H1_n = H1_npp;
     }
 
     return H1_n;
-
-    /*
-    else if (n == 1)
-        return
-    else {
-        assert(n >= 2);
-        return
-            (2*n-1)/x * sphericalHankel1(x, n-1) -
-            sphericalHankel1(x, n-2);
-    }*/
 }
 
 realVec Math::getINodeDistances() {
@@ -250,6 +259,10 @@ realVec Math::getINodeDistances() {
     std::sort(dists.begin(), dists.end());
 
     dists.erase(std::unique(dists.begin(), dists.end()), dists.end());
+
+    //std::cout << '{';
+    //for (const auto& dist : dists) std::cout << dist << ", ";
+    //std::cout << "}\n";
 
     return dists;
 }

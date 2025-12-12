@@ -59,7 +59,7 @@ void Node::buildAngularSamples() {
 
         // Use excess bandwidth formula
         const int L = // 24;
-            ceil(5.0*
+            ceil(1.0*
                 (1.73*wavenum*nodeLeng +
                 2.16*pow(prec, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0)));
             
@@ -101,6 +101,7 @@ void Node::buildInteractionList() {
     };
 
     for (const auto& baseNbor : base->nbors) {
+        if (baseNbor->isSrcless()) continue; // TODO: double check
 
         if (baseNbor->isNodeType<Leaf>() && notContains(nbors, baseNbor)) {
             leafIlist.push_back(baseNbor);
@@ -108,11 +109,13 @@ void Node::buildInteractionList() {
         }
 
         for (const auto& branch : baseNbor->branches)
-            if (notContains(nbors, branch))
+            if (notContains(nbors, branch) && !branch->isSrcless()) // TODO: double check
                 iList.push_back(branch);
     }
 
     assert(iList.size() <= pow(6, DIM) - pow(3, DIM));
+
+    // std::cout << iList.size() << ' ';
 }
 
 /* pushSelfToNearNonNbors()
@@ -137,16 +140,16 @@ void Node::buildMpoleToLocalCoeffs() {
     const auto [nth, nph] = getNumAngles(level);
     localCoeffs.resize(nth*nph, vec3cd::Zero());
 
-    /*for (const auto& node : iList) {
+    const int nps = std::floor(q*(nth-1));
+
+    for (const auto& node : iList) {
         const auto& mpoleCoeffs = node->getMpoleCoeffs();
 
         const auto& R = center - node->getCenter();
         const auto r = R.norm();
         const auto& rhat = R / r;
         
-        const auto iDist = Math::getIdxOfVal(R/nodeLeng, tables.iNodeDists);
-
-        const int t = 0; // std::floor()
+        const double normedDist = r / nodeLeng;
 
         size_t idx = 0;
         for (int ith = 0; ith < nth; ++ith) {
@@ -154,15 +157,22 @@ void Node::buildMpoleToLocalCoeffs() {
 
                 const vec3d kvec = tables.kvec[level][idx];
 
-                const double psi = kvec.dot(rhat) / kvec.norm();
+                const double psi = kvec.dot(rhat) / wavenum;
 
-                double translCoeff = 0.0;
+                const int s = std::floor(nps * psi / PI);
 
-                for (int i = t+1-order; i <= t+order; ++i) {
+                realVec psis;
+                for (int ips = s+1-order; ips <= s+order; ++ips)
+                    psis.push_back(PI*ips/static_cast<double>(nps));
+
+                cmplx translCoeff = 0.0;
+
+                for (int k = 0; k < 2*order; ++k) {
+
                     translCoeff +=
-                        tables.transl[level][iDist][i] *
-                        Interp::evalLagrangeBasis(psi,psis,i);
-                        // tables.interpPsi[iPsi][i];
+                        (tables.transl[level].at(normedDist))[k]
+                        * Interp::evalLagrangeBasis(psi,psis,k);
+                        // * tables.interpPsi[level].at(psi)[k];
                 }
 
                 localCoeffs[idx] += translCoeff * mpoleCoeffs[idx];
@@ -170,7 +180,9 @@ void Node::buildMpoleToLocalCoeffs() {
                 idx++;
             }
         }
-    }*/
+    }
+
+    // std::cout << '\n';
 }
 
 /* evalLeafIlistSols()

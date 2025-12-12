@@ -69,7 +69,7 @@ void Stem::buildMpoleCoeffs() {
     coeffs.resize(nth*nph, vec3cd::Zero());
 
     for (const auto& branch : branches) {
-        if (branch->getRWGs().empty()) continue;
+        if (branch->isSrcless()) continue;
 
         branch->buildMpoleCoeffs();
         const auto& branchCoeffs = branch->getMpoleCoeffs();
@@ -102,7 +102,7 @@ void Stem::buildMpoleCoeffs() {
 
                 for (int ith = t+1-order, k = 0; ith <= t+order; ++ith, ++k) {
 
-                    // Flip iph if not in [0, mth-1]
+                    // Flip ith if not in [0, mth-1]
                     const int ith_flipped = Math::flipIdxToRange(ith, mth);
 
                     const bool outOfRange = ith != ith_flipped; // jth < 0 || jth >= mth;
@@ -130,7 +130,7 @@ void Stem::buildMpoleCoeffs() {
         for (int jth = 0; jth < nth; ++jth) { 
 
             for (int jph = 0; jph < nph; ++jph) { 
-                const int s = tables.ss[level][jph]; // TODO: don't need to lookup for every ith
+                const int s = tables.ss[level][jph]; // TODO: don't need to lookup for every jth
 
                 for (int iph = s+1-order, k = 0; iph <= s+order; ++iph, ++k) {
 
@@ -178,6 +178,7 @@ std::vector<vec3cd> Stem::getShiftedLocalCoeffs(const int branchIdx) const {
 
     size_t l = 0;
     for (int jth = 0; jth < nth; ++jth) {
+
         for (int jph = 0; jph < nph; ++jph) {
 
             const auto& kvec = tables.kvec[level][l];
@@ -203,6 +204,7 @@ std::vector<vec3cd> Stem::getShiftedLocalCoeffs(const int branchIdx) const {
                 // shift from ith \in [t+1-order,t+order] to k \in [0,2*order-1]   
                 const int k = ith - (t+1-order); 
                 
+                // if ith \notin [t+1-order,t+order], matrix element is zero
                 if (k < 0 || k >= 2*order) continue;
   
                 anterpedCoeffs[m] +=
@@ -226,6 +228,7 @@ std::vector<vec3cd> Stem::getShiftedLocalCoeffs(const int branchIdx) const {
                 // shift from iph \in [s+1-order,s+order] to k \in [0,2*order-1]
                 const int k = iph - (s+1-order); 
 
+                // if iph \notin [s+1-order,s+order], matrix element is zero
                 if (k < 0 || k >= 2*order) continue;
 
                 outCoeffs[n] +=
@@ -252,11 +255,9 @@ void Stem::buildLocalCoeffs() {
 
         if (!base->isRoot()) {
             auto baseStem = static_cast<Stem*>(base);
-                
-            auto shiftedLocalCoeffs = baseStem->getShiftedLocalCoeffs(branchIdx);
 
-            for (int l = 0; l <= order; ++l)
-                localCoeffs[l] += shiftedLocalCoeffs[l];
+            localCoeffs = 
+                localCoeffs + baseStem->getShiftedLocalCoeffs(branchIdx);
         }
     }
 

@@ -70,7 +70,7 @@ void Tables::buildInterpThetaTable(
 
                 auto branchTheta = thetas[level+1][ith_flipped];
 
-                // Extend interpolating thetas to outside [0, 2pi] as needed
+                // Extend interpolating thetas to outside [0, pi] as needed
                 if (ith < 0)
                     branchTheta *= -1.0;
                 else if (ith >= mth)
@@ -83,7 +83,7 @@ void Tables::buildInterpThetaTable(
 
             // std::cout << '\n';
 
-            for (int k = 0; k <= 2*order-1; ++k) {
+            for (int k = 0; k < 2*order; ++k) {
                 interpTheta_lvl_th.push_back(
                     Interp::evalLagrangeBasis(theta, branchThetas, k));
 
@@ -133,7 +133,7 @@ void Tables::buildInterpPhiTable(
                 branchPhis.push_back(branchPhi);
             }
 
-            for (size_t k = 0; k <= 2*order-1; ++k)
+            for (size_t k = 0; k < 2*order; ++k)
                 interpPhi_lvl_ph.push_back(
                     Interp::evalLagrangeBasis(phi, branchPhis, k));
             
@@ -152,69 +152,98 @@ void Tables::buildTranslationTable(
 
     using namespace Math;
 
-    constexpr double q = 3.5; // TODO: Optimize this
-
-    iNodeDists = getINodeDistances();
+    const auto& dists = getINodeDistances();
 
     for (size_t level = 0; level <= maxLevel; ++level) {
+
         const auto L = Ls[level];
         const int nps = std::floor(q*L);
         const double nodeLeng = rootLeng / pow(2.0, level);
 
-        std::vector<cmplxVec> transl_lvl;
+        std::map<double,cmplxVec,Comp> transl_lvl;
         
-        for (int iDist = 0; iDist < iNodeDists.size(); ++iDist) {
-            const auto dr = iNodeDists[iDist];
+        for (const auto& dist : dists) {
 
-            cmplxVec transl_lvl_k;
+            cmplxVec transl_dist;
 
             for (int ips = 0; ips < nps; ++ips) {
-                const double psi = PI * ips / (nps - 1.0); // or / nps ?
+                const double psi = PI * ips / static_cast<double>(nps-1);
                 cmplx coeff = 0.0;
 
-                for (int l = 0; l <= L; ++l)
-                    coeff +=
-                        powI(l) * (2.0*l+1.0) *
-                        sphericalHankel1(wavenum*dr*nodeLeng, l) *
-                        legendreL(cos(psi), l).first;
+                for (int l = 0; l <= L; ++l) {
 
-                transl_lvl_k.push_back(coeff);
+                    coeff += powI(l) * (2.0*l+1.0)
+                        * sphericalHankel1(wavenum*dist*nodeLeng, l)
+                        * legendreP(cos(psi), l).first
+                        ;
+
+                    /*if (level == 0 && iDist == 0 && ips == 0)
+                        std::cout << l << ' ' << ' ' << 
+                        term << '\n';
+                     */
+                }
+
+                transl_dist.push_back(coeff);
             }
 
-            transl_lvl.push_back(transl_lvl_k);
-
+            transl_lvl.emplace(dist, transl_dist);
         }
 
         transl.push_back(transl_lvl);
     }
+
 };
 
 void Tables::buildInterpPsiTable(
+    const std::vector<realVec>& thetas,
+    const std::vector<realVec>& phis,
     int maxLevel,
     int order, 
-    const std::vector<realVec>& thetas,
-    const std::vector<realVec>& phis) {
+    double wavenum) {
 
-    iNodeDirs = Math::getINodeDirections();
+    const auto& dirs = Math::getINodeDirections();
 
-    /*for (size_t level = 0; level <= maxLevel; ++level) {
+    for (size_t level = 0; level <= maxLevel; ++level) {
         const int nth = thetas[level].size();
         const int nph = phis[level].size();
+
+        const auto L = nth - 1;
+        const int nps = std::floor(q*L);
+
+        std::map<double, realVec, Comp> interpPsi_lvl;
 
         size_t idx = 0;
         for (size_t ith = 0; ith < nth; ++ith) {
             for (size_t iph = 0; iph < nph; ++iph) {
 
-                auto kvec_ = kvec[level][idx];
-                auto uvec = kvec_ / kvec_.norm();
+                const auto& khat = kvec[level][idx] / wavenum;
 
-                for (int iDir = 0; iDir < iNodeDirs.size(); ++iDir) {
+                // Loop over all possible rhat
+                for (const auto& rhat : dirs) {
 
-                    const double x = uvec.dot(iNodeDirs[iDir]);
+                    const double psi = acos(khat.dot(rhat));
 
+                    // Find idx of psi node nearest this psi
+                    const int s = std::floor(nps * psi / PI);
+
+                    // Assemble psis interpolating this psi
+                    realVec psis;
+                    for (int ips = s+1-order; ips <= s+order; ++ips)
+                        psis.push_back(PI*ips/static_cast<double>(nps));
+
+                    realVec interpPsi_ps;
+
+                    for (size_t k = 0; k <= 2*order-1; ++k)
+                        interpPsi_ps.push_back(
+                            Interp::evalLagrangeBasis(psi, psis, k));
+
+                    interpPsi_lvl.emplace(psi, interpPsi_ps);
 
                 }
             }
         }
-    }*/
+
+        interpPsi.push_back(interpPsi_lvl);
+    }
+
 }

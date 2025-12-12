@@ -4,6 +4,26 @@
 
 using namespace std;
 
+void testLegendreP(const realVec& xs, const int nmax) {
+    cout << "\nTesting Legendre...\n";
+
+    for (int n = 0; n <= nmax; ++n) {
+        for (int i = 0; i < xs.size(); ++i)
+            cout << Math::legendreP(xs[i], n).first << ' ';
+        cout << '\n';
+    }
+}
+
+void testSphericalHankel1(const realVec& xs, const int nmax) {
+    cout << "\nTesting Spherical Hankel...\n";
+
+    for (int n = 0; n <= nmax; ++n) {
+        for (int i = 0; i < xs.size(); ++i)
+            cout << Math::sphericalHankel1(xs[i], n) << ' ';
+        cout << '\n';
+    }
+}
+
 std::vector<realVec> testGaussLegendre(const int maxOrder, double a, double b) {
     cout << "\nTesting Gauss-Legendre...\n";
     std::vector<realVec> nodesVec;
@@ -87,14 +107,43 @@ void testNearPhiIdx(const double phi, const int N) {
         << phi_k(idx) << ", node " << idx << "\n";
 }
 
+void testINodeFuncs() {
+
+    cout << "\nTesting INodeDistances()...\n";
+
+    auto dists = Math::getINodeDistances();
+
+    for (int i = 0; i < dists.size(); ++i)
+        cout << i << ' ' << dists[i] << '\n';
+
+    cout << "\nTesting INodeDirections()...\n";
+
+    auto dirs = Math::getINodeDirections();
+
+    for (int i = 0; i < dirs.size(); ++i)
+        cout << i << ' ' << dirs[i] << '\n';
+
+}
+
 int main() {
 
-    /*const int maxOrder = 10;
-    const double a = 0.0;
-    const double b = PI;
-    auto nodesVec = testGaussLegendre(maxOrder, a, b);
-    */
+    realVec xs;
+    const int nmax = 10;
+    for (double x = -1.0; x <= 1.0; x += 0.1 )
+        xs.push_back(x);
 
+    testLegendreP(xs, nmax);
+
+    // const realVec& xs{ 2, 2.23607, 2.44949, 2.82843, 3, 3.16228, 3.31662, 3.4641,
+    //      3.60555, 3.74166, 4.12311, 4.24264, 4.3589, 4.69042, 5.19615 };
+    // const realVec& xs{ 2.2 };
+    // testSphericalHankel1(xs, nmax);
+
+    const int maxOrder = 10;
+    const double a = -1.0;
+    const double b = 1.0;
+    auto nodesVec = testGaussLegendre(maxOrder, a, b);
+    
     // testLagrangeInterp(nodesVec[order-1]);
 
     // testTrigInterp(9);
@@ -106,7 +155,7 @@ int main() {
 
     testNearPhiIdx(0, 10);*/
 
-    realVec xs{ 0, 0.125664, 0.251327, 0.376991 };
+    /*realVec xs{ 0, 0.125664, 0.251327, 0.376991 };
     
     for (int k = 0; k < xs.size(); ++k) {
         cout << "k = " << k << ": ";
@@ -114,7 +163,7 @@ int main() {
             cout << Interp::evalTrigBasis(xs[j], xs, k) << " ";
         }
         cout << '\n';
-    }
+    }*/
 
     return 0;
 }

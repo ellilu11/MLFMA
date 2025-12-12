@@ -1,6 +1,15 @@
 #pragma once
 
+#include <map>
 #include "interp.h"
+
+constexpr double EPS = 1.0E-2;
+
+struct Comp {
+    bool operator()(double x, double y) const {
+        return x + EPS < y;
+    }
+};
 
 struct Tables {
     Tables() = default;
@@ -17,11 +26,11 @@ struct Tables {
         buildInterpThetaTable(maxLevel, order, thetas);
         buildInterpPhiTable(maxLevel, order, phis);
         
-        // buildTranslationTable(maxLevel, order, Ls, wavenum, rootLeng);
-        // buildInterpPsiTable(maxLevel, order, thetas, phis);
+        buildTranslationTable(maxLevel, order, Ls, wavenum, rootLeng);
+        // buildInterpPsiTable(thetas, phis, maxLevel, order, wavenum);
 
     }
-
+    
     void buildAngularTables(
         const int, const std::vector<realVec>&, const std::vector<realVec>&, const double);
 
@@ -33,7 +42,7 @@ struct Tables {
         const int, const int, const std::vector<int>&, const double, const double);
 
     void buildInterpPsiTable(
-        int, int, const std::vector<realVec>&, const std::vector<realVec>&);
+        const std::vector<realVec>&, const std::vector<realVec>&, int, int, double);
 
     // Angular tables
     std::vector<std::vector<mat3d>> ImKK;
@@ -51,11 +60,9 @@ struct Tables {
     std::vector<std::vector<realVec>> interpPhi;
     std::vector<std::vector<int>> ss;
 
-    std::vector<realVec> interpPsi;
-
     // M2L translation tables
-    std::vector<std::vector<cmplxVec>> transl;
-    realVec iNodeDists;
-    std::vector<vec3d> iNodeDirs;
+    std::vector<std::map<double,cmplxVec,Comp>> transl;
+    std::vector<std::map<double,realVec,Comp>> interpPsi;
 
 };
+
