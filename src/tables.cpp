@@ -1,14 +1,10 @@
 #include "tables.h"
 
-void Tables::buildAngularTables(
-    const int maxLevel,
-    const std::vector<realVec>& thetas,
-    const std::vector<realVec>& phis,
-    const double wavenum) {
-    for (int level = 0; level <= maxLevel; ++level) {
+void Tables::buildAngularTables() {
+   
+    for (int level = 0; level <= Node::maxLevel; ++level) {
 
-        const int nth = thetas[level].size();
-        const int nph = phis[level].size();
+        const auto [nth, nph] = Node::getNumAngles(level);
 
         std::vector<mat3d> ImKK_lvl;
         std::vector<vec3d> kvec_lvl;
@@ -19,12 +15,14 @@ void Tables::buildAngularTables(
         std::vector<mat3d> matFromSph_lvl;
 
         for (int ith = 0; ith < nth; ++ith) {
-            const double th = thetas[level][ith];
+            const double th = Node::thetas[level][ith];
+
             for (int iph = 0; iph < nph; ++iph) {
-                const double ph = phis[level][iph];
+                const double ph = Node::phis[level][iph];
 
                 ImKK_lvl.push_back(Math::IminusRR(th, ph));
-                kvec_lvl.push_back(Math::vecSph(wavenum, th, ph));
+                kvec_lvl.push_back(Math::vecSph(Node::wavenum, th, ph));
+
                 matToThPh_lvl.push_back(Math::matToThPh(th, ph));
                 matFromThPh_lvl.push_back(Math::matFromThPh(th, ph));
 
@@ -43,20 +41,21 @@ void Tables::buildAngularTables(
     }
 }
 
-void Tables::buildInterpThetaTable(
-    const int maxLevel, const int order, const std::vector<realVec>& thetas) {
+void Tables::buildInterpThetaTable() {
+
+    const int order = Node::config.interpOrder;
 
     // Do not construct interp table for leaf level
-    for (size_t level = 0; level < maxLevel; ++level) { 
+    for (size_t level = 0; level < Node::maxLevel; ++level) { 
         std::vector<realVec> interpTheta_lvl;
         std::vector<int> t_lvl;
 
-        const int nth = thetas[level].size();
-        const int mth = thetas[level+1].size();
+        const int nth = Node::getNumAngles(level).first;
+        const int mth = Node::getNumAngles(level+1).first;
 
         for (size_t jth = 0; jth < nth; ++jth) {
             realVec interpTheta_lvl_th;
-            const double theta = thetas[level][jth];
+            const double theta = Node::thetas[level][jth];
 
             // Find idx of child theta nearest parent theta
             const int t = Interp::getNearGLNodeIdx(theta, mth, 0.0, PI);
@@ -68,7 +67,7 @@ void Tables::buildInterpThetaTable(
                 // Flip ith if not in [0, mth-1]
                 int ith_flipped = Math::flipIdxToRange(ith, mth);
 
-                auto branchTheta = thetas[level+1][ith_flipped];
+                auto branchTheta = Node::thetas[level+1][ith_flipped];
 
                 // Extend interpolating thetas to outside [0, pi] as needed
                 if (ith < 0)
@@ -102,20 +101,21 @@ void Tables::buildInterpThetaTable(
     }
 }
 
-void Tables::buildInterpPhiTable(
-    const int maxLevel, const int order, const std::vector<realVec>& phis) {
+void Tables::buildInterpPhiTable() {
+
+    const int order = Node::config.interpOrder;
 
     // Do not construct interp table for leaf level
-    for (size_t level = 0; level < maxLevel; ++level) {
+    for (size_t level = 0; level < Node::maxLevel; ++level) {
         std::vector<realVec> interpPhi_lvl;
         std::vector<int> s_lvl;
 
-        const int nph = phis[level].size();
-        const int mph = phis[level+1].size();
+        const int nph = Node::getNumAngles(level).second;
+        const int mph = Node::getNumAngles(level+1).second;
 
         for (size_t jph = 0; jph < nph; ++jph) {
             realVec interpPhi_lvl_ph;
-            const double phi = phis[level][jph];
+            const double phi = Node::phis[level][jph];
 
             // Find idx of child phi nearest parent phi
             const int s = std::floor(mph * phi / (2.0 * PI));
@@ -146,17 +146,17 @@ void Tables::buildInterpPhiTable(
     }
 }
 
-void Tables::buildTranslationTable(
-    const int maxLevel, const int order, const std::vector<int>& Ls, 
-    const double rootLeng, const double wavenum) {
+void Tables::buildTranslationTable() {
 
     using namespace Math;
 
+    const int rootLeng = Node::config.rootLeng;
+
     const auto& dists = getINodeDistances();
 
-    for (size_t level = 0; level <= maxLevel; ++level) {
+    for (size_t level = 0; level <= Node::maxLevel; ++level) {
 
-        const auto L = Ls[level];
+        const auto L = Node::Ls[level];
         const int nps = std::floor(q*L);
         const double nodeLeng = rootLeng / pow(2.0, level);
 
@@ -173,7 +173,7 @@ void Tables::buildTranslationTable(
                 for (int l = 0; l <= L; ++l) {
 
                     coeff += powI(l) * (2.0*l+1.0)
-                        * sphericalHankel1(wavenum*dist*nodeLeng, l)
+                        * sphericalHankel1(Node::wavenum*dist*nodeLeng, l)
                         * legendreP(cos(psi), l).first
                         ;
 
@@ -194,18 +194,16 @@ void Tables::buildTranslationTable(
 
 };
 
-void Tables::buildInterpPsiTable(
-    const std::vector<realVec>& thetas,
-    const std::vector<realVec>& phis,
-    int maxLevel,
-    int order, 
-    double wavenum) {
+
+void Tables::buildInterpPsiTable() {
+
+    const int order = Node::config.interpOrder;
 
     const auto& dirs = Math::getINodeDirections();
 
-    for (size_t level = 0; level <= maxLevel; ++level) {
-        const int nth = thetas[level].size();
-        const int nph = phis[level].size();
+    for (size_t level = 0; level <= Node::maxLevel; ++level) {
+
+        const auto [nth, nph] = Node::getNumAngles(level);
 
         const auto L = nth - 1;
         const int nps = std::floor(q*L);
@@ -216,7 +214,7 @@ void Tables::buildInterpPsiTable(
         for (size_t ith = 0; ith < nth; ++ith) {
             for (size_t iph = 0; iph < nph; ++iph) {
 
-                const auto& khat = kvec[level][idx] / wavenum;
+                const auto& khat = kvec[level][idx++] / Node::wavenum;
 
                 // Loop over all possible rhat
                 for (const auto& rhat : dirs) {
@@ -240,6 +238,7 @@ void Tables::buildInterpPsiTable(
                     interpPsi_lvl.emplace(psi, interpPsi_ps);
 
                 }
+
             }
         }
 

@@ -17,7 +17,7 @@ int main() {
 
     auto vertices = importVertices("config/n120/vertices.txt");
 
-    auto tris = importTriangles("config/n120/faces.txt", vertices);
+    auto tris = importTriangles("config/n120/faces.txt", vertices, config);
     int Ntris;
 
     shared_ptr<Src> Einc = make_shared<Src>(); // initialize incident field
@@ -25,16 +25,18 @@ int main() {
     auto srcs = importRWG("config/n120/rwgs.txt", vertices, tris, Einc);
     int Nsrcs = srcs.size();
 
-    Node::setNodeParams(config,Einc);
+    Node::setNodeParams(config, Einc);
 
     auto end = Clock::now();
     Time duration_ms = end - start;
 
-    cout << "   # Sources:           " << Nsrcs << '\n';
-    cout << "   Root length:         " << config.rootLeng << '\n';
-    cout << "   Interpolation order: " << config.order << '\n';
-    // cout << " Exponential order:   " << Node::getExponentialOrder() << '\n';
-    cout << "   Max node RWGs:       " << config.maxNodeSrcs << "\n";
+    cout << "   # Sources:       " << Nsrcs << '\n';
+    cout << "   Quad precision:  " << static_cast<int>(config.quadPrec) << '\n';
+    cout << "   Digit precision: " << config.digits << '\n';
+    cout << "   Interp order:    " << config.interpOrder << '\n';
+    cout << "   Root length:     " << config.rootLeng << '\n';
+    cout << "   Max node RWGs:   " << config.maxNodeSrcs << '\n';
+    cout << "   Wave number:     " << Einc->wavenum << '\n';
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     // ==================== Set up domain ==================== //
@@ -64,7 +66,7 @@ int main() {
     start = Clock::now();
 
     Node::buildAngularSamples();
-    Node::buildTables(config);
+    Node::buildTables();
 
     end = Clock::now();
     duration_ms = end - start;

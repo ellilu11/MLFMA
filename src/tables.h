@@ -13,40 +13,31 @@ struct Comp {
 
 struct Tables {
     Tables() = default;
-    Tables(const int maxLevel,
-        const int order,
-        std::vector<realVec>& thetas, 
-        std::vector<realVec>& phis,
-        std::vector<int>& Ls,
-        const double wavenum,
-        const double rootLeng)
+    Tables(bool isDefault)
     {
-        buildAngularTables(maxLevel, thetas, phis, wavenum);
+        buildAngularTables();
         
-        buildInterpThetaTable(maxLevel, order, thetas);
-        buildInterpPhiTable(maxLevel, order, phis);
+        buildInterpThetaTable();
+        buildInterpPhiTable();
         
-        buildTranslationTable(maxLevel, order, Ls, wavenum, rootLeng);
-        // buildInterpPsiTable(thetas, phis, maxLevel, order, wavenum);
-
+        buildTranslationTable();
+        // buildInterpPsiTable();
     }
     
-    void buildAngularTables(
-        const int, const std::vector<realVec>&, const std::vector<realVec>&, const double);
+    void buildAngularTables();
 
-    void buildInterpThetaTable(const int, const int, const std::vector<realVec>&);
+    void buildInterpThetaTable();
 
-    void buildInterpPhiTable(const int, const int, const std::vector<realVec>&);
+    void buildInterpPhiTable();
 
-    void buildTranslationTable(
-        const int, const int, const std::vector<int>&, const double, const double);
+    void buildTranslationTable();
 
-    void buildInterpPsiTable(
-        const std::vector<realVec>&, const std::vector<realVec>&, int, int, double);
+    void buildInterpPsiTable();
 
     // Angular tables
     std::vector<std::vector<mat3d>> ImKK;
     std::vector<std::vector<vec3d>> kvec;
+
     std::vector<std::vector<Eigen::Matrix<double,2,3>>> matToThPh;
     std::vector<std::vector<Eigen::Matrix<double,3,2>>> matFromThPh;
     

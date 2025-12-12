@@ -1,11 +1,8 @@
 #include "node.h"
 
-int Node::order;
-int Node::prec;
-int Node::maxNodeSrcs;
-int Node::maxLevel;
-double Node::rootLeng;
+Config Node::config;
 double Node::wavenum;
+int Node::maxLevel;
 std::vector<realVec> Node::phis;
 std::vector<realVec> Node::thetas;
 std::vector<realVec> Node::thetaWeights;
@@ -13,18 +10,9 @@ std::vector<int> Node::Ls;
 Tables Node::tables;
 
 void Node::setNodeParams(
-    const Config& config, const std::shared_ptr<Src>& Einc) {
+    const Config& config_, const std::shared_ptr<Src>& Einc) {
 
-    order = config.order; // ceil(-std::log(config.EPS) / std::log(2));
-    prec = [&]() -> std::size_t {
-        switch (config.prec) {
-            case Precision::LOW:    return 3;
-            case Precision::MEDIUM: return 6;
-            case Precision::HIGH:   return 9;
-        }
-        }();
-    maxNodeSrcs = config.maxNodeSrcs;
-    rootLeng = config.rootLeng;
+    config = config_;
     wavenum = Einc->wavenum;
 }
 
@@ -38,7 +26,7 @@ Node::Node(
     const int branchIdx,
     Node* const base)
     : rwgs(rwgs), branchIdx(branchIdx), base(base),
-    nodeLeng(base == nullptr ? rootLeng : base->nodeLeng / 2.0),
+    nodeLeng(base == nullptr ? config.rootLeng : base->nodeLeng / 2.0),
     level(base == nullptr ? 0 : base->level + 1),
     center(base == nullptr ? zeroVec :
         base->center + nodeLeng / 2.0 * Math::idx2pm(branchIdx)),
@@ -55,13 +43,12 @@ void Node::buildAngularSamples() {
     constexpr double EPS = 1.0E-9;
 
     for (int lvl = 0; lvl <= maxLevel; ++lvl) {
-        const double nodeLeng = rootLeng / pow(2.0, lvl);
+        const double nodeLeng = config.rootLeng / pow(2.0, lvl);
 
         // Use excess bandwidth formula
-        const int L = // 24;
-            ceil(1.0*
+        const int L = ceil(
                 (1.73*wavenum*nodeLeng +
-                2.16*pow(prec, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0)));
+                2.16*pow(config.digits, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0)));
             
         Ls.push_back(L);
 
@@ -81,11 +68,6 @@ void Node::buildAngularSamples() {
                   << "(" << lvl << "," << L+1 << "," << nph << ")\n";
     }
 
-}
-
-void Node::buildTables(const Config& config) {
-    tables = Tables(
-        maxLevel, config.order, thetas, phis, Ls, wavenum, rootLeng);
 }
 
 /* buildInteractionList()
@@ -137,6 +119,8 @@ void Node::pushSelfToNearNonNbors() {
 void Node::buildMpoleToLocalCoeffs() {
     if (isRoot()) return;
 
+    const auto order = config.interpOrder;
+
     const auto [nth, nph] = getNumAngles(level);
     localCoeffs.resize(nth*nph, vec3cd::Zero());
 
@@ -153,9 +137,10 @@ void Node::buildMpoleToLocalCoeffs() {
 
         size_t idx = 0;
         for (int ith = 0; ith < nth; ++ith) {
+
             for (int iph = 0; iph < nph; ++iph) {
 
-                const vec3d kvec = tables.kvec[level][idx];
+                const auto& kvec = tables.kvec[level][idx];
 
                 const double psi = kvec.dot(rhat) / wavenum;
 
@@ -168,9 +153,8 @@ void Node::buildMpoleToLocalCoeffs() {
                 cmplx translCoeff = 0.0;
 
                 for (int k = 0; k < 2*order; ++k) {
-
                     translCoeff +=
-                        (tables.transl[level].at(normedDist))[k]
+                        tables.transl[level].at(normedDist)[k]
                         * Interp::evalLagrangeBasis(psi,psis,k);
                         // * tables.interpPsi[level].at(psi)[k];
                 }
@@ -181,8 +165,6 @@ void Node::buildMpoleToLocalCoeffs() {
             }
         }
     }
-
-    // std::cout << '\n';
 }
 
 /* evalLeafIlistSols()
@@ -249,7 +231,7 @@ std::vector<vec3cd> Node::getFarSolsFromCoeffs(double r) {
  */
 std::vector<vec3cd> Node::getFarSols(double r) {
 
-    assert(r >= 5.0 * rootLeng); // verify farfield condition
+    assert(r >= 5.0 * config.rootLeng); // verify farfield condition
 
     const cmplx C = -iu * c0 * wavenum * mu0
         * exp(iu*wavenum*r) / (4.0*PI*r);

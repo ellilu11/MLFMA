@@ -122,7 +122,7 @@ int main() {
 
     auto vertices = importVertices("config/n120/vertices.txt");
 
-    auto tris = importTriangles("config/n120/faces.txt", vertices);
+    auto tris = importTriangles("config/n120/faces.txt", vertices, config);
     int Ntris;
 
     shared_ptr<Src> Einc = make_shared<Src>(); // initialize incident field
@@ -132,11 +132,13 @@ int main() {
 
     Node::setNodeParams(config, Einc);
 
-    cout << "   # Sources:     " << Nsrcs << '\n';
-    cout << "   Root length:   " << config.rootLeng << '\n';
-    cout << "   Interp order:  " << config.order << '\n';
-    cout << "   Max node RWGs: " << config.maxNodeSrcs << "\n";
-    cout << "   Wave number:   " << Einc->wavenum << "\n\n";
+    cout << "   # Sources:       " << Nsrcs << '\n';
+    cout << "   Quad precision:  " << static_cast<int>(config.quadPrec) << '\n';
+    cout << "   Digit precision: " << config.digits << '\n';
+    cout << "   Interp order:    " << config.interpOrder << '\n';
+    cout << "   Root length:     " << config.rootLeng << '\n';
+    cout << "   Max node RWGs:   " << config.maxNodeSrcs << '\n';
+    cout << "   Wave number:     " << Einc->wavenum << '\n';
 
     // ==================== Set up domain ==================== //
     cout << " Setting up domain...\n";
@@ -159,7 +161,7 @@ int main() {
     cout << "\n Building angular samples...\n";
 
     Node::buildAngularSamples();
-    Node::buildTables(config);
+    Node::buildTables();
 
     // ==================== Test upward pass ===================== //
     const double r = 20.0*config.rootLeng; // pick r >> rootLeng

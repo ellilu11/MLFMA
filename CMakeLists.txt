@@ -24,10 +24,10 @@ add_executable (MLFMA "src/MLFMA.cpp" "src/MLFMA.h")
 target_link_libraries(MLFMA PRIVATE eigen)
 
 # Add test executable
-# add_executable (test "test/tFarfield.cpp" "src/MLFMA.h")
+add_executable (test "test/tFarfield.cpp" "src/MLFMA.h")
 # add_executable (test "test/tMath.cpp" "src/MLFMA.h")
 # add_executable (test "test/tNodes.cpp" "src/MLFMA.h")
-add_executable (test "test/tTransl.cpp" "src/MLFMA.h")
+# add_executable (test "test/tTransl.cpp" "src/MLFMA.h")
 
 target_link_libraries(test PRIVATE eigen)
 

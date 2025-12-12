@@ -16,7 +16,7 @@ constexpr int numDir = 26;
 // TODO: move into config
 constexpr double c0 = 299792458.0; 
 constexpr double mu0 = 1.256637E-6; 
-constexpr double q = 3.5; // TODO: optimize this
+constexpr double q = 3.5; // TODO: pick an optimal value
 
 enum class Dir {
     W, E, S, N, D, U,
@@ -32,12 +32,6 @@ class Node {
     friend struct Tables;
 
 public:
-    // static const int getExpansionOrder() { return order; }
-
-    // static void setExpansionOrder(const int p) { order = p; }
-    
-    static int getPrecision() { return prec; }
-
     static int getMaxLvl() { return maxLevel; }
     
     static int getNumNodes() { return numNodes; }
@@ -50,7 +44,7 @@ public:
 
     static void buildAngularSamples();
 
-    static void buildTables(const Config&);
+    static void buildTables() { tables = Tables(0); }
 
 public:
     RWGVec getRWGs() const { return rwgs; }
@@ -133,12 +127,9 @@ public:
     static Tables getTables(){ return tables; }
 
 protected:
-    static int order;
-    static int prec;
-    static int maxNodeSrcs;
+    static Config config;
+    static double wavenum;
     static int maxLevel;
-    static double rootLeng;
-    static double wavenum; // TODO: move this and above into config
     static std::vector<realVec> phis;
     static std::vector<realVec> thetas;
     static std::vector<realVec> thetaWeights;

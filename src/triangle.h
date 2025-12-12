@@ -16,12 +16,12 @@ public:
           vertices( {zeroVec,zeroVec,zeroVec}), 
           center(zeroVec), area(0.0) { };
 
-    Triangle(const vec3i& vIdx, const std::vector<vec3d>& vList) 
+    Triangle(const vec3i& vIdx, const std::vector<vec3d>& vList, const Config& config) 
         : vIdx(vIdx),
           vertices( { vList[vIdx[0]], vList[vIdx[1]], vList[vIdx[2]] } ),
           center( (vertices[0] + vertices[1] + vertices[2]) / 3.0 )
     {
-        buildQuads(Precision::MEDIUM); // Fix later
+        buildQuads(config.quadPrec);
     };
 
     vec3i getVidx() { return vIdx; }

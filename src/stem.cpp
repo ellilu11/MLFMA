@@ -16,7 +16,7 @@ Stem::Stem(
     for (size_t k = 0; k < branchRWGs.size(); ++k) {
         std::shared_ptr<Node> branch;
 
-        if (branchRWGs[k].size() > maxNodeSrcs)
+        if (branchRWGs[k].size() > config.maxNodeSrcs)
             branch = std::make_shared<Stem>(branchRWGs[k], k, this);
         else
             branch = std::make_shared<Leaf>(branchRWGs[k], k, this);
@@ -61,6 +61,9 @@ void Stem::buildLists() {
  * (M2M) Build mpole coeffs by merging branch mpole coeffs 
  */
 void Stem::buildMpoleCoeffs() {
+
+    const auto order = config.interpOrder;
+
     const auto [nth, nph] = getNumAngles(level);
     const auto [mth, mph] = getNumAngles(level+1);
 
@@ -165,6 +168,8 @@ void Stem::buildMpoleCoeffs() {
  * branchIdx : index of branch \in {0, ..., 7}
  */
 std::vector<vec3cd> Stem::getShiftedLocalCoeffs(const int branchIdx) const {
+
+    const auto order = config.interpOrder;
 
     const auto [nth, nph] = getNumAngles(level);
     const auto [mth, mph] = getNumAngles(level+1);

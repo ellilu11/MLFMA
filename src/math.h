@@ -133,7 +133,7 @@ namespace Math {
         };
     }
 
-    inline size_t flipIdxToRange(int i, int size) {
+    inline size_t flipIdxToRange(int i, int size) { // TODO: Debug
         int uint_i = i;
 
         if (i < 0)

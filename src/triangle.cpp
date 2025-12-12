@@ -22,7 +22,7 @@ std::vector<vec3d> importVertices(const filesystem::path& fpath) {
 }
 
 TriVec importTriangles(
-    const filesystem::path& fpath, const std::vector<vec3d>& vList) 
+    const filesystem::path& fpath, const std::vector<vec3d>& vList, const Config& config) 
 {
     ifstream file(fpath);
     string line;
@@ -34,7 +34,7 @@ TriVec importTriangles(
         vec3i vIdx;
 
         if (iss >> vIdx)
-            triangles.emplace_back(make_shared<Triangle>(vIdx,vList));
+            triangles.emplace_back(make_shared<Triangle>(vIdx,vList,config));
         else
             throw std::runtime_error("Unable to parse line");
     }

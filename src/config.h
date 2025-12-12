@@ -50,12 +50,13 @@ struct Config {
     Config() = default;
     Config(const std::string& fileName) {
         std::ifstream is(fileName);
-        is >> prec
-           >> order >> rootLeng >> maxNodeSrcs  >> evalDirect;
+        is >> quadPrec
+           >> digits >> interpOrder >> rootLeng >> maxNodeSrcs  >> evalDirect;
     }
 
-    Precision prec;
-    int order;
+    Precision quadPrec;
+    int digits;
+    int interpOrder;
     double rootLeng;
     int maxNodeSrcs;
     bool evalDirect;
