@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/plt/plotFarfieldInterp.m
+/plt/plotLocalCoeffs.asv
+/plt/plotFarfield_1box.m
