@@ -56,11 +56,12 @@ void Leaf::buildLists() {
  * (S2M) Build multipole coefficients from sources in this node  
  */
 void Leaf::buildMpoleCoeffs() {
+
     if (isSrcless() || isRoot()) return;
 
-    auto start = Clock::now();
-
     const auto [nth, nph] = getNumAngles(level);
+
+    auto start = Clock::now();
 
     size_t idx = 0;
     for (int ith = 0; ith < nth; ++ith) {
@@ -117,9 +118,9 @@ void Leaf::buildLocalCoeffs() {
 
     t.M2L += Clock::now() - start;
 
-    // evalLeafIlistSols();
+    evalLeafIlistSols();
 
-    /*start = Clock::now();
+    start = Clock::now();
 
     if (!base->isRoot()) {
         auto baseStem = static_cast<Stem*>(base);
@@ -129,7 +130,6 @@ void Leaf::buildLocalCoeffs() {
     }
 
     t.L2L += Clock::now() - start;
-    */
 }
 
 /* evalFarSols()
@@ -156,7 +156,7 @@ void Leaf::evalFarSols() {
 
                 const auto& khat = tables.khat[level][idx];
 
-                // Compute receiving pattern along \khat at this rwg
+                // Compute incoming pattern along khat at this source
                 const auto& incPat =
                     // tables.ImKK[level][idx] * // Tangential-T
                     // -khat.cross( // Tangential-K
@@ -180,7 +180,9 @@ void Leaf::evalFarSols() {
  * (M2T) Evaluate sols from mpole expansion due to list 3 nodes
  */
 void Leaf::evalNearNonNborSols() {
-
+    for (const auto& node : nearNonNbors)
+        evalPairSols(node);
+    return;
 }
 
 /* findNearNborPairs()

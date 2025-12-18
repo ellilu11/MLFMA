@@ -2,7 +2,7 @@
 #include "MLFMA.h"
 #include "clock.h"
 #include "config.h"
-#include "import.h"
+#include "fileio.h"
 
 using namespace std;
 
@@ -93,7 +93,7 @@ int main() {
     cout << "   Elapsed time (S2T): " << t.S2T.count() << " ms\n\n";
     cout << " FMM total elapsed time: " << fmm_duration_ms.count() << " ms\n";
 
-    printSols(srcs, "sols.txt");
+    printSols(srcs, "sol.txt");
 
     if (!config.evalDirect) return 0;
 
@@ -109,7 +109,7 @@ int main() {
     duration_ms = end - start;
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n";
 
-    printSols(srcs, "solsDir.txt");
+    printSols(srcs, "solDir.txt");
 
     return 0;
 }

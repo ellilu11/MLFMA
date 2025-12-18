@@ -150,6 +150,6 @@ cmplx RWG::getIntegratedRad(const std::shared_ptr<Source> src) const {
     for (const auto& quadNode : nodesMinus)
         integratedRad += weightMinus * src->getRadAtPoint(quadNode).dot(quadNode - vMinus);
 
-    return leng * integratedRad; // TODO: Does this need conj as in Dipole?
+    return leng * integratedRad;
     
 }

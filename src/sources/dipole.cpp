@@ -47,7 +47,7 @@ vec3cd Dipole::getRadAlongDir(
 vec3cd Dipole::getIncAlongDir(
     const vec3d& X, const vec3d& kvec) const {
 
-    return conj(exp(iu*kvec.dot(pos-X))) * phat; // Eigen bug! Need conj
+    return conj(exp(iu*kvec.dot(pos-X))) * phat; 
 }
 
 /* getRadAtPoint(X)
@@ -69,5 +69,5 @@ cmplx Dipole::getIntegratedRad(const std::shared_ptr<Source> src) const {
 
     const auto srcDip = dynamic_pointer_cast<Dipole>(src);
 
-    return conj(srcDip->getRadAtPoint(pos).dot(phat)); // Eigen bug! Need conj
+    return conj(srcDip->getRadAtPoint(pos).dot(phat));
 }

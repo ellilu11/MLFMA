@@ -151,7 +151,6 @@ protected:
 
     // TODO: template the vec type
     std::vector<vec3cd> coeffs;
-    // std::vector<vec3cd> radPats; //
     std::pair<vec3cd, vec3cd> polarCoeffs;
     std::vector<vec3cd> localCoeffs;
 

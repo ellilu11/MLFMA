@@ -47,10 +47,11 @@ void Node::buildAngularSamples() {
         const double nodeLeng = config.rootLeng / pow(2.0, lvl);
 
         // Use excess bandwidth formula
-        const int tau = ceil(
+        const int tau = // 15; 
+            ceil(
                 (1.73*wavenum*nodeLeng +
                 2.16*pow(config.digits, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0)));
-
+            
         // TODO: Find an optimal formula, possibly explicitly depending on level
         Ls.push_back(tau/2 - 1); 
 
@@ -125,10 +126,11 @@ void Node::pushSelfToNearNonNbors() {
  * (M2L) Translate mpole coeffs of interaction nodes into local coeffs at center
  */
 void Node::buildMpoleToLocalCoeffs() {
-    if (iList.empty()) return;
 
     const auto [nth, nph] = getNumAngles(level);
     localCoeffs.resize(nth*nph, vec3cd::Zero());
+
+    if (iList.empty()) return;
 
     const int order = config.interpOrder;
 
@@ -254,9 +256,9 @@ void Node::buildMpoleToLocalCoeffs() {
  * (S2L) Add contribution from list 4 to local coeffs
  */
 void Node::evalLeafIlistSols() {
-    // for (const auto& node : leafIlist)
-    //    evalPairSols(node);
-    // return;
+     for (const auto& node : leafIlist)
+        evalPairSols(node);
+     return;
 }
 
 /* evalPairSols(srcNode)

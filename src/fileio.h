@@ -153,6 +153,22 @@ SrcVec importRWG(
     return rwgs;
 }
 
+std::filesystem::path makePath(const Config& config) {
+    std::string distStr =
+        [&]() -> std::string {
+        switch (config.pdist) {
+            case Dist::UNIFORM:    return "uniform";
+            case Dist::GAUSSIAN:   return "gauss";
+            case Dist::SPHERE:     return "sphere";
+            case Dist::CYLINDER:   return "cyl";
+        }
+        }();
+
+    return
+        std::filesystem::path("config") /
+        (distStr + "_n" + std::to_string(config.nsrcs) + ".txt");
+}
+
 pair<SrcVec, shared_ptr<PlaneWave>> 
     importFromConfig(const Config& config) 
 {

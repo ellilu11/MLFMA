@@ -5,10 +5,7 @@
 class Stem final : public Node, public std::enable_shared_from_this<Stem> {
 
 public:
-    Stem(
-        const SrcVec&,
-        const int,
-        Stem* const);
+    Stem(const SrcVec&, const int, Stem* const);
 
     std::shared_ptr<Node> getSelf() override {
         return shared_from_this();
@@ -20,7 +17,11 @@ public:
 
     void buildMpoleCoeffs() override;
 
-    std::vector<vec3cd> getShiftedLocalCoeffs(const int) const;
+    const std::vector<vec3cd> getShiftedLocalCoeffs(int) const;
+
+    const std::vector<vec3cd> getShiftedMpoleCoeffs(int) const; //
+
+    static std::vector<vec3cd> getAnterpCoeffs(const std::vector<vec3cd>&, int);
 
     void buildLocalCoeffs() override;
 
@@ -42,4 +43,8 @@ public:
             */
     }
 
+    void testShiftedLocalCoeffs();
+
+private:
+    // TODO: Add branches
 };

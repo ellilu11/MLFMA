@@ -1,6 +1,6 @@
 #include <random>
 #include "../src/MLFMA.h"
-#include "../src/import.h"
+#include "../src/fileio.h"
 #include "../src/math.h"
 #include "../src/node.h"
 
@@ -12,7 +12,8 @@ shared_ptr<Node> Node::getNode() {
 
     auto node = nodes[nodeIdx];
 
-    while (node->isNodeType<Stem>() || node->iList.empty() || node->srcs.size() <= 5)
+    // while (node->isNodeType<Stem>() || node->iList.empty() || node->srcs.size() <= 5)
+    while (node->isNodeType<Leaf>() || node->isRoot() || node->srcs.size() == 0)
         node = nodes[++nodeIdx];
 
     cout << "   Selected node " << node->nodeIdx << " at level " << node->level 
@@ -22,6 +23,19 @@ shared_ptr<Node> Node::getNode() {
 
     return node;
 }
+
+/*void Node::printAngularSamples(int level) {
+    const auto [nth, nph] = getNumAngles(level);
+
+    ofstream thetaFile("out/nf/thetas_nth" + to_string(nth) + ".txt");
+    ofstream phiFile("out/nf/phis_nth" + to_string(nth) + ".txt");
+
+    for (int ith = 0; ith < nth; ++ith)
+        thetaFile << thetas[level][ith] << '\n';
+
+    for (int iph = 0; iph < nph; ++iph)
+        phiFile << phis[level][iph] << '\n';
+}*/
 
 void Leaf::testMpoleToLocalInLeaf() {
 
@@ -67,19 +81,23 @@ void Leaf::testMpoleToLocalInLeaf() {
     */
 }
 
-void Node::printAngularSamples(int level) {
-    const auto [nth, nph] = getNumAngles(level);
+void Stem::testShiftedLocalCoeffs() {
 
-    ofstream thetaFile("out/nf/thetas_nth" + to_string(nth) + ".txt");
-    ofstream phiFile("out/nf/phis_nth" + to_string(nth) + ".txt");
+    const auto [mth, mph] = getNumAngles(level+1);
 
-    for (int ith = 0; ith < nth; ++ith)
-        thetaFile << thetas[level][ith] << '\n';
+    const int branchIdx = 7;
 
-    for (int iph = 0; iph < nph; ++iph)
-        phiFile << phis[level][iph] << '\n';
+    const auto& inCoeffs = branches[branchIdx]->getMpoleCoeffs();
+    const auto& outCoeffs = getShiftedMpoleCoeffs(branchIdx);
+    
+    ofstream coeffFile("out/coeffs/coeffs.txt");
+    ofstream aCoeffFile("out/coeffs/acoeffs.txt");
+
+    for (int idx = 0; idx < mth*mph; ++idx) {
+        coeffFile << setprecision(15) << inCoeffs[idx] << '\n';
+        aCoeffFile << setprecision(15) << outCoeffs[idx] << '\n';
+    }
 }
-
 
 /*void testTransl() {
     // ==================== Test translation ===================== //
@@ -127,8 +145,6 @@ int main() {
     cout << "   Max node level: " << Node::getMaxLvl() << '\n';
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    auto obsNode = root->getNode();
-
     // ==================== Build tables ===================== //
     cout << " Building angular samples...\n";
 
@@ -152,6 +168,13 @@ int main() {
     duration_ms = end - start;
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
+    // L2L test
+    auto obsNode = root->getNode();
+    auto obsStem = dynamic_pointer_cast<Stem>(obsNode);
+    obsStem->testShiftedLocalCoeffs();
+
+    return 0;
+
     // ==================== Downward pass ==================== //
     cout << " Computing downward pass...\n";
     start = Clock::now();
@@ -163,16 +186,14 @@ int main() {
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     // ==================== Nearfield test =================== //
-
-    auto obsLevel = obsNode->getLevel();
-    auto [nth, nph] = Node::getNumAngles(obsLevel);
-
+    // auto obsLevel = obsNode->getLevel();
+    // auto [nth, nph] = Node::getNumAngles(obsLevel);
     //ofstream coeffFile("out/nf/lcoeffs_nth"+to_string(nth)+".txt");
     //obsNode->printLocalCoeffs(coeffFile);
     //Node::printAngularSamples(obsLevel);
 
-    auto obsLeaf = dynamic_pointer_cast<Leaf>(obsNode);
-    obsLeaf->testMpoleToLocalInLeaf();
+    // auto obsLeaf = dynamic_pointer_cast<Leaf>(obsNode);
+    // obsLeaf->testMpoleToLocalInLeaf();
 
     return 0;
 
