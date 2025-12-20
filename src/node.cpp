@@ -47,13 +47,13 @@ void Node::buildAngularSamples() {
         const double nodeLeng = config.rootLeng / pow(2.0, lvl);
 
         // Use excess bandwidth formula
-        const int tau = // 15; 
+        const int tau = // 33; 
             ceil(
                 (1.73*wavenum*nodeLeng +
                 2.16*pow(config.digits, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0)));
-            
+                
         // TODO: Find an optimal formula, possibly explicitly depending on level
-        Ls.push_back(tau/2 - 1); 
+        Ls.push_back(tau/2 - 1);
 
         // Construct thetas
         const int nth = tau+1;
@@ -127,8 +127,8 @@ void Node::pushSelfToNearNonNbors() {
  */
 void Node::buildMpoleToLocalCoeffs() {
 
-    const auto [nth, nph] = getNumAngles(level);
-    localCoeffs.resize(nth*nph, vec3cd::Zero());
+    const auto [nth, nph] = getNumAngles(level); 
+    localCoeffs.resize(nth*nph, vec3cd::Zero()); // TODO: Allocate elsewhere
 
     if (iList.empty()) return;
 
@@ -175,7 +175,7 @@ void Node::buildMpoleToLocalCoeffs() {
 
                 // psi LUT
                 const auto& interpVec = tables.interpPsi[level].at(psi);
-                const int s = tables.ssps[level].at(psi);
+                const int s = tables.idxPsi[level].at(psi);
 
                 for (int ips = s+1-order, k = 0; k < 2*order; ++ips, ++k) {
 
@@ -193,22 +193,6 @@ void Node::buildMpoleToLocalCoeffs() {
             }
         }
     }
-
-    // Apply integration weights
-    const double phiWeight = 2.0*PI / static_cast<double>(nph);
-
-    size_t m = 0;
-    for (int ith = 0; ith < nth; ++ith) {
-
-        const double theta = thetas[level][ith];
-        const double weight = thetaWeights[level][ith];
-
-        for (int iph = 0; iph < nph; ++iph) {
-
-            localCoeffs[m++] *= weight * sin(theta) * phiWeight; // TODO: Absorb into thetaWeights
-        }
-
-    }
 }
 
 
@@ -224,8 +208,7 @@ void Node::buildMpoleToLocalCoeffs() {
 
     const int L = Ls[level];
 
-    // for (const auto& node : iList) {
-        const auto& node = iList[0];
+    for (const auto& node : iList) {
 
         const auto& mpoleCoeffs = node->coeffs;
 
@@ -266,7 +249,7 @@ void Node::buildMpoleToLocalCoeffs() {
                 idx++;
             }
         }
-    // } // for (const auto& node : iList)
+    } // for (const auto& node : iList)
 }*/
 
 /* evalLeafIlistSols()

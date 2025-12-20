@@ -5,15 +5,7 @@
 #include "../src/leaf.h"
 #include "../src/stem.h"
 
-void Leaf::printLeaves(std::ofstream& f) {
-    
-    for (const auto& leaf : leaves) {
-        if (leaf->rwgs.empty()) continue;
 
-        f << leaf->center << " " << leaf->nodeLeng << " " << leaf->level << '\n';
-    }
-
-}
 
 int main() {
     Config config("config/config.txt");

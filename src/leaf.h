@@ -41,26 +41,19 @@ public:
 
     void buildLocalCoeffs() override;
 
-    // ========== Test methods ==========
     void printNode(std::ofstream& f) {
         f << center << " " << nodeLeng << " " << label << '\n';
     }
-    
-    // std::vector<vec2cd> getLeafSolsPerTheta(const vec3d&);
 
-    static void printLeaves(std::ofstream&);
+    static void printLeaves(std::ofstream& f) {
+        for (const auto& leaf : leaves) {
+            if (leaf->getSrcs().empty()) continue;
 
-    static void testFarfieldFromLeaves(double);
-
-    void testMpoleToLocalInLeaf();
-
-    void printLocalCoeffs(std::ofstream& f) override {
-
-        for (const auto& coeffs : localCoeffs)
-            f << coeffs << '\n';
+            f << leaf->getCenter() << " " << leaf->getLeng() << " " << leaf->getLevel() << '\n';
+        }
     }
 
-private:
+protected:
     static LeafVec leaves;
 
     NodeVec nearNbors; // list 1

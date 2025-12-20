@@ -2,7 +2,7 @@
 
 #include "node.h"
 
-class Stem final : public Node, public std::enable_shared_from_this<Stem> {
+class Stem : public Node, public std::enable_shared_from_this<Stem> {
 
 public:
     Stem(const SrcVec&, const int, Stem* const);
@@ -15,7 +15,7 @@ public:
 
     void buildMpoleCoeffs() override;
 
-    const std::vector<vec3cd> getShiftedLocalCoeffs(int) const;
+    std::vector<vec3cd> getShiftedLocalCoeffs(int) const;
 
     static void addInterpCoeffs(const std::vector<vec3cd>&, std::vector<vec3cd>&, int, int);
 
@@ -23,26 +23,12 @@ public:
 
     void buildLocalCoeffs() override;
 
-    // ========== Test methods ==========
-    void printNode(std::ofstream& f) override {
+    void printNode(std::ofstream& f) {
         f << center << " " << nodeLeng << " " << label << '\n';
-        for (const auto& branch : branches)
-            branch->printNode(f);
     }
 
-    void printLocalCoeffs(std::ofstream& f) override {
+    static void testInvInterp(int);
 
-        for (const auto& coeffs : localCoeffs)
-            f << coeffs << '\n';
-
-        /*
-        for (const auto& branch : branches)
-            branch->printLocalCoeffs(f);
-            */
-    }
-
-    void testShiftedLocalCoeffs();
-
-private:
+// protected:
     // TODO: Add branches
 };

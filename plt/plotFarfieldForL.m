@@ -15,7 +15,7 @@ dir = "C:\Users\ellil\Documents\WORK\MLFMA\MLFMA\out\build\x64-debug\out\ff\";
 for i=1:size(nths,2)
     flds{i} = readmatrix(dir+"ff_maxlvl"+string(maxlvl)+"_nth"+string(nths(i))+".txt");
     thetas{i} = readmatrix(dir+"thetas_nth"+string(nths(i))+".txt");
-    phis{i} = readmatrix(dir+"phis_nph"+string(nths(i))+".txt");
+    phis{i} = readmatrix(dir+"phis_nth"+string(nths(i))+".txt");
 end
 
 % Select Ls and field components to plot

@@ -7,9 +7,8 @@
 struct Tables {
     Tables() = default;
     Tables(const Config& config)
+        : order(config.interpOrder)
     {
-        order = config.interpOrder;
-
         buildAngularTables();
         
         buildInterpTables();
@@ -47,17 +46,17 @@ struct Tables {
     std::vector<std::vector<realVec>> interpPhi;
     std::vector<std::vector<int>> idxPhi;
 
-    // M2L translation tables
-    std::vector<Map<double,vecXcd>> transl;
-    std::vector<HashMap<double,vecXcd>> interpPsi;
-    std::vector<HashMap<double,int>> ssps;
-
     // L2L interpolation tables
     std::vector<std::vector<realVec>> invInterpTheta;
     std::vector<std::vector<int>> invIdxTheta;
 
     std::vector<std::vector<realVec>> invInterpPhi;
     std::vector<std::vector<int>> invIdxPhi;
+
+    // M2L translation tables
+    std::vector<Map<double,vecXcd>> transl;
+    std::vector<HashMap<double,vecXcd>> interpPsi;
+    std::vector<HashMap<double,int>> idxPsi;
 
 };
 

@@ -39,8 +39,8 @@ Tables::getInterpThetaAtLvl(int srcLvl, int tgtLvl) {
 
     assert(abs(srcLvl - tgtLvl) == 1); // don't interpolate across more than 1 level
 
-    const int srcNth = Node::getNumAngles(srcLvl).first;
-    const int tgtNth = Node::getNumAngles(tgtLvl).first;
+    const int mth = Node::getNumAngles(srcLvl).first;
+    const int nth = Node::getNumAngles(tgtLvl).first;
 
     const auto& srcThetas = Node::thetas[srcLvl];
     const auto& tgtThetas = Node::thetas[tgtLvl];
@@ -48,11 +48,11 @@ Tables::getInterpThetaAtLvl(int srcLvl, int tgtLvl) {
     std::vector<realVec> coeffs;
     std::vector<int> indices;
 
-    for (size_t jth = 0; jth < tgtNth; ++jth) {
+    for (size_t jth = 0; jth < nth; ++jth) {
         realVec coeffs_jth;
         const double tgtTheta = tgtThetas[jth];
 
-        const int t = Interp::getNearGLNodeIdx(tgtTheta, srcNth, 0.0, PI);
+        const int t = Interp::getNearGLNodeIdx(tgtTheta, mth, 0.0, PI);
 
         // Assemble source thetas interpolating target theta
         // TODO: Use splicing with std::span
@@ -60,14 +60,14 @@ Tables::getInterpThetaAtLvl(int srcLvl, int tgtLvl) {
         for (int ith = t+1-order; ith <= t+order; ++ith) {
 
             // Flip ith if not in [0, mth-1]
-            int ith_flipped = Math::flipIdxToRange(ith, srcNth);
+            int ith_flipped = Math::flipIdxToRange(ith, mth);
 
             double srcTheta = srcThetas[ith_flipped];
 
             // Extend source thetas to outside [0, pi] as needed
             if (ith < 0)
                 srcTheta *= -1.0;
-            else if (ith >= srcNth)
+            else if (ith >= mth)
                 srcTheta = 2.0*PI - srcTheta;
 
             interpThetas.push_back(srcTheta);
@@ -79,6 +79,7 @@ Tables::getInterpThetaAtLvl(int srcLvl, int tgtLvl) {
 
         coeffs.push_back(coeffs_jth);
         indices.push_back(t);
+
     }
 
     return std::make_pair(coeffs, indices);
@@ -89,8 +90,8 @@ Tables::getInterpPhiAtLvl(int srcLvl, int tgtLvl) {
 
     assert(abs(srcLvl - tgtLvl) == 1); // don't interpolate across more than 1 level
 
-    const int srcNph = Node::getNumAngles(srcLvl).second;
-    const int tgtNph = Node::getNumAngles(tgtLvl).second;
+    const int mph = Node::getNumAngles(srcLvl).second;
+    const int nph = Node::getNumAngles(tgtLvl).second;
 
     const auto& srcPhis = Node::phis[srcLvl];
     const auto& tgtPhis = Node::phis[tgtLvl];
@@ -98,18 +99,18 @@ Tables::getInterpPhiAtLvl(int srcLvl, int tgtLvl) {
     std::vector<realVec> coeffs;
     std::vector<int> indices;
 
-    for (size_t jph = 0; jph < tgtNph; ++jph) {
+    for (size_t jph = 0; jph < nph; ++jph) {
         realVec coeffs_jph;
         const double tgtPhi = tgtPhis[jph];
 
-        const int s = std::floor(tgtPhi / (2.0 * PI) * srcNph);
+        const int s = std::floor(mph * tgtPhi / (2.0*PI));
 
         // Assemble source phis interpolating target phi
         // TODO: Use splicing with std::span
         realVec interpPhis;
         for (int iph = s+1-order; iph <= s+order; ++iph) {
 
-            double srcPhi = 2.0*PI*iph/static_cast<double>(srcNph);
+            double srcPhi = 2.0*PI*iph/static_cast<double>(mph);
 
             interpPhis.push_back(srcPhi);
         }
@@ -128,7 +129,7 @@ Tables::getInterpPhiAtLvl(int srcLvl, int tgtLvl) {
 void Tables::buildInterpTables() {
 
     // Build M2M interpolation tables
-    for (size_t lvl = 0; lvl < Node::maxLevel; ++lvl) {
+    for (int lvl = 0; lvl < Node::maxLevel; ++lvl) {
         const auto [thetaCoeffs, thetaIndices] = getInterpThetaAtLvl(lvl+1, lvl);
 
         interpTheta.push_back(thetaCoeffs);
@@ -141,7 +142,7 @@ void Tables::buildInterpTables() {
     }
 
     // Build L2L interpolation tables
-    for (size_t lvl = 0; lvl < Node::maxLevel; ++lvl) {
+    for (int lvl = 0; lvl < Node::maxLevel; ++lvl) {
         const auto [thetaCoeffs, thetaIndices] = getInterpThetaAtLvl(lvl, lvl+1);
 
         invInterpTheta.push_back(thetaCoeffs);
@@ -291,7 +292,7 @@ void Tables::buildInterpPsiTable() { // CONSIDER: Interp over xi = cos(psi)
         }
 
         interpPsi.push_back(interpPsi_lvl);
-        ssps.push_back(s_lvl);
+        idxPsi.push_back(s_lvl);
     }
 
     //end = Clock::now();

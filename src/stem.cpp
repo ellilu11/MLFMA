@@ -66,8 +66,8 @@ void Stem::buildMpoleCoeffs() {
 
     const int order = config.interpOrder;
 
-    const auto [nth, nph] = getNumAngles(level);
     const auto [mth, mph] = getNumAngles(level+1);
+    const auto [nth, nph] = getNumAngles(level);
 
     coeffs.resize(nth*nph, vec3cd::Zero());
 
@@ -102,16 +102,17 @@ void Stem::buildMpoleCoeffs() {
 
         t.M2M += Clock::now() - start;
 
-    } // for (const auto& branch : branches)
+    }
 }
 
 /* getShiftedLocalCoeffs(branchIdx)
  * (L2L) Return local coeffs shifted to center of branch labeled by branchIdx
  * branchIdx : index of branch \in {0, ..., 7}
  */
-const std::vector<vec3cd> Stem::getShiftedLocalCoeffs(int branchIdx) const {
+std::vector<vec3cd> Stem::getShiftedLocalCoeffs(int branchIdx) const {
 
-    const auto [nth, nph] = getNumAngles(level);
+    const auto [mth, mph] = getNumAngles(level);
+    const auto [nth, nph] = getNumAngles(level+1);
 
     std::vector<vec3cd> outCoeffs(nth*nph, vec3cd::Zero());
     if (iList.empty()) return outCoeffs;
@@ -122,14 +123,14 @@ const std::vector<vec3cd> Stem::getShiftedLocalCoeffs(int branchIdx) const {
     std::vector<vec3cd> shiftedCoeffs;
 
     size_t l = 0;
-    for (int jth = 0; jth < nth; ++jth) {
-
-        for (int jph = 0; jph < nph; ++jph) {
+    for (int ith = 0; ith < mth; ++ith) {
+        for (int iph = 0; iph < mph; ++iph) {
 
             const auto& kvec = tables.khat[level][l] * wavenum;
 
             shiftedCoeffs.push_back(
-                exp(iu*kvec.dot(dR)) * localCoeffs[l++]);
+                exp(iu*kvec.dot(dR)) * 
+                localCoeffs[l++]);
 
         }
     }
@@ -142,7 +143,7 @@ const std::vector<vec3cd> Stem::getShiftedLocalCoeffs(int branchIdx) const {
 
 void Stem::addInterpCoeffs(
     const std::vector<vec3cd>& inCoeffs, 
-    std::vector<vec3cd>& summedCoeffs, 
+    std::vector<vec3cd>& outCoeffs, 
     int srcLvl, int tgtLvl)
 {
     const int order = config.interpOrder;
@@ -153,20 +154,24 @@ void Stem::addInterpCoeffs(
     assert(!(mph%2)); // mph needs to be even
 
     // Decide which interp tables to use
+    //const auto& interpTheta = tables.interpTheta;
+    //const auto& idxTheta = tables.idxTheta;
+    //const auto& interpPhi = tables.interpPhi;
+    //const auto& idxPhi = tables.idxPhi;
+
     const auto& interpTheta = (srcLvl > tgtLvl) ? tables.interpTheta : tables.invInterpTheta;
     const auto& idxTheta = (srcLvl > tgtLvl) ? tables.idxTheta : tables.invIdxTheta;
-
     const auto& interpPhi = (srcLvl > tgtLvl) ? tables.interpPhi : tables.invInterpPhi;
     const auto& idxPhi = (srcLvl > tgtLvl) ? tables.idxPhi : tables.invIdxPhi;
 
-    if (srcLvl < tgtLvl) tgtLvl--; // Decrement tgtLvl so it correctly indexes L2L tables
+    const int tblLvl = std::min(srcLvl, tgtLvl);
 
     // Interpolate over theta
     std::vector<vec3cd> innerCoeffs(nth*mph, vec3cd::Zero());
 
     size_t m = 0;
     for (int jth = 0; jth < nth; ++jth) {
-        const int t = idxTheta[tgtLvl][jth];
+        const int t = idxTheta[tblLvl][jth];
 
         for (int iph = 0; iph < mph; ++iph) {
 
@@ -187,7 +192,7 @@ void Stem::addInterpCoeffs(
                 const int m_shifted = ith_flipped*mph + iph_shifted;
 
                 innerCoeffs[m] +=
-                    interpTheta[tgtLvl][jth][k] * inCoeffs[m_shifted];
+                    interpTheta[tblLvl][jth][k] * inCoeffs[m_shifted];
                 // * Math::pm(outOfRange); // only for spherical components!
             }
 
@@ -200,15 +205,15 @@ void Stem::addInterpCoeffs(
     for (int jth = 0; jth < nth; ++jth) {
 
         for (int jph = 0; jph < nph; ++jph) {
-            const int s = idxPhi[tgtLvl][jph]; // TODO: don't need to lookup for every jth
+            const int s = idxPhi[tblLvl][jph]; // TODO: don't need to lookup for every jth
 
             for (int iph = s+1-order, k = 0; iph <= s+order; ++iph, ++k) {
 
                 // Wrap iph if not in [0, mph-1]
                 const int iph_wrapped = Math::wrapIdxToRange(iph, mph);
 
-                summedCoeffs[n] +=
-                    interpPhi[tgtLvl][jph][k]
+                outCoeffs[n] +=
+                    interpPhi[tblLvl][jph][k]
                     * innerCoeffs[jth*mph + iph_wrapped];
             }
 
@@ -315,7 +320,7 @@ void Stem::buildLocalCoeffs() {
         }
 
         t.L2L += Clock::now() - start;
-
+        
     }
 
     for (const auto& branch : branches)

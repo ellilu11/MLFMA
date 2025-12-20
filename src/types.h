@@ -23,6 +23,8 @@ using mat32d = Eigen::Matrix<double, 3, 2>;
 
 template <typename T>
 std::vector<T> operator+ (const std::vector<T>& zs, const std::vector<T>& ws) {
+    assert(zs.size() == ws.size());
+
     std::vector<T> sum;
     for (size_t i = 0; i < zs.size(); ++i)
         sum.push_back(zs[i] + ws[i]);

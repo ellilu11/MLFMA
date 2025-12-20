@@ -112,8 +112,6 @@ public:
     virtual void buildMpoleCoeffs() = 0;
     
     virtual void buildLocalCoeffs() = 0;
-    
-    virtual void printNode(std::ofstream&) = 0;
 
     // ========== Test methods ==========
     static Tables getTables() { return tables; }
@@ -125,8 +123,6 @@ public:
     static void printAngularSamples(int);
 
     static std::shared_ptr<Node> getNode();
-
-    virtual void printLocalCoeffs(std::ofstream& f) = 0;
 
 protected:
     static Config config;

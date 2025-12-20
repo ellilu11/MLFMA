@@ -125,11 +125,12 @@ void Leaf::buildLocalCoeffs() {
     if (!base->isRoot()) {
         auto stemBase = static_cast<Stem*>(base);
 
-        localCoeffs = 
+        localCoeffs =
             localCoeffs + stemBase->getShiftedLocalCoeffs(branchIdx);
     }
 
     t.L2L += Clock::now() - start;
+    
 }
 
 /* evalFarSols()
@@ -139,6 +140,8 @@ void Leaf::evalFarSols() {
     if (isSrcless() || level <= 1) return;
 
     const auto [nth, nph] = getNumAngles(level);
+
+    const double phiWeight = 2.0*PI / static_cast<double>(nph); // TODO: static member
 
     for (const auto& obs : srcs) {
 
@@ -161,13 +164,15 @@ void Leaf::evalFarSols() {
                     obs->getIncAlongDir(center, wavenum*khat);
 
                 // Do the angular integration
-                sol += incPat.dot(localCoeffs[idx]);
+                sol += thetaWeights[level][ith]
+                        * sin(theta) // TODO: Absorb into thetaWeights
+                        * incPat.dot(localCoeffs[idx]);
 
                 idx++;
             }
         }
 
-        obs->addToSol(C * wavenum * sol);
+        obs->addToSol(C * wavenum * phiWeight * sol);
     }
 
 }

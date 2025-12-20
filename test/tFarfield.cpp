@@ -70,45 +70,6 @@ void Node::testFarfield(double r) {
     }
 }
 
-/* testFarfieldFromLeaves(r)
- * Print total farfield along leaf sampled directions at distance r,
- * assuming all non-empty leaves are at same level
- */
-/*void Leaf::testFarfieldFromLeaves(double r) {
-
-    ofstream outFile("out/ff/ff_maxlvl" + to_string(maxLevel) + ".txt");
-
-    outFile << setprecision(15) << scientific;
-
-    const auto [nth, nph] = getNumAngles(maxLevel);
-
-    std::vector<vec3cd> sols(nth*nph, vec3cd::Zero());
-
-    for (const auto& leaf : leaves) {
-        if (leaf->srcs.empty()) continue;
-
-        // only works if all non-empty leaves are at maxlevel
-        assert(leaf->level == maxLevel);
-
-        leaf->buildMpoleCoeffs();
-
-        sols = sols + leaf->getFarSolsFromCoeffs(r);
-    }
-
-    size_t idx = 0;
-    for (int ith = 0; ith < nth; ++ith) {
-
-        for (int iph = 0; iph < nph; ++iph) {
-
-            const vec3d solAbs = sols[idx].cwiseAbs();
-
-            outFile << solAbs << '\n';
-
-            idx++;
-        }
-    }
-}*/
-
 /*void Node::testFarfieldDir(double r) {
 
     ofstream outFile("out/ffDir.txt");
@@ -132,6 +93,45 @@ void Node::testFarfield(double r) {
         }
     }
 }*/
+
+/* testFarfieldFromLeaves(r)
+    * Print total farfield along leaf sampled directions at distance r,
+    * assuming all non-empty leaves are at same level
+    */
+    /*void TestLeaf::testFarfieldFromLeaves(double r) {
+
+            ofstream outFile("out/ff/ff_maxlvl" + to_string(maxLevel) + ".txt");
+
+            outFile << setprecision(15) << scientific;
+
+            const auto [nth, nph] = getNumAngles(maxLevel);
+
+            std::vector<vec3cd> sols(nth*nph, vec3cd::Zero());
+
+            for (const auto& leaf : leaves) {
+                if (leaf->srcs.empty()) continue;
+
+                // only works if all non-empty leaves are at maxlevel
+                assert(leaf->level == maxLevel);
+
+                leaf->buildMpoleCoeffs();
+
+                sols = sols + leaf->getFarSolsFromCoeffs(r);
+            }
+
+            size_t idx = 0;
+            for (int ith = 0; ith < nth; ++ith) {
+
+                for (int iph = 0; iph < nph; ++iph) {
+
+                    const vec3d solAbs = sols[idx].cwiseAbs();
+
+                    outFile << solAbs << '\n';
+
+                    idx++;
+                }
+            }
+        }*/
 
 
 void Node::printAngularSamples(int level) {
