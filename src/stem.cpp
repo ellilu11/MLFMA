@@ -93,7 +93,7 @@ void Stem::buildMpoleCoeffs() {
 
                 shiftedCoeffs[l] = exp(iu*kvec.dot(dX)) * branchCoeffs[l];
 
-                l++;
+                ++l;
 
             }
         }
@@ -131,7 +131,7 @@ std::vector<vec2cd> Stem::getShiftedLocalCoeffs(int branchIdx) const {
 
             shiftedCoeffs[l] = exp(iu*kvec.dot(dX)) * localCoeffs[l];
 
-            l++;
+            ++l;
         }
     }
 
@@ -167,11 +167,11 @@ void Stem::addInterpCoeffs(
     size_t m = 0;
     for (int jth = 0; jth < nth; ++jth) {
         
-        const auto [interps, inear] = interpTheta[tblLvl][jth];
+        const auto [interps, nearIdx] = interpTheta[tblLvl][jth];
 
         for (int iph = 0; iph < mph; ++iph) {
 
-            for (int ith = inear+1-order, k = 0; ith <= inear+order; ++ith, ++k) {
+            for (int ith = nearIdx+1-order, k = 0; ith <= nearIdx+order; ++ith, ++k) {
 
                 // Flip ith if not in [0, mth-1]
                 const int ith_flipped = Math::flipIdxToRange(ith, mth);
@@ -192,7 +192,7 @@ void Stem::addInterpCoeffs(
                     * Math::pm(outOfRange); // only for spherical components!
             }
 
-            m++;
+            ++m;
         }
     }
 
@@ -201,9 +201,9 @@ void Stem::addInterpCoeffs(
     for (int jth = 0; jth < nth; ++jth) {
 
         for (int jph = 0; jph < nph; ++jph) {
-            const auto [interps, inear] = interpPhi[tblLvl][jph]; // TODO: don't need to lookup for every jth
+            const auto [interps, nearIdx] = interpPhi[tblLvl][jph]; // TODO: don't need to lookup for every jth
 
-            for (int iph = inear+1-order, k = 0; iph <= inear+order; ++iph, ++k) {
+            for (int iph = nearIdx+1-order, k = 0; iph <= nearIdx+order; ++iph, ++k) {
 
                 // Wrap iph if not in [0, mph-1]
                 const int iph_wrapped = Math::wrapIdxToRange(iph, mph);
@@ -213,7 +213,7 @@ void Stem::addInterpCoeffs(
                     * innerCoeffs[jth*mph + iph_wrapped];
             }
 
-            n++;
+            ++n;
         }
     }
 }

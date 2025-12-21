@@ -58,6 +58,8 @@ void Node::buildAngularSamples() {
         const int nth = tau+1;
         const auto [nodes, weights] = Interp::gaussLegendre(nth, EPS_NR, 0.0, PI);
 
+
+
         thetas.push_back(nodes);
         thetaWeights.push_back(weights);
 
@@ -143,7 +145,7 @@ void Node::buildMpoleToLocalCoeffs() {
         const double r = dX.norm();
         const auto& rhat = dX / r;
 
-        const auto& translVec = tables.transl[level].at(r / nodeLeng);
+        const auto& transls = tables.transl[level].at(r/nodeLeng);
 
         size_t l = 0;
         for (int ith = 0; ith < nth; ++ith) {
@@ -156,37 +158,36 @@ void Node::buildMpoleToLocalCoeffs() {
 
                 cmplx translCoeff = 0.0;
 
+                // psi LUT
+                const auto [interps, nearIdx] = tables.interpPsi[level].at(psi);
+
+                for (int ips = nearIdx+1-order, k = 0; k < 2*order; ++ips, ++k) {
+
+                    const int ips_flipped = Math::flipIdxToRange(ips, nps); 
+
+                    translCoeff += transls[ips_flipped] * interps[k];
+                }
+                //
+
                 /* No psi LUT
-                const int s = std::floor((nps-1) * psi / PI);
+                const int nearIdx = std::floor((nps-1) * psi / PI);
 
                 realVec psis_;
-                for (int ips = s+1-order; ips <= s+order; ++ips)
+                for (int ips = nearIdx+1-order; ips <= nearIdx+order; ++ips)
                     psis_.push_back(PI*ips/static_cast<double>(nps-1));
 
-                for (int ips = s+1-order, k = 0; k < 2*order; ++ips, ++k) {
+                for (int ips = nearIdx+1-order, k = 0; k < 2*order; ++ips, ++k) {
                     const int ips_flipped = Math::flipIdxToRange(ips, nps);
 
                     translCoeff +=
-                        translVec[ips_flipped]
+                        transls[ips_flipped]
                         * Interp::evalLagrangeBasis(psi,psis_,k);
                 }
                 */
 
-                // psi LUT
-                const auto& interpVec = tables.interpPsi[level].at(psi);
-                const int s = tables.idxPsi[level].at(psi);
-
-                for (int ips = s+1-order, k = 0; k < 2*order; ++ips, ++k) {
-
-                    const int ips_flipped = Math::flipIdxToRange(ips, nps); 
-
-                    translCoeff += translVec[ips_flipped] * interpVec[k];
-                }
-                //
-
                 localCoeffs[l] += translCoeff * mpoleCoeffs[l];
 
-                l++;
+                ++l;
             }
         }
     }

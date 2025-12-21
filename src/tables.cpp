@@ -6,19 +6,20 @@ void Tables::buildAngularTables() {
 
         const auto [nth, nph] = Node::getNumAngles(level);
 
-        std::vector<vec3d> khat_lvl;
-        std::vector<mat23d> toSphK_lvl;
-        std::vector<mat23d> toSphKK_lvl;
+        std::vector<vec3d> khat_lvl(nth*nph);
+        std::vector<mat23d> toSphK_lvl(nth*nph);
+        std::vector<mat23d> toSphKK_lvl(nth*nph);
 
+        size_t idx = 0;
         for (int ith = 0; ith < nth; ++ith) {
             const double th = Node::thetas[level][ith];
 
             for (int iph = 0; iph < nph; ++iph) {
                 const double ph = Node::phis[level][iph];
 
-                khat_lvl.push_back(Math::fromSph(vec3d(1.0, th, ph)));
-                toSphK_lvl.push_back(Math::toSphR(th, ph));
-                toSphKK_lvl.push_back(Math::toSphRR(th, ph));
+                khat_lvl[idx] = Math::fromSph(vec3d(1.0, th, ph));
+                toSphK_lvl[idx] = Math::toSphR(th, ph);
+                toSphKK_lvl[idx++] = Math::toSphRR(th, ph);
             }
         }
 
@@ -41,15 +42,13 @@ std::vector<interpPair> Tables::getInterpThetaAtLvl(int srcLvl, int tgtLvl) {
     std::vector<interpPair> interpPairs;
 
     for (size_t jth = 0; jth < nth; ++jth) {
-        realVec coeffs(2*order);
         const double tgtTheta = tgtThetas[jth];
 
-        const int inear = Interp::getNearGLNodeIdx(tgtTheta, mth, 0.0, PI);
+        const int nearIdx = Interp::getNearGLNodeIdx(tgtTheta, mth, 0.0, PI);
 
         // Assemble source thetas interpolating target theta
-        // TODO: Use splicing with std::span
         realVec interpThetas;
-        for (int ith = inear+1-order; ith <= inear+order; ++ith) {
+        for (int ith = nearIdx+1-order; ith <= nearIdx+order; ++ith) {
 
             // Flip ith if not in [0, mth-1]
             int ith_flipped = Math::flipIdxToRange(ith, mth);
@@ -65,11 +64,12 @@ std::vector<interpPair> Tables::getInterpThetaAtLvl(int srcLvl, int tgtLvl) {
             interpThetas.push_back(srcTheta);
         }
 
+        vecXd coeffs(2*order);
         for (int k = 0; k < 2*order; ++k)
             coeffs[k] = 
                 Interp::evalLagrangeBasis(tgtTheta, interpThetas, k);
 
-        interpPairs.emplace_back(coeffs, inear);
+        interpPairs.emplace_back(coeffs, nearIdx);
 
     }
 
@@ -89,22 +89,21 @@ std::vector<interpPair> Tables::getInterpPhiAtLvl(int srcLvl, int tgtLvl) {
     std::vector<interpPair> interpPairs;
 
     for (size_t jph = 0; jph < nph; ++jph) {
-        realVec coeffs(2*order);
         const double tgtPhi = tgtPhis[jph];
 
-        const int inear = std::floor(mph * tgtPhi / (2.0*PI));
+        const int nearIdx = std::floor(mph * tgtPhi / (2.0*PI));
 
         // Assemble source phis interpolating target phi
-        // TODO: Use splicing with std::span
         realVec interpPhis;
-        for (int iph = inear+1-order; iph <= inear+order; ++iph)
+        for (int iph = nearIdx+1-order; iph <= nearIdx+order; ++iph)
             interpPhis.push_back(2.0*PI*iph/static_cast<double>(mph));
 
+        vecXd coeffs(2*order);
         for (int k = 0; k < 2*order; ++k)
             coeffs[k] = 
                 Interp::evalLagrangeBasis(tgtPhi, interpPhis, k);
 
-        interpPairs.emplace_back(coeffs, inear);
+        interpPairs.emplace_back(coeffs, nearIdx);
     }
 
     return interpPairs;
@@ -177,52 +176,42 @@ void Tables::buildTranslationTable() {
 };
 
 
-void Tables::buildInterpPsiTable() { // CONSIDER: Interp over xi = cos(psi)
+void Tables::buildInterpPsiTable() {
 
-    //std::cout << "   Finding all psi\n";
-    //auto start = Clock::now();
+    // auto start = Clock::now();
 
     const auto& rhats = Math::getINodeDirections();
 
-    std::vector<realVec> psis;
+    std::vector<realVec> psis(Node::maxLevel+1);
 
     // Find all unique psi = acos(khat.dot(rhat)) at each level
     for (size_t level = 0; level <= Node::maxLevel; ++level) {
 
         const auto [nth, nph] = Node::getNumAngles(level);
 
-        realVec psis_lvl;
+        realVec psis_lvl(nth*nph*rhats.size());
 
-        size_t idx = 0;
-        for (size_t ith = 0; ith < nth; ++ith) {
-            for (size_t iph = 0; iph < nph; ++iph) {
+        size_t m = 0;
+        for (size_t l = 0; l < nth*nph; ++l) {
 
-                const auto& khat_ = khat[level][idx++];
+            const auto& khat_ = khat[level][l];
 
-                // Loop over all possible rhat
-                for (const auto& rhat : rhats)
-                    psis_lvl.push_back(acos(khat_.dot(rhat)));
-                    // psis_lvl.push_back(khat_.dot(rhat));
-
-            }
+            for (const auto& rhat : rhats)
+                psis_lvl[m++] = acos(khat_.dot(rhat));
         }
 
         std::sort(psis_lvl.begin(), psis_lvl.end()); 
-
         psis_lvl.erase(
             std::unique(psis_lvl.begin(), psis_lvl.end()), psis_lvl.end());
 
-        // for (auto psi : psis_lvl) std::cout << psi << ' ';
-
-        psis.push_back(psis_lvl);
+        psis[level] = psis_lvl;
     }
 
     //auto end = Clock::now();
     //Time duration_ms = end - start;
     //std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    //std::cout << "   Computing Lagrange coeffs for each psi\n";
-    //start = Clock::now();
+    // start = Clock::now();
 
     // Compute Lagrange coefficients for each possible psi at each level
     for (size_t level = 0; level <= Node::maxLevel; ++level) {
@@ -230,42 +219,37 @@ void Tables::buildInterpPsiTable() { // CONSIDER: Interp over xi = cos(psi)
         const int nth = Node::getNumAngles(level).first;
         const int nps = std::floor(Node::config.overInterp*(nth-1));
 
-        HashMap<double,vecXcd> interpPsi_lvl;
-        HashMap<double,int> s_lvl;
+        HashMap<double,interpPair> interpPairs;
 
         size_t idx = 0;
         for (auto psi : psis[level]) {
 
             // Find idx of psi node nearest this psi
-            const int s = std::floor((nps-1) * psi / PI);
-            // const int s = std::floor((nps-1) * (psi + 1.0) / 2.0);
-            // const int s = std::floor(-(nps-1) * (psi - 1.0) / 2.0);
+            const int nearIdx = std::floor((nps-1) * psi / PI);
+            // const int nearIdx = std::floor((nps-1) * (psi + 1.0) / 2.0);
+            // const int nearIdx = std::floor(-(nps-1) * (psi - 1.0) / 2.0);
 
             // Assemble psis interpolating this psi
-            // TODO: Use splicing with std::span
             realVec psis;
-            for (int ips = s+1-order; ips <= s+order; ++ips)
+            for (int ips = nearIdx+1-order; ips <= nearIdx+order; ++ips)
                 psis.push_back(PI*ips/static_cast<double>(nps-1));
                 // psis.push_back(2.0*ips/static_cast<double>(nps-1)-1.0);
                 // psis.push_back(-2.0*ips/static_cast<double>(nps-1)+1.0);
 
-            vecXd interpPsi_ps(2*order);
-
+            vecXd coeffs(2*order);
             for (size_t k = 0; k < 2*order; ++k)
-                interpPsi_ps[k] = 
-                     Interp::evalLagrangeBasis(psi, psis, k);
+                coeffs[k] = 
+                     Interp::evalLagrangeBasis(psi, psis, k); // TODO: Use barycentric coordinates
 
-            interpPsi_lvl.emplace(psi, interpPsi_ps);
-            s_lvl.emplace(psi, s);
+            interpPairs.emplace(psi, std::make_pair(coeffs, nearIdx));
 
         }
 
-        interpPsi.push_back(interpPsi_lvl);
-        idxPsi.push_back(s_lvl);
+        interpPsi.push_back(interpPairs);
     }
 
-    //end = Clock::now();
-    //duration_ms = end - start;
+    //auto end = Clock::now();
+    //auto duration_ms = end - start;
     //std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
 }
