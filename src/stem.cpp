@@ -91,7 +91,7 @@ void Stem::buildMpoleCoeffs() {
 
                 const auto& kvec = tables.khat[level+1][l] * wavenum;
 
-                shiftedCoeffs[l] = exp(iu*kvec.dot(dR)) * localCoeffs[l];
+                shiftedCoeffs[l] = exp(iu*kvec.dot(dR)) * branchCoeffs[l];
 
                 l++;
 
@@ -153,7 +153,7 @@ void Stem::addInterpCoeffs(
 
     assert(!(mph%2)); // mph needs to be even
 
-    // Decide which interp tables to use
+    // Choose which interp tables to use
     const auto& interpTheta = 
         (srcLvl > tgtLvl) ? tables.interpTheta : tables.invInterpTheta;
     const auto& interpPhi = 

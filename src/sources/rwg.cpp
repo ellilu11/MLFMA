@@ -77,7 +77,7 @@ vec3cd RWG::getRadAlongDir(
         rad += weightMinus * exp(iu*kvec.dot(X-quadNode))
                 * (quadNode - vMinus);
 
-    return current * leng * rad;
+    return current * leng * rad; // TODO: Multiply in current later
 }
 
 /* getIncAlongDir(X,kvec)
@@ -130,7 +130,7 @@ vec3cd RWG::getRadAtPoint(const vec3d& X) const {
         rad += weightMinus * dyadic * (quadNode - vMinus);
     }
 
-    return current * leng * rad;
+    return current * leng * rad; // TODO: Multiply in current later
 }
 
 /* getIntegratedRad(src)

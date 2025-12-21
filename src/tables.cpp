@@ -6,31 +6,25 @@ void Tables::buildAngularTables() {
 
         const auto [nth, nph] = Node::getNumAngles(level);
 
-        std::vector<mat3d> ImKK_lvl;
         std::vector<vec3d> khat_lvl;
-        std::vector<mat23d> matToThPh_lvl;
-        std::vector<mat32d> matFromThPh_lvl;
-        
+        std::vector<mat23d> toSphK_lvl;
+        std::vector<mat23d> toSphKK_lvl;
+
         for (int ith = 0; ith < nth; ++ith) {
             const double th = Node::thetas[level][ith];
 
             for (int iph = 0; iph < nph; ++iph) {
                 const double ph = Node::phis[level][iph];
 
-                const auto& khat = Math::fromSph(vec3d(1.0,th,ph));
-
-                khat_lvl.push_back(khat);
-                ImKK_lvl.push_back(Math::IminusRR(khat));
-                
-                matToThPh_lvl.push_back(Math::matToThPh(th, ph));
-                matFromThPh_lvl.push_back(Math::matFromThPh(th, ph));
+                khat_lvl.push_back(Math::fromSph(vec3d(1.0, th, ph)));
+                toSphK_lvl.push_back(Math::toSphR(th, ph));
+                toSphKK_lvl.push_back(Math::toSphRR(th, ph));
             }
         }
 
-        ImKK.push_back(ImKK_lvl);
         khat.push_back(khat_lvl);
-        matToThPh.push_back(matToThPh_lvl);
-        matFromThPh.push_back(matFromThPh_lvl);
+        toSphK.push_back(toSphK_lvl);
+        toSphKK.push_back(toSphK_lvl);
     }
 }
 
@@ -47,7 +41,7 @@ std::vector<interpPair> Tables::getInterpThetaAtLvl(int srcLvl, int tgtLvl) {
     std::vector<interpPair> interpPairs;
 
     for (size_t jth = 0; jth < nth; ++jth) {
-        realVec coeffs;
+        realVec coeffs(2*order);
         const double tgtTheta = tgtThetas[jth];
 
         const int inear = Interp::getNearGLNodeIdx(tgtTheta, mth, 0.0, PI);
@@ -72,8 +66,8 @@ std::vector<interpPair> Tables::getInterpThetaAtLvl(int srcLvl, int tgtLvl) {
         }
 
         for (int k = 0; k < 2*order; ++k)
-            coeffs.push_back(
-                Interp::evalLagrangeBasis(tgtTheta, interpThetas, k));
+            coeffs[k] = 
+                Interp::evalLagrangeBasis(tgtTheta, interpThetas, k);
 
         interpPairs.emplace_back(coeffs, inear);
 
@@ -95,7 +89,7 @@ std::vector<interpPair> Tables::getInterpPhiAtLvl(int srcLvl, int tgtLvl) {
     std::vector<interpPair> interpPairs;
 
     for (size_t jph = 0; jph < nph; ++jph) {
-        realVec coeffs;
+        realVec coeffs(2*order);
         const double tgtPhi = tgtPhis[jph];
 
         const int inear = std::floor(mph * tgtPhi / (2.0*PI));
@@ -107,8 +101,8 @@ std::vector<interpPair> Tables::getInterpPhiAtLvl(int srcLvl, int tgtLvl) {
             interpPhis.push_back(2.0*PI*iph/static_cast<double>(mph));
 
         for (int k = 0; k < 2*order; ++k)
-            coeffs.push_back(
-                Interp::evalLagrangeBasis(tgtPhi, interpPhis, k));
+            coeffs[k] = 
+                Interp::evalLagrangeBasis(tgtPhi, interpPhis, k);
 
         interpPairs.emplace_back(coeffs, inear);
     }

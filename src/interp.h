@@ -83,7 +83,7 @@ int Interp::getNearGLNodeIdx(
 
     const double x = 2.0*(xi - mid) / leng; // Change to interval [-1,1]
 
-    const int idx = m - floor(((4.0*m+2.0) * acos(x) / PI + 1.0)/4.0) - 1; // TODO: Check for rounding errors
+    const int idx = m - floor(((4.0*m+2.0) * acos(x) / PI + 1.0)/4.0) - 1;
 
     assert(idx >= -1 && idx < m);
 

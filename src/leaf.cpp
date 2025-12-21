@@ -68,15 +68,14 @@ void Leaf::buildMpoleCoeffs() {
         for (int iph = 0; iph < nph; ++iph) {
 
             const auto& kvec = tables.khat[level][idx] * wavenum;
-            const auto& ImKK = tables.ImKK[level][idx];
 
             vec3cd radPat = vec3cd::Zero();
 
             for (const auto& src : srcs)
                 radPat += src->getRadAlongDir(center, kvec);
 
-            // Convert to spherical (no radial) components
-            coeffs.push_back(tables.matToThPh[level][idx] * (ImKK * radPat));
+            // Get spherical (no radial) components
+            coeffs.push_back(tables.toSphKK[level][idx] * radPat);
 
             idx++;
         }
@@ -139,22 +138,17 @@ void Leaf::evalFarSols() {
     for (const auto& obs : srcs) {
 
         size_t idx = 0;
-
         cmplx sol = 0;
 
         for (int ith = 0; ith < nth; ++ith) {
-
             const auto theta = thetas[level][ith];
 
             for (int iph = 0; iph < nph; ++iph) {
-
                 const auto& khat = tables.khat[level][idx];
 
                 // Compute incoming pattern along khat at this source
                 const vec2cd& incPat =
-                    // tables.ImKK[level][idx] * // Tangential-T
-                    // -khat.cross( // Tangential-K
-                    tables.matToThPh[level][idx] *
+                    tables.toSphKK[level][idx] *
                     obs->getIncAlongDir(center, wavenum*khat);
 
                 // Do the angular integration

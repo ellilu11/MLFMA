@@ -19,7 +19,8 @@ using vecXcd = Eigen::VectorXcd;
 
 using mat3d = Eigen::Matrix3d;
 using mat23d = Eigen::Matrix<double, 2, 3>;
-using mat32d = Eigen::Matrix<double, 3, 2>;
+
+using interpPair = std::pair<realVec, int>;
 
 template <typename T>
 std::vector<T> operator+ (const std::vector<T>& zs, const std::vector<T>& ws) {

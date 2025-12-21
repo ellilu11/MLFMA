@@ -35,7 +35,7 @@ void Dipole::buildCurrent() {
 vec3cd Dipole::getRadAlongDir(
     const vec3d& X, const vec3d& kvec) const {
 
-    return current * exp(iu*kvec.dot(X-pos)) * phat;
+    return current * exp(iu*kvec.dot(X-pos)) * phat; // TODO: Multiply in current later
 }
 
 /* getIncAlongDir(X,kvec)
@@ -59,7 +59,7 @@ vec3cd Dipole::getRadAtPoint(const vec3d& X) const {
 
     const auto& dyadic = Math::dyadicG(X - pos, Einc->wavenum);
 
-    return current * dyadic * phat;
+    return current * dyadic * phat; // TODO: Multiply in current later
 }
 
 /* getIntegratedRad(src)

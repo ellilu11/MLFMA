@@ -4,8 +4,6 @@
 #include "interp.h"
 #include "map.h"
 
-using interpPair = std::pair<realVec, int>;
-
 struct Tables {
     Tables() = default;
     Tables(const Config& config)
@@ -34,11 +32,10 @@ struct Tables {
     int order;
 
     // Angular tables
-    std::vector<std::vector<mat3d>> ImKK;
     std::vector<std::vector<vec3d>> khat;
 
-    std::vector<std::vector<mat23d>> matToThPh;
-    std::vector<std::vector<mat32d>> matFromThPh;
+    std::vector<std::vector<mat23d>> toSphK;
+    std::vector<std::vector<mat23d>> toSphKK;
 
     // M2M interpolation tables
     std::vector<std::vector<interpPair>> interpTheta;

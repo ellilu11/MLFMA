@@ -59,11 +59,6 @@ namespace Math {
             z);
     }
 
-    inline mat3d IminusRR(const vec3d& rhat) noexcept {
-        // auto rhat = X / X.norm();
-        return mat3d::Identity() - rhat * rhat.transpose();
-    }
-
     inline Eigen::Matrix3cd dyadicG(const vec3d& X, double k) noexcept {
         double r = X.norm();
         double kr = k*r;
@@ -77,43 +72,47 @@ namespace Math {
                 RR * (1.0 + 3.0*iu/kr - 3.0/krsq));
     };
 
-    inline mat23d matToThPh(double th, double ph) noexcept {
+    inline mat23d toSphR(double th, double ph) noexcept {
+        return mat23d{
+            { -sin(ph),          cos(ph),          0.0     },
+            { -cos(th)*cos(ph), -cos(th)*sin(ph),  sin(th) }
+        };
+    }
+
+    inline mat23d toSphRR(double th, double ph) noexcept {
         return mat23d{
             {  cos(th)*cos(ph),  cos(th)*sin(ph), -sin(th) },
             { -sin(ph),          cos(ph),          0.0     }
         };
     }
 
-    inline mat32d matFromThPh(double th, double ph) noexcept {
-        return mat32d{
-            {  cos(th)*cos(ph), -sin(ph) },
-            {  cos(th)*sin(ph),  cos(ph) },
-            { -sin(th),          0.0     }
-        };
-    }
-
-    inline mat3d matToSph(double th, double ph) noexcept {
-        return mat3d{
-            {  sin(th)*cos(ph),  sin(th)*sin(ph),  cos(th) },
-            {  cos(th)*cos(ph),  cos(th)*sin(ph), -sin(th) },
-            { -sin(ph),          cos(ph),          0.0     }
-        };
-    }
-
-    inline mat3d matFromSph(double th, double ph) noexcept {
-        return mat3d{
-            {  sin(th)*cos(ph),  cos(th)*cos(ph), -sin(ph) },
-            {  sin(th)*sin(ph),  cos(th)*sin(ph),  cos(ph) },
-            {  cos(th),         -sin(th),          0.0     }
-        };
-    }
-
-    //inline size_t coord2Idx(size_t row, size_t col, int leng) {
-    //    return row*leng + col;
+    //inline mat3d IminusRR(const vec3d& rhat) noexcept {
+    //    // auto rhat = X / X.norm();
+    //    return mat3d::Identity() - rhat * rhat.transpose();
     //}
 
-    //inline pair2i idx2Coord(size_t idx, int leng) {
-    //    return pair2i(idx/leng, idx%leng);
+    //inline mat32d matFromThPh(double th, double ph) noexcept {
+    //    return mat32d{
+    //        {  cos(th)*cos(ph), -sin(ph) },
+    //        {  cos(th)*sin(ph),  cos(ph) },
+    //        { -sin(th),          0.0     }
+    //    };
+    //}
+
+    //inline mat3d matToSph(double th, double ph) noexcept {
+    //    return mat3d{
+    //        {  sin(th)*cos(ph),  sin(th)*sin(ph),  cos(th) },
+    //        {  cos(th)*cos(ph),  cos(th)*sin(ph), -sin(th) },
+    //        { -sin(ph),          cos(ph),          0.0     }
+    //    };
+    //}
+
+    //inline mat3d matFromSph(double th, double ph) noexcept {
+    //    return mat3d{
+    //        {  sin(th)*cos(ph),  cos(th)*cos(ph), -sin(ph) },
+    //        {  sin(th)*sin(ph),  cos(th)*sin(ph),  cos(ph) },
+    //        {  cos(th),         -sin(th),          0.0     }
+    //    };
     //}
 
     inline size_t flipIdxToRange(int i, int size) noexcept {

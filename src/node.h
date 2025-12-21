@@ -137,7 +137,6 @@ protected:
     
     static Tables tables;
 
-    // TODO: template the vec type
     std::vector<vec2cd> coeffs;
     std::pair<vec2cd, vec2cd> polarCoeffs;
     std::vector<vec2cd> localCoeffs;
