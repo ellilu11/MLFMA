@@ -98,7 +98,6 @@ void Leaf::buildMpoleCoeffs() {
         for (const auto& src : srcs)
             coeff += src->getCurrent() * radPats[angIdx][srcIdx++];
 
-        // Get spherical (no radial) components
         coeffs.push_back(coeff);
 
     }
@@ -134,7 +133,7 @@ void Leaf::buildLocalCoeffs() {
 
     start = Clock::now();
     if (!base->isRoot()) {
-        auto stemBase = static_cast<Stem*>(base);
+        auto stemBase = dynamic_cast<Stem*>(base);
 
         localCoeffs =
             localCoeffs + stemBase->getShiftedLocalCoeffs(branchIdx);
@@ -167,13 +166,13 @@ void Leaf::evalFarSols() {
                 sol += weight 
                     * radPats[angIdx][obsIdx].dot(localCoeffs[angIdx]); // Hermitian dot!
 
-                angIdx++;
+                ++angIdx;
             }
         }
 
         obs->addToSol(C * wavenum * phiWeight * sol);
 
-        obsIdx++;
+        ++obsIdx;
     }
 }
 
@@ -196,10 +195,13 @@ std::vector<LeafPair> Leaf::findNearNborPairs(){
     std::vector<LeafPair> leafPairs;
 
     for (const auto& leaf : leaves) {
+
         for (const auto& nbor : leaf->nearNbors) {
+
             auto nborLeaf = dynamic_pointer_cast<Leaf>(nbor);
             if (leaf < nborLeaf)
                 leafPairs.emplace_back(leaf, nborLeaf);
+
         }
     }
 
@@ -207,7 +209,7 @@ std::vector<LeafPair> Leaf::findNearNborPairs(){
 }
 
 /* evaluateSols()
- * Sum solutions at all RWGs in all leaves 
+ * Sum solutions at all sources in all leaves 
  */ 
 void Leaf::evaluateSols() {
 

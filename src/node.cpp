@@ -77,7 +77,6 @@ void Node::buildAngularSamples() {
 
         phis.push_back(phis_lvl);
 
-
         std::cout << "   (" << lvl << "," << nth << "," << nph << ")\n";
     }
 }
@@ -159,13 +158,13 @@ void Node::buildMpoleToLocalCoeffs() {
             cmplx translCoeff = 0.0;
 
             // psi LUT
-            const auto [interp, nearIdx] = tables.interpPsi[level].at(psi);
+            const auto [interpPsi, nearIdx] = tables.interpPsi[level].at(psi);
 
             for (int ips = nearIdx+1-order, k = 0; k < 2*order; ++ips, ++k) {
 
                 const int ips_flipped = Math::flipIdxToRange(ips, nps); 
 
-                translCoeff += transl_dX[ips_flipped] * interp[k];
+                translCoeff += transl_dX[ips_flipped] * interpPsi[k];
             }
             //
 

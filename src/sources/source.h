@@ -13,7 +13,7 @@ public:
     Source() = default;
     
     Source(std::shared_ptr<PlaneWave> Einc)
-        : Einc(std::move(Einc)), rhs(0.0), current(0.0), sol(0.0) 
+        : Einc(std::move(Einc)), voltage(0.0), current(0.0), sol(0.0) 
     {};
 
     cmplx getCurrent() const { return current; }
@@ -30,7 +30,7 @@ public:
 
     virtual vec3d getCenter() const = 0;
 
-    virtual void buildRHS() = 0;
+    virtual void buildVoltage() = 0;
 
     virtual void buildCurrent() = 0;
 
@@ -49,7 +49,7 @@ public:
 
 protected:
     std::shared_ptr<PlaneWave> Einc;
-    cmplx rhs;
+    cmplx voltage;
     cmplx current;
     cmplx sol;
 

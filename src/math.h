@@ -9,8 +9,8 @@ constexpr cmplx iu(0, 1);
 const double PI = std::acos(-1.0);
 
 const vec3d zeroVec = vec3d::Zero();
-const vec3d northPole(0, 0, 1);
-const vec3d southPole(0, 0, -1);
+const vec3d northVec(0, 0, 1);
+const vec3d southVec(0, 0, -1);
 
 namespace Math {
 
@@ -121,7 +121,7 @@ namespace Math {
         else if (i >= size)
             uint_i = 2*size-i-1;
 
-        // assert(uint_i >= 0 && uint_i < size);
+        assert(uint_i >= 0 && uint_i < size);
         return uint_i;
     }
 
@@ -133,7 +133,7 @@ namespace Math {
         else if (i >= size)
             uint_i = i - size;
 
-        // assert(uint_i >= 0 && uint_i < size);
+        assert(uint_i >= 0 && uint_i < size);
         return uint_i;
     }
 

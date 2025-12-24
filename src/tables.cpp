@@ -149,10 +149,7 @@ void Tables::buildTranslationTable() {
 
             for (int ips = 0; ips < nps; ++ips) {
 
-                const double psi = PI*ips/static_cast<double>(nps-1);
-                const double xi = cos(psi);
-                // const double xi = 2.0*ips/static_cast<double>(nps-1)-1.0;
-                // const double xi = -2.0*ips/static_cast<double>(nps-1)+1.0;
+                const double xi = cos(PI*ips/static_cast<double>(nps-1));
                 cmplx coeff = 0.0;
 
                 for (int l = 0; l <= L; ++l)
@@ -171,7 +168,6 @@ void Tables::buildTranslationTable() {
     }
 
 };
-
 
 void Tables::buildInterpPsiTable() {
 
@@ -223,15 +219,11 @@ void Tables::buildInterpPsiTable() {
 
             // Find idx of psi node nearest this psi
             const int nearIdx = std::floor((nps-1) * psi / PI);
-            // const int nearIdx = std::floor((nps-1) * (psi + 1.0) / 2.0);
-            // const int nearIdx = std::floor(-(nps-1) * (psi - 1.0) / 2.0);
 
             // Assemble psis interpolating this psi
             realVec psis;
             for (int ips = nearIdx+1-order; ips <= nearIdx+order; ++ips)
                 psis.push_back(PI*ips/static_cast<double>(nps-1));
-                // psis.push_back(2.0*ips/static_cast<double>(nps-1)-1.0);
-                // psis.push_back(-2.0*ips/static_cast<double>(nps-1)+1.0);
 
             vecXd coeffs(2*order);
             for (size_t k = 0; k < 2*order; ++k)

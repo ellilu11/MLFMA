@@ -32,7 +32,7 @@ SrcVec makeDipoles(const Config& config, const shared_ptr<PlaneWave> Einc)
                 case Dist::UNIFORM:
                     return vec3d(rand0(gen), rand1(gen), rand2(gen));
 
-                    // 2D Gaussian at z = 0; TODO: 3D Gaussian
+                // 2D Gaussian at z = 0; TODO: 3D Gaussian
                 case Dist::GAUSSIAN: {
                     r = sqrt(-2.0 * log(rand0(gen)));
                     th = PI / 2.0;
@@ -177,7 +177,7 @@ pair<SrcVec, shared_ptr<PlaneWave>> importFromConfig(const Config& config)
 
     shared_ptr<PlaneWave> Einc = make_shared<PlaneWave>();
 
-    //
+    /* Dipole sources
     SrcVec srcs;
     switch (config.mode) {
         case Mode::READ:
@@ -192,20 +192,21 @@ pair<SrcVec, shared_ptr<PlaneWave>> importFromConfig(const Config& config)
             break;
         }
     }
-    //
+     
+    // cout << "   Source file:     " << fpath.generic_string() << '\n';
+    */
 
-    /*
-    const string configPath = "config/n480/";
+    // RWG sources
+    const string configPath = "config/n1/";
     auto srcs = importRWG(configPath+"vertices.txt",
                           configPath+"faces.txt",
                           configPath+"rwgs.txt",
                           config.quadPrec,
                           Einc);
-    */
+    //
     
     cout << fixed << setprecision(3);
     cout << "   Mode:            " << (config.mode == Mode::READ ? "READ" : "WRITE") << '\n';
-    cout << "   Source file:     " << fpath.generic_string() << '\n';
     cout << "   # Sources:       " << srcs.size() << '\n';
     // cout << "   RWG quad rule:   " << Triangle::prec2Int(config.quadPrec) << "-point\n";
     cout << "   Digit precision: " << config.digits << '\n';

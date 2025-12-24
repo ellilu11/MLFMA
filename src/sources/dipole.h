@@ -9,7 +9,7 @@ public:
 
     Dipole(std::shared_ptr<PlaneWave>, const vec3d&);
 
-    void buildRHS() override;
+    void buildVoltage() override;
 
     void buildCurrent() override;
 

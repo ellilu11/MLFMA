@@ -5,17 +5,17 @@ Dipole::Dipole(
     const vec3d& X) // TODO: Pass in pol. density vector
     : Source(Einc), pos(X), phat(vec3d(1, 0, 0)), pol(1.0E-8)
 {
-    // buildRHS();
+    // buildVoltage();
 
     buildCurrent();
 };
 
-void Dipole::buildRHS() {
+void Dipole::buildVoltage() {
 
     const auto& kvec = Einc->wavenum * Einc->wavevec;
 
-    rhs = -Einc->amplitude * exp(iu*kvec.dot(pos)) 
-            * pol * phat.dot(Einc->pol);
+    voltage = -Einc->amplitude * exp(iu*kvec.dot(pos)) 
+                * pol * phat.dot(Einc->pol);
 
 }
 

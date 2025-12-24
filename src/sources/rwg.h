@@ -5,22 +5,15 @@
 
 class RWG final : public Source {
 public:
+
     RWG(std::shared_ptr<PlaneWave>,
         const Eigen::Vector4i&, 
         const std::vector<vec3d>&,
         const TriVec&);
 
-    std::shared_ptr<Triangle> getTriPlus() const { return triPlus; }
-
-    std::shared_ptr<Triangle> getTriMinus() const { return triMinus; }
-
-    vec3d getVplus() const { return vPlus; }
-
-    vec3d getVminus() const { return vMinus; }
-
     double getLeng() const { return leng; }
 
-    void buildRHS() override;
+    void buildVoltage() override;
 
     void buildCurrent() override;
 
@@ -28,23 +21,18 @@ public:
 
     vec3cd getRadAlongDir(const vec3d&, const vec3d&) const override;
 
-    // vec3cd getIncAlongDir(const vec3d&, const vec3d&) const override;
-
     vec3cd getRadAtPoint(const vec3d&) const override;
 
     cmplx getIntegratedRad(const std::shared_ptr<Source>) const override;
 
 private:
-    vec3d v0;
-    vec3d v1;
-    vec3d center;
+    std::array<std::shared_ptr<Triangle>, 2> tris;
+    std::array<vec3d, 2> Xpm; // Non-common vertices
 
-    std::shared_ptr<Triangle> triPlus;
-    std::shared_ptr<Triangle> triMinus;
-    vec3d vPlus;
-    vec3d vMinus;
+    vec3d X0; // 1st common vertex
+    vec3d X1; // 2nd common vertex
 
-    vec3d nhat; // unit vector normal to RWG surface
+    vec3d center; // midpoint of common edge
+    double leng; // length of common edge
 
-    double leng;
 };

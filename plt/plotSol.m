@@ -1,6 +1,6 @@
 clear; clc;
 
-digits = 10;
+digits = 6;
 
 dir = "C:\Users\ellil\Documents\WORK\MLFMA\MLFMA\out\build\x64-debug\out\sol\";
 
