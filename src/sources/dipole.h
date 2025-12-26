@@ -28,7 +28,9 @@ public:
      * X    : observation point (Cartesian)
      * kvec : wavevector
      */
-    vec3cd getRadAlongDir(const vec3d& X, const vec3d& kvec) const override {
+    vec3cd getRadAlongDir(
+        const vec3d& X, const vec3d& kvec, bool doNumeric = 0) const override 
+    {
         return exp(iu*kvec.dot(X-pos)) * phat;
     }
 

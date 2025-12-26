@@ -14,6 +14,8 @@ const vec3d southVec(0, 0, -1);
 
 namespace Math {
 
+    constexpr double FEPS = 1.0E-6; // floating point error tolerance
+
     inline size_t bools2Idx(const std::array<bool,3>& x) noexcept {
         return x[0] + 2 * x[1] + 4 * x[2];
     }
@@ -29,6 +31,15 @@ namespace Math {
             case 2: return -1.0;
             case 3: return -iu;
         }
+    }
+
+    inline bool approxZero(double x) {
+        return fabs(x) < FEPS;
+    }
+
+    inline bool approxLess(double x, double y) {
+        if (fabs(x-y) < FEPS) return false;
+        return x < y;
     }
 
     inline vec3d toSph(const vec3d& X) noexcept {
@@ -59,20 +70,16 @@ namespace Math {
             z);
     }
 
-    //inline mat3d IminusRR(const vec3d& rhat) noexcept {
-    //    // auto rhat = X / X.norm();
-    //    return mat3d::Identity() - rhat * rhat.transpose();
-    //}
-
-    inline Eigen::Matrix3cd dyadicG(const vec3d& dX, double k) noexcept {
-        const double r = dX.norm(), kr = k*r, krsq = kr*kr;
-        const auto& rhat = dX / r;
-        const auto& RR = rhat * rhat.transpose();
+    inline Eigen::Matrix3cd dyadicG(const vec3d& X, double k) noexcept {
+        const double r = X.norm(), kr = k*r, invkrsq = 1.0/(kr*kr);
+        const cmplx iinvkr = iu/kr;
+        const vec3d& rhat = X / r;
+        const mat3d& RR = rhat * rhat.transpose();
 
         return
             exp(iu*kr)/r * (
-                mat3d::Identity() * (1.0 + iu/kr - 1.0/krsq) -
-                RR * (1.0 + 3.0*iu/kr - 3.0/krsq));
+                mat3d::Identity() * (1.0 + iinvkr - invkrsq) -
+                RR * (1.0 + 3.0*iinvkr - 3.0*invkrsq));
     };
 
     inline mat23d toThPh(double th, double ph) noexcept {
@@ -267,13 +274,6 @@ std::vector<vec3d> Math::getINodeDirections() {
                     dirs.push_back(dir/dist);
             }
 
-    constexpr double EPS = 1.0E-6;
-
-    auto approxLess = [](double x, double y) {
-        if (abs(x-y) < EPS) return false;
-        return x < y;
-    };
-
     auto vecLessThan = [&](const vec3d& X, const vec3d& Y) {
         if (approxLess(X[0], Y[0])) return true;
         if (approxLess(Y[0], X[0])) return false;
@@ -284,11 +284,11 @@ std::vector<vec3d> Math::getINodeDirections() {
         return X[2] < Y[2];
     };
 
-    std::sort(dirs.begin(), dirs.end(), vecLessThan);
-
     auto vecEquals = [](const vec3d X, const vec3d Y) {
-        return ((X-Y).norm()) < EPS;
-    };
+        return ((X-Y).norm()) < FEPS;
+        };
+
+    std::sort(dirs.begin(), dirs.end(), vecLessThan);
 
     dirs.erase(
         std::unique(dirs.begin(), dirs.end(), vecEquals), 

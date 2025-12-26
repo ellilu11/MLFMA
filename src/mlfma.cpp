@@ -55,6 +55,7 @@ int main() {
 
     start = Clock::now();
 
+    ofstream anlFile("out/radpat_anl.txt");
     Leaf::buildRadPats();
 
     end = Clock::now();
@@ -106,7 +107,8 @@ int main() {
     cout << "   Elapsed time (S2T): " << t.S2T.count() << " ms\n\n";
     cout << " FMM total elapsed time: " << fmm_duration_ms.count() << " ms\n";
 
-    printSols(srcs, "sol_d" + to_string(config.digits) + ".txt");
+    // printSols(srcs, "sol_d" + to_string(config.digits) + ".txt");
+    printSols(srcs, "sol.txt");
 
     if (!config.evalDirect) return 0;
 

@@ -38,27 +38,24 @@ int main() {
     cout << "   Max node level: " << Node::getMaxLvl() << '\n';
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    // ==================== Build tables ===================== //
-    cout << " Building tables...\n";
-
-    start = Clock::now();
-
-    Node::buildAngularSamples();
-    Node::buildTables();
-
-    end = Clock::now();
-    duration_ms = end - start;
-    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
-
     // ==================== Test RWG funcs ===================== //
     const double k = 1.0;
     const double th = PI/4.0;
     const double ph = PI/4.0;
     const auto& kvec = Math::fromSph(vec3d(k, th, ph));
 
-    srcs[0]->getRadAlongDir(vec3d(0,0,0), kvec);
+    /*srcs[0]->getRadAlongDir(vec3d(0,0,0), kvec); // Analytic
 
-    // Leaf::buildRadPats();
+    srcs[0]->getRadAlongDir(vec3d(0,0,0), kvec, true); // Numeric
+    */
+    /*root->evalSelfSols();
+
+    printSols(srcs, "solDir.txt");
+
+    root->resetSols();
+    root->evalSelfSolsSlow();
+
+    printSols(srcs, "solDirSlow.txt");*/
 
     return 0;
 }

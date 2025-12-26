@@ -19,7 +19,7 @@ public:
 
     vec3d getCenter() const override { return center; } 
 
-    vec3cd getRadAlongDir(const vec3d&, const vec3d&) const override;
+    vec3cd getRadAlongDir(const vec3d&, const vec3d&, bool = 0) const override;
 
     // vec3cd getRadAtPoint(const vec3d&) const override;
 

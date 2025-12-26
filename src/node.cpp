@@ -251,8 +251,8 @@ void Node::evalSelfSols() {
 
     for (int n = 0; n < numSrcs; ++n)
         srcs[n]->addToSol(Phys::C * wavenum * sols[n]);
-}
 
+}
 
 /*void Node::evalPairSols(const std::shared_ptr<Node> srcNode) {
 
@@ -266,11 +266,11 @@ void Node::evalSelfSols() {
         for (const auto& src : srcSrcs)
             sol += src->getCurrent() * obs->getIntegratedRad(src);
 
-        obs->addToSol(C * wavenum * sol);
+        obs->addToSol(Phys::C * wavenum * sol);
     }
-}*/
+}
 
-void Node::evalSelfSolsSlow() {
+void Node::evalSelfSols() {
 
     for (const auto& obs : srcs) {
         cmplx sol = 0;
@@ -284,7 +284,7 @@ void Node::evalSelfSolsSlow() {
 
         obs->addToSol(Phys::C * wavenum * sol);
     }
-}
+}*/
 
 /* getFarSol()
  * Return sols at all sampled directions at distance r 

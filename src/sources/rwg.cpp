@@ -62,80 +62,70 @@ void RWG::buildCurrent() {
  * kvec : wavevector 
  */ 
 vec3cd RWG::getRadAlongDir(
-    const vec3d& X, const vec3d& kvec) const {
-   
-    /* Analytic integration
+    const vec3d& X, const vec3d& kvec, bool doNumeric) const {
+
+    using namespace Math;
+
     vec3cd rad = vec3cd::Zero();
     int triIdx = 0;
 
-    for (const auto& tri : tris) {
+    if (doNumeric) {
+        for (const auto& tri : tris) {
 
+            auto [nodes, weight] = tri->getQuads();
+            for (const auto& node : nodes)
+                rad += weight * exp(iu*kvec.dot(X-node))
+                        * (node - Xpm[triIdx])
+                        * sign(triIdx);
+            ++triIdx;
+        }
+
+        return leng * rad;
+    }
+
+    for (const auto& tri : tris) {
         const auto& Xs = tri->Xs, Ds = tri->Ds;
 
-        const auto& dX = X - Xs[0];
-
-        const double 
-            alpha = -kvec.dot(Ds[0]), 
-            beta = kvec.dot(Ds[2]),
-            gamma = alpha-beta;
+        const double alpha = -kvec.dot(Ds[0]), beta = kvec.dot(Ds[2]), gamma = alpha-beta;
 
         const double alphasq = alpha*alpha, betasq = beta*beta;
-
-        // std::cout << alpha << ' ' << beta << ' ' << gamma << '\n';
 
         const cmplx expI_alpha = exp(iu*alpha), expI_beta = exp(iu*beta);
 
         const cmplx 
-            f0_alpha = (alpha ? (1.0 - expI_alpha) / alpha : -iu), 
-            f0_beta = (beta ? (1.0 - expI_beta) / beta : -iu);
+            f0_alpha = (approxZero(alpha) ? -iu : (1.0 - expI_alpha) / alpha),
+            f0_beta = (approxZero(beta) ? -iu : (1.0 - expI_beta) / beta);
 
         const cmplx 
-            f1_alpha = (alpha ? (1.0 - (1.0 - iu*alpha) * expI_alpha) / alphasq : -0.5),
-            f1_beta = (beta ? (1.0 - (1.0 - iu*beta) * expI_beta) / betasq : -0.5);
+            f1_alpha = (approxZero(alpha) ? -0.5 : (1.0 - (1.0 - iu*alpha) * expI_alpha) / alphasq),
+            f1_beta = (approxZero(beta) ? -0.5 : (1.0 - (1.0 - iu*beta) * expI_beta) / betasq);
 
-        const cmplx
-            f2 = (expI_alpha*(alphasq + 2.0*iu*alpha - 2.0) + 2.0) / (2.0*pow(alpha,3)); // TODO: Debug
+        vec3cd radVec;
 
-        const cmplx
-            I1 = (gamma ? (f0_alpha - f0_beta) / gamma : -f1_alpha),
-            I2 = -iu * (gamma ? (-I1 - f1_alpha) / gamma : -f2 ),
-            I3 = -iu * (gamma ? (I1 + f1_beta) / gamma : f2 );
+        if (approxZero(gamma)) {
+            const cmplx
+                f2 = (expI_alpha*(alphasq + 2.0*iu*alpha - 2.0) + 2.0) / (2.0*alpha*alphasq);
+            
+            radVec = -f1_alpha * (Xs[0] - Xpm[triIdx]) - iu*f2 * (Ds[0] - Ds[2]);
 
-        rad += exp(iu*kvec.dot(dX))
-                * (I1 * (Xs[0] - Xpm[triIdx]) + I2*Ds[0] - I3*Ds[2])
-                * Math::sign(triIdx);
+        } else {
+            const cmplx 
+                I0 = (f0_alpha - f0_beta) / gamma,
+                I1 = iu * (I0 + f1_alpha),
+                I2 = -iu * (I0 + f1_beta);
 
+            radVec = I0 * (Xs[0] - Xpm[triIdx]) + (I1*Ds[0] - I2*Ds[2]) / gamma;
+        }
+
+        rad += exp(iu*kvec.dot(X-Xs[0])) * radVec * sign(triIdx);
+    
         ++triIdx;
 
-        //if (!gamma) {
-        //    // std::cout << Ds[0] << ' ' << Ds[2] << ' ' << I2*Ds[0] - I3*Ds[2] << '\n';
-        //    std::cout << "Anl: " << std::setprecision(9) << rad << '\n';
-        //}
+        //if (rad.norm() > 1.0E3)
+        //    std::cout << alpha << ' ' << beta << ' ' << gamma << ' ' << rad.norm() << '\n';
     }
-    */
 
-    // Numeric integration
-    vec3cd radNum = vec3cd::Zero();
-    int triIdx = 0;
-
-    for (const auto& tri : tris) {
-
-        auto [nodes, weight] = tri->getQuads();
-        for (const auto& node : nodes)
-            radNum += weight * exp(iu*kvec.dot(X-node))
-                        * (node - Xpm[triIdx])
-                        * Math::sign(triIdx);
-        ++triIdx;
-
-        // if (!gamma) std::cout << "Num: " << std::setprecision(9) << radNum << '\n';
-        
-    }
-    //
-
-    // std::cout << std::setprecision(9) << rad << '\n' << radNum << "\n\n";
-    // std::cout << std::setprecision(9) << (rad - radNum).norm() / radNum.norm() << '\n';
-
-    return leng * radNum;
+    return leng * rad;
 }
 
 /* getIntegratedRad(src)
@@ -151,30 +141,32 @@ cmplx RWG::getIntegratedRad(const std::shared_ptr<Source> src) const {
     int obsTriIdx = 0;
     for (const auto& obsTri : tris) {
 
-        auto [obsNodes, obsWeight] = obsTri->getQuads(); // TODO: Optimize
+        auto [obsNodes, obsWeight] = obsTri->getQuads();
         const auto& obsXpm = Xpm[obsTriIdx];
 
         int srcTriIdx = 0;
         for (const auto& srcTri : srcRWG->tris) {
 
-            if (obsTri == srcTri) continue; // TODO: Handle coincident tris
-
-            // if (obsTri->isAdjacent(srcTri)) continue; // TODO: Handle adjacent tris
-
             auto [srcNodes, srcWeight] = srcTri->getQuads();
             const auto& srcXpm = srcRWG->Xpm[srcTriIdx];
+            
+            if (obsTri == srcTri) {
+                ++srcTriIdx;
+                continue; // TODO: Handle coincident tris
+            }
 
             for (const auto& obs : obsNodes) {
                 for (const auto& src : srcNodes) {
 
-                    const vec3cd& rad = srcWeight 
-                        * Math::dyadicG(obs-src, k) * (src - srcXpm) 
+                    const vec3cd& rad = 
+                        srcWeight 
+                        * Math::dyadicG(obs-src, k) * (src-srcXpm) 
                         * Math::sign(srcTriIdx);
 
-                    // intRad += obsWeight * (obs - obsXpm).dot(rad.conjugate()) // Hermitian dot!
-                    intRad += obsWeight * conj(rad.dot(obs-obsXpm)) // Hermitian dot!
+                    intRad += 
+                        obsWeight 
+                        * conj(rad.dot(obs-obsXpm)) // Hermitian dot!
                         * Math::sign(obsTriIdx);
-
                 }
             }
 

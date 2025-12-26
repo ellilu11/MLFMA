@@ -207,7 +207,7 @@ pair<SrcVec, shared_ptr<PlaneWave>> importFromConfig(const Config& config)
         case Mode::READ:
             srcs = importDipoles(fpath, Einc);
             break;
-
+            
         case Mode::WRITE: {
             srcs = makeDipoles<uniform_real_distribution<double>>(config, Einc);
 

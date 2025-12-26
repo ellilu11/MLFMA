@@ -34,7 +34,7 @@ public:
 
     virtual void buildCurrent() = 0;
 
-    virtual vec3cd getRadAlongDir(const vec3d&, const vec3d&) const = 0;
+    virtual vec3cd getRadAlongDir(const vec3d&, const vec3d&, bool = 0) const = 0;
 
     // virtual vec3cd getRadAtPoint(const vec3d&) const = 0;
 
