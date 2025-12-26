@@ -55,14 +55,11 @@ int main() {
 
     start = Clock::now();
 
-    ofstream anlFile("out/radpat_anl.txt");
     Leaf::buildRadPats();
 
     end = Clock::now();
     duration_ms = end - start;
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
-
-    // return 0;
 
     // ==================== Upward pass ===================== //
     cout << " Computing upward pass...\n";
@@ -87,10 +84,7 @@ int main() {
     duration_ms = end - start;
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n";
     cout << "   Elapsed time (M2L): " << t.M2L.count() << " ms\n";
-    // cout << "   Elapsed time (M2L lookup): " << t.M2L_lookup.count() << " ms\n";
     cout << "   Elapsed time (L2L): " << t.L2L.count() << " ms\n\n";
-
-    // return 0;
 
     // ================== Evaluate solutions ================= //
     cout << " Evaluating solutions...\n";

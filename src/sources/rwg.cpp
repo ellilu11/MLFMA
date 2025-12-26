@@ -30,11 +30,12 @@ RWG::RWG(
 void RWG::buildCurrent() {
     current = 1.0;
 
-    // TODO: Predict current from rhs vector
+    // TODO: Predict current from voltage
 
 }
 
 vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
+
     using namespace Math;
 
     vec3cd rad = vec3cd::Zero();
@@ -63,7 +64,7 @@ vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
 
         const cmplx expI_alpha = exp(iu*alpha), expI_beta = exp(iu*beta);
 
-        const cmplx // TODO: Needed only if gamma != 0
+        const cmplx // TODO: Only compute if gamma != 0
             f0_alpha = (approxZero(alpha) ? -iu : (1.0 - expI_alpha) / alpha),
             f0_beta = (approxZero(beta) ? -iu : (1.0 - expI_beta) / beta);
 

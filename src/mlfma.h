@@ -14,7 +14,6 @@
 #include "node.cpp"
 #include "stem.cpp"
 #include "tables.cpp"
-#include "sources/dipole.cpp"
 #include "sources/rwg.cpp"
 #include "sources/triangle.cpp"
 
