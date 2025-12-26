@@ -51,12 +51,12 @@ int main() {
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     // ==================== Test RWG funcs ===================== //
-    const double k = 2.0;
-    const double th = PI/6.0;
-    const double ph = PI/3.0;
+    const double k = 1.0;
+    const double th = PI/4.0;
+    const double ph = PI/4.0;
     const auto& kvec = Math::fromSph(vec3d(k, th, ph));
 
-    srcs[0]->getRadAlongDir(zeroVec, kvec);
+    srcs[0]->getRadAlongDir(vec3d(0,0,0), kvec);
 
     // Leaf::buildRadPats();
 

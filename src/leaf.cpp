@@ -170,7 +170,7 @@ void Leaf::evalFarSols() {
             }
         }
 
-        obs->addToSol(C * wavenum * phiWeight * sol);
+        obs->addToSol(Phys::C * wavenum * phiWeight * sol);
 
         ++obsIdx;
     }
@@ -180,7 +180,7 @@ void Leaf::evalFarSols() {
  * (M2T/S2T) Evaluate sols from mpole expansion due to list 3 nodes
  */
 void Leaf::evalNearNonNborSols() {
-    //for (const auto& node : leafIlist)
+    //for (const auto& node : nearNonNbors)
     //    evalPairSols(node);
     //return;
 

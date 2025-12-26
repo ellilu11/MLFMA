@@ -18,7 +18,7 @@ namespace Math {
         return x[0] + 2 * x[1] + 4 * x[2];
     }
 
-    inline double pm(int k) noexcept {
+    inline double sign(int k) noexcept {
         return k % 2 ? -1.0 : 1.0;
     }
 

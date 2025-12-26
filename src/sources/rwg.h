@@ -21,7 +21,7 @@ public:
 
     vec3cd getRadAlongDir(const vec3d&, const vec3d&) const override;
 
-    vec3cd getRadAtPoint(const vec3d&) const override;
+    // vec3cd getRadAtPoint(const vec3d&) const override;
 
     cmplx getIntegratedRad(const std::shared_ptr<Source>) const override;
 

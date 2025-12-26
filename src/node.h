@@ -99,6 +99,8 @@ public:
 
     void evalSelfSols();
 
+    void evalSelfSolsSlow();
+
     std::vector<vec3cd> getFarSolsFromCoeffs(double);
 
     // std::vector<vec3cd> getFarSols(double);

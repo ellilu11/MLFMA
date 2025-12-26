@@ -32,6 +32,8 @@ public:
 
     void buildQuads(const Precision);
 
+    bool isAdjacent(const std::shared_ptr<Triangle>&);
+
 private:
     std::array<vec3d,3> Xs; // vertices
     std::array<vec3d,3> Ds; // Ds[i] = Xs[i+1] - Xs[i]

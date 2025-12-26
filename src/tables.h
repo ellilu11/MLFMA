@@ -15,7 +15,7 @@ struct Tables {
         
         buildTranslationTable();
 
-        // buildInterpPsiTable();
+        buildInterpPsiTable();
     }
     
     void buildAngularTables();

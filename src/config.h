@@ -17,6 +17,12 @@ enum class Dist {
     CYLINDER
 };
 
+enum class QDist {
+    UNIFORM,
+    RANDSIGN,
+    RANDOM
+};
+
 enum class Precision {
     LOW,
     MEDIUM,
@@ -61,7 +67,7 @@ struct Config {
     Config() = default;
     Config(const std::string& fileName) {
         std::ifstream is(fileName);
-        is >> mode >> pdist >> quadPrec // enums first
+        is >> mode >> pdist >> qdist >> quadPrec // enums first
             >> digits >> interpOrder >> overInterp
             >> rootLeng >> maxNodeSrcs  >> evalDirect
             >> nsrcs;
@@ -78,5 +84,6 @@ struct Config {
     // For point sources only
     Mode mode;
     Dist pdist;
+    QDist qdist;
     int nsrcs;
 };

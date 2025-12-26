@@ -36,16 +36,9 @@ public:
 
     virtual vec3cd getRadAlongDir(const vec3d&, const vec3d&) const = 0;
 
-    // virtual vec3cd getIncAlongDir(const vec3d&, const vec3d&) const = 0;
-
-    virtual vec3cd getRadAtPoint(const vec3d&) const = 0;
+    // virtual vec3cd getRadAtPoint(const vec3d&) const = 0;
 
     virtual cmplx getIntegratedRad(const std::shared_ptr<Source>) const = 0;
-
-    friend std::ostream& operator<<(std::ostream& os, Source& src) {
-        os << src.getCenter() << '\n';
-        return os;
-    }
 
 protected:
     std::shared_ptr<PlaneWave> Einc;

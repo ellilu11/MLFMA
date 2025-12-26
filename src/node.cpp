@@ -216,17 +216,16 @@ void Node::evalPairSols(const std::shared_ptr<Node> srcNode) {
 
             const cmplx rad = obs->getIntegratedRad(src);
 
-            // Assume phat is same for all sources
             solAtObss[obsIdx] += src->getCurrent() * rad;
             solAtSrcs[srcIdx] += obs->getCurrent() * rad;
         }
     }
 
     for (int n = 0; n < numObss; ++n)
-        srcs[n]->addToSol(C * wavenum * solAtObss[n]);
+        srcs[n]->addToSol(Phys::C * wavenum * solAtObss[n]);
 
     for (int n = 0; n < numSrcs; ++n)
-        (srcNode->srcs[n])->addToSol(C * wavenum * solAtSrcs[n]);
+        (srcNode->srcs[n])->addToSol(Phys::C * wavenum * solAtSrcs[n]);
 }
 
 /* evalSelfSols()
@@ -245,18 +244,17 @@ void Node::evalSelfSols() {
 
             const cmplx rad = obs->getIntegratedRad(src);
 
-            // Assume phat is same for all sources
             sols[obsIdx] += src->getCurrent() * rad;
             sols[srcIdx] += obs->getCurrent() * rad;
         }
     }
 
     for (int n = 0; n < numSrcs; ++n)
-        srcs[n]->addToSol(C * wavenum * sols[n]);
+        srcs[n]->addToSol(Phys::C * wavenum * sols[n]);
 }
 
-/*
-void Node::evalPairSols(const std::shared_ptr<Node> srcNode) {
+
+/*void Node::evalPairSols(const std::shared_ptr<Node> srcNode) {
 
     assert(getSelf() != srcNode);
 
@@ -270,9 +268,9 @@ void Node::evalPairSols(const std::shared_ptr<Node> srcNode) {
 
         obs->addToSol(C * wavenum * sol);
     }
-}
+}*/
 
-void Node::evalSelfSols() {
+void Node::evalSelfSolsSlow() {
 
     for (const auto& obs : srcs) {
         cmplx sol = 0;
@@ -284,9 +282,9 @@ void Node::evalSelfSols() {
 
         }
 
-        obs->addToSol(C * wavenum * sol);
+        obs->addToSol(Phys::C * wavenum * sol);
     }
-}*/
+}
 
 /* getFarSol()
  * Return sols at all sampled directions at distance r 

@@ -177,7 +177,7 @@ void Stem::addInterpCoeffs(
 
                 innerCoeffs[m] += 
                     interp[k] * inCoeffs[m_shifted]
-                    * Math::pm(outOfRange); // only for spherical components!
+                    * Math::sign(outOfRange); // only for spherical components!
             }
 
             ++m;

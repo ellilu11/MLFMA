@@ -8,6 +8,7 @@ using namespace std; // TODO: Remove
 template <class dist0, class dist1 = dist0, class dist2 = dist0>
 SrcVec makeDipoles(const Config& config, const shared_ptr<PlaneWave> Einc)
 {
+
     SrcVec dipoles;
 
     random_device rd;
@@ -16,6 +17,9 @@ SrcVec makeDipoles(const Config& config, const shared_ptr<PlaneWave> Einc)
     dist0 rand0(0, 1);
     dist1 rand1(0, 1);
     dist2 rand2(0, 1);
+
+    dist0 prand0(0, 1);
+    dist1 prand1(0, 1);
 
     if (config.pdist == Dist::UNIFORM) {
         double lim = config.rootLeng/2.0;
@@ -56,7 +60,27 @@ SrcVec makeDipoles(const Config& config, const shared_ptr<PlaneWave> Einc)
             }
             }();
 
-        dipoles.push_back(make_shared<Dipole>(Einc, X));
+        vec3d P = [&] {
+            double th, ph;
+
+            switch (config.qdist) {
+                case QDist::UNIFORM:
+                    return vec3d(Phys::p0, 0.0, 0.0);
+
+                case QDist::RANDSIGN: {
+                    uniform_int_distribution randi(0, 1);
+                    return vec3d(Math::sign(randi(gen))*Phys::p0, 0.0, 0.0);
+                }
+
+                case QDist::RANDOM: {
+                    th = acos(2.0*prand0(gen) - 1.0);
+                    ph = 2.0 * PI * prand1(gen);
+                    return Math::fromSph(vec3d(Phys::p0, th, ph));
+                }
+            }
+            }();
+
+        dipoles.push_back(make_shared<Dipole>(Einc, X, P));
     }
 
     return dipoles;
@@ -74,9 +98,9 @@ SrcVec importDipoles(
     while (getline(inFile, line)) {
         istringstream iss(line);
 
-        vec3d pos;
-        if (iss >> pos)
-            dipoles.emplace_back(make_shared<Dipole>(Einc, pos));
+        vec3d pos, dip;
+        if (iss >> pos >> dip)
+            dipoles.emplace_back(make_shared<Dipole>(Einc, pos, dip));
         else
             throw std::runtime_error("Unable to parse line");
     }
@@ -188,16 +212,15 @@ pair<SrcVec, shared_ptr<PlaneWave>> importFromConfig(const Config& config)
             srcs = makeDipoles<uniform_real_distribution<double>>(config, Einc);
 
             ofstream srcFile(fpath);
-            for (const auto& src : srcs) srcFile << *src;
+            for (const auto& src : srcs) srcFile << *(dynamic_pointer_cast<Dipole>(src));
             break;
         }
     }
-     
-    // cout << "   Source file:     " << fpath.generic_string() << '\n';
+    cout << "   Source file:     " << fpath.generic_string() << '\n';
     */
 
     // RWG sources
-    const string configPath = "config/n1/";
+    const string configPath = "config/n"+to_string(config.nsrcs)+"/";
     auto srcs = importRWG(configPath+"vertices.txt",
                           configPath+"faces.txt",
                           configPath+"rwgs.txt",
