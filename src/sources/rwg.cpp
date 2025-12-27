@@ -2,16 +2,18 @@
 
 RWG::RWG(
     std::shared_ptr<Excitation::PlaneWave> Einc,
+    const size_t srcIdx,
     const Eigen::Vector4i& idx,
     const std::vector<vec3d>& vertices,
     const TriVec& triangles)
-    : Source(Einc),
+    : Source(Einc, srcIdx),
       tris({triangles[idx[2]], triangles[idx[3]]}),
       X0(vertices[idx[0]]), 
       X1(vertices[idx[1]]),
       center((X0+X1)/2.0), 
       leng((X0-X1).norm())
 {
+    buildVoltage();
 
     // Find non-common vertices
     for (int i = 0; i < 2; ++i)
@@ -19,20 +21,9 @@ RWG::RWG(
             if (vIdx != idx[0] && vIdx != idx[1])
                 Xpm[i] = vertices[vIdx];
 
-    buildVoltage();
-
-    buildCurrent();
-
     //std::cout << '(' << X0 << ") (" << X1 << ") ("
     //    << Xpm[0] << ") (" << Xpm[1] << ") " << leng << '\n';
 };
-
-void RWG::buildCurrent() {
-    current = 1.0;
-
-    // TODO: Predict current from voltage
-
-}
 
 vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
 

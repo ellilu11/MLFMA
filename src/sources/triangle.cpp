@@ -60,7 +60,5 @@ void Triangle::buildQuads(const Precision quadPrec) {
 
 bool Triangle::isAdjacent(const std::shared_ptr<Triangle>& tri) {
 
-
-
     return false;
 }

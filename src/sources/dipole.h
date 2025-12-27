@@ -8,16 +8,16 @@ public:
     Dipole() = default;
 
     Dipole(
-        std::shared_ptr<Excitation::PlaneWave> Einc, const vec3d& X)
-        : Source(Einc), pos(X), pmag(Phys::p0), pol(vec3d(pmag, 0, 0)), phat(pol/pmag)
+        std::shared_ptr<Excitation::PlaneWave> Einc, size_t idx, const vec3d& X)
+        : Source(Einc, idx), pos(X), 
+        pmag(Phys::p0), pol(vec3d(pmag, 0, 0)), phat(pol/pmag)
     {
         buildVoltage();
-        buildCurrent();
     };
 
     Dipole(
-        std::shared_ptr<Excitation::PlaneWave> Einc, const vec3d& X, const vec3d& P)
-        : Dipole(Einc, X)
+        std::shared_ptr<Excitation::PlaneWave> Einc, size_t idx, const vec3d& X, const vec3d& P)
+        : Dipole(Einc, idx, X)
     {
         pol = P;
         pmag = P.norm();
@@ -31,11 +31,10 @@ public:
             * pol.dot(Einc->pol);
     }
 
-    void buildCurrent() override {
-        current = iu * Phys::c0 * Einc->wavenum * pmag; // |J| = i \omega |P|
-
-        // std::cout << current << '\n';
-    }
+    //void buildCurrent() override {
+    //    current = iu * Phys::c0 * Einc->wavenum * pmag; // |J| = i \omega |P|
+    //    // std::cout << current << '\n';
+    //}
 
     vec3d getCenter() const override { return pos; }
 

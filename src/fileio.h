@@ -101,7 +101,7 @@ SrcVec makeDipoles(const Config& config, const shared_ptr<Excitation::PlaneWave>
             }
             }();
 
-        dipoles.push_back(make_shared<Dipole>(Einc, X, P));
+        dipoles.emplace_back(make_shared<Dipole>(Einc, n, X, P));
     }
 
     return dipoles;
@@ -115,13 +115,14 @@ SrcVec importDipoles(
     if (!inFile) throw runtime_error("Unable to find file");
     string line;
     SrcVec dipoles;
+    int idx = 0;
 
     while (getline(inFile, line)) {
         istringstream iss(line);
 
         vec3d pos, dip;
         if (iss >> pos >> dip)
-            dipoles.emplace_back(make_shared<Dipole>(Einc, pos, dip));
+            dipoles.emplace_back(make_shared<Dipole>(Einc, idx++, pos, dip));
         else
             throw std::runtime_error("Unable to parse line");
     }
@@ -184,13 +185,14 @@ SrcVec importRWG(
     string line;
     if (!file) throw std::runtime_error("Unable to find file");
     SrcVec rwgs;
-
+    int rwgIdx = 0;
+    
     while (getline(file, line)) {
         istringstream iss(line);
         Eigen::Vector4i idx;
 
         if (iss >> idx)
-            rwgs.emplace_back(make_shared<RWG>(Einc, idx, vertices, triangles));
+            rwgs.emplace_back(make_shared<RWG>(Einc, rwgIdx++, idx, vertices, triangles));
         else
             throw std::runtime_error("Unable to parse line");
     }
@@ -216,13 +218,10 @@ std::filesystem::path makePath(const Config& config) {
 
 pair<SrcVec, shared_ptr<Excitation::PlaneWave>> importFromConfig(const Config& config) 
 {
-    cout << " Importing config...\n";
-
-    const auto fpath = makePath(config);
-
     auto Einc = importPlaneWave("config/pwave.txt");
 
-    /* Dipole sources
+    // Dipole sources
+    const auto fpath = makePath(config);
     SrcVec srcs;
     switch (config.mode) {
         case Mode::READ:
@@ -238,16 +237,16 @@ pair<SrcVec, shared_ptr<Excitation::PlaneWave>> importFromConfig(const Config& c
         }
     }
     cout << "   Source file:     " << fpath.generic_string() << '\n';
-    */
+    //
 
-    // RWG sources
+    /* RWG sources
     const string configPath = "config/rwg/n"+to_string(config.nsrcs)+"/";
     auto srcs = importRWG(configPath+"vertices.txt",
                           configPath+"faces.txt",
                           configPath+"rwgs.txt",
                           config.quadPrec,
                           Einc);
-    //
+    */
     
     cout << fixed << setprecision(3);
     cout << "   Mode:            " << (config.mode == Mode::READ ? "READ" : "WRITE") << '\n';
@@ -257,27 +256,8 @@ pair<SrcVec, shared_ptr<Excitation::PlaneWave>> importFromConfig(const Config& c
     cout << "   Interp order:    " << config.interpOrder << '\n';
     cout << "   Max node RWGs:   " << config.maxNodeSrcs << '\n';
     cout << "   Root length:     " << config.rootLeng << '\n';
-    cout << "   Wave number:     " << Einc->wavenum << "\n\n";
+    cout << "   Wave number:     " << Einc->wavenum << "\n";
 
     return make_pair(srcs, Einc);
 }
 
-void printSols(SrcVec& srcs, const std::string& fname)
-{
-    namespace fs = std::filesystem;
-    fs::path dir = "out/sol";
-    std::error_code ec;
-
-    if (fs::create_directory(dir, ec))
-        std::cout << " Created directory " << dir.generic_string() << "/\n";
-    else if (ec)
-        std::cerr << " Error creating directory " << ec.message() << "\n";
-
-    ofstream file(dir/fname);
-
-    file << setprecision(15) << scientific;
-
-    for (const auto& src : srcs)
-        src->printSol(file);
-
-}

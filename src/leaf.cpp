@@ -96,23 +96,12 @@ void Leaf::buildMpoleCoeffs() {
 
         int srcIdx = 0;
         for (const auto& src : srcs)
-            coeff += src->getCurrent() * radPats[angIdx][srcIdx++];
+            // coeff += src->getCurrent() * radPats[angIdx][srcIdx++];
+            coeff += solver->getQvec(src->getIdx()) * radPats[angIdx][srcIdx++];
 
         coeffs.push_back(coeff);
 
     }
-
-    /* Get polar coeffs in cartesian components
-    vec2cd northCoeff = vec2cd::Zero();
-    for (const auto& rwg : rwgs)
-        northCoeff += rwg->getRadAlongDir(center, wavenum*northPole);
-    polarCoeffs.first = Math::IminusRR(0, 0) * northCoeff;
-
-    vec2cd southCoeff = vec2cd::Zero();
-    for (const auto& rwg : rwgs)
-        southCoeff += rwg->getRadAlongDir(center, wavenum*southPole);
-    polarCoeffs.second = Math::IminusRR(0, PI) * southCoeff;
-    */
 
     t.S2M += Clock::now() - start;
 
@@ -170,7 +159,8 @@ void Leaf::evalFarSols() {
             }
         }
 
-        obs->addToSol(Phys::C * wavenum * phiWeight * sol);
+        // obs->addToSol(Phys::C * wavenum * phiWeight * sol);
+        solver->addToSols(obs->getIdx(), Phys::C * wavenum * phiWeight * sol);
 
         ++obsIdx;
     }

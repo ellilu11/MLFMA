@@ -12,6 +12,7 @@
 #include "leaf.cpp"
 #include "nbor.cpp"
 #include "node.cpp"
+#include "solver.cpp"
 #include "stem.cpp"
 #include "tables.cpp"
 #include "sources/rwg.cpp"

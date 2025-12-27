@@ -8,13 +8,17 @@ std::vector<realVec> Node::phis;
 std::vector<int> Node::Ls;
 
 Tables Node::tables;
+std::shared_ptr<Solver> Node::solver;
 NodeVec Node::nodes;
 
-void Node::setNodeParams(
-    const Config& config_, const std::shared_ptr<Excitation::PlaneWave>& Einc) 
+void Node::initNodes(
+    const Config& config_, 
+    const std::shared_ptr<Excitation::PlaneWave>& Einc,
+    std::shared_ptr<Solver> solver_) 
 {
     config = config_;
     wavenum = Einc->wavenum;
+    solver = std::move(solver_);
 }
 
 /* Node(particles,branchIdx,base)
@@ -214,18 +218,22 @@ void Node::evalPairSols(const std::shared_ptr<Node> srcNode) {
         for (size_t srcIdx = 0; srcIdx < numSrcs; ++srcIdx) {
             const auto obs = srcs[obsIdx], src = srcNode->srcs[srcIdx];
 
+            const auto glObsIdx = obs->getIdx(), glSrcIdx = src->getIdx();
+
             const cmplx rad = obs->getIntegratedRad(src);
 
-            solAtObss[obsIdx] += src->getCurrent() * rad;
-            solAtSrcs[srcIdx] += obs->getCurrent() * rad;
+            solAtObss[obsIdx] += solver->getQvec(glSrcIdx) * rad;
+            solAtSrcs[srcIdx] += solver->getQvec(glObsIdx) * rad;
         }
     }
 
     for (int n = 0; n < numObss; ++n)
-        srcs[n]->addToSol(Phys::C * wavenum * solAtObss[n]);
+        solver->addToSols(srcs[n]->getIdx(), Phys::C * wavenum * solAtObss[n]);
+        // srcs[n]->addToSol(Phys::C * wavenum * solAtObss[n]);
 
     for (int n = 0; n < numSrcs; ++n)
-        (srcNode->srcs[n])->addToSol(Phys::C * wavenum * solAtSrcs[n]);
+        solver->addToSols(srcNode->srcs[n]->getIdx(), Phys::C * wavenum * solAtSrcs[n]);
+        // (srcNode->srcs[n])->addToSol(Phys::C * wavenum * solAtSrcs[n]);
 }
 
 /* evalSelfSols()
@@ -243,15 +251,18 @@ void Node::evalSelfSols() {
         for (size_t srcIdx = 0; srcIdx < obsIdx; ++srcIdx) { // srcIdx <= obsIdx 
             auto obs = srcs[obsIdx], src = srcs[srcIdx];
 
+            const auto glObsIdx = obs->getIdx(), glSrcIdx = src->getIdx();
+
             const cmplx rad = obs->getIntegratedRad(src);
 
-            sols[obsIdx] += src->getCurrent() * rad;
-            sols[srcIdx] += obs->getCurrent() * rad;
+            sols[obsIdx] += solver->getQvec(glSrcIdx) * rad;
+            sols[srcIdx] += solver->getQvec(glObsIdx) * rad;
         }
     }
 
     for (int n = 0; n < numSrcs; ++n)
-        srcs[n]->addToSol(Phys::C * wavenum * sols[n]);
+        solver->addToSols(srcs[n]->getIdx(), Phys::C * wavenum * sols[n]);
+        // srcs[n]->addToSol(Phys::C * wavenum * sols[n]);
 
 }
 

@@ -15,7 +15,9 @@ int main() {
     auto [srcs, Einc] = importFromConfig(config);
     auto nsrcs = srcs.size();
 
-    Node::setNodeParams(config, Einc);
+    auto solver = make_shared<Solver>(srcs);
+
+    Node::initNodes(config, Einc, solver);
 
     // ==================== Set up domain ==================== //
     cout << " Setting up domain...\n";

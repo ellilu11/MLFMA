@@ -12,38 +12,42 @@ class Source {
 public:
     Source() = default;
     
-    Source(std::shared_ptr<Excitation::PlaneWave> Einc)
-        : Einc(std::move(Einc)), voltage(0.0), current(0.0), sol(0.0) 
-    {};
+    Source(std::shared_ptr<Excitation::PlaneWave> Einc, size_t idx)
+        : Einc(std::move(Einc)), idx(idx), voltage(0.0)
+    {}
 
-    cmplx getCurrent() const { return current; }
+    cmplx getVoltage() const { return voltage; }
 
-    cmplx getSol() const { return sol; }
+    //cmplx getCurrent() const { return current; }
 
-    void addToSol(cmplx sol_) { sol += sol_; }
+    //cmplx getSol() const { return sol; }
 
-    void resetSol() { sol = 0.0; }
+    //void addToSol(cmplx sol_) { sol += sol_; }
 
-    void printSol(std::ofstream& f) const {
-        f << sol.real() << ' ' << sol.imag() << '\n';
-    }
+    //void resetSol() { sol = 0.0; }
+
+    //void printSol(std::ofstream& f) const {
+    //    f << sol.real() << ' ' << sol.imag() << '\n';
+    //}
+
+    size_t getIdx() const { return idx; }
 
     virtual vec3d getCenter() const = 0;
 
     virtual void buildVoltage() = 0;
 
-    virtual void buildCurrent() = 0;
+    // virtual void buildCurrent() = 0;
 
     virtual vec3cd getRadAlongDir(const vec3d&, const vec3d&) const = 0;
-
-    // virtual vec3cd getRadAtPoint(const vec3d&) const = 0;
 
     virtual cmplx getIntegratedRad(const std::shared_ptr<Source>) const = 0;
 
 protected:
     std::shared_ptr<Excitation::PlaneWave> Einc;
     cmplx voltage;
-    cmplx current;
-    cmplx sol;
+    //cmplx current;
+    //cmplx sol;
+
+    size_t idx;
 
 };

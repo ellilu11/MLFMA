@@ -10,17 +10,26 @@ extern auto t = ClockTimes();
 
 int main() {
     // ===================== Read config ==================== //
+    cout << " Importing sources...\n";
+    auto start = Clock::now();
+
     Config config("config/config.txt");
 
     auto [srcs, Einc] = importFromConfig(config);
     auto nsrcs = srcs.size();
 
-    Node::setNodeParams(config, Einc);
+    auto solver = make_shared<Solver>(srcs);
+
+    Node::initNodes(config, Einc, solver);
+
+    auto end = Clock::now();
+    Time duration_ms = end - start;
+    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     // ==================== Set up domain ==================== //
-    cout << " Setting up domain...\n";
+    cout << " Setting up nodes...\n";
     auto fmm_start = Clock::now();
-    auto start = Clock::now();
+    start = Clock::now();
 
     shared_ptr<Node> root;
     if (nsrcs > config.maxNodeSrcs)
@@ -30,8 +39,8 @@ int main() {
 
     root->buildLists();
 
-    auto end = Clock::now();
-    Time duration_ms = end - start;
+    end = Clock::now();
+    duration_ms = end - start;
 
     cout << "   # Nodes: " << Node::getNumNodes() << '\n';
     cout << "   # Leaves: " << Leaf::getNumLeaves() << '\n';
@@ -101,13 +110,13 @@ int main() {
     cout << "   Elapsed time (S2T): " << t.S2T.count() << " ms\n\n";
     cout << " FMM total elapsed time: " << fmm_duration_ms.count() << " ms\n";
 
-    // printSols(srcs, "sol_d" + to_string(config.digits) + ".txt");
-    printSols(srcs, "sol.txt");
+    // solver->printSols("sol_d" + to_string(config.digits) + ".txt");
+    solver->printSols("sol.txt");
 
     if (!config.evalDirect) return 0;
 
     // ================== Compute direct ===================== //
-    root->resetSols();
+    solver->resetSols();
 
     cout << "\n Computing direct...\n";
     start = Clock::now();
@@ -118,7 +127,7 @@ int main() {
     duration_ms = end - start;
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n";
 
-    printSols(srcs, "solDir.txt");
+    solver->printSols("solDir.txt");
 
     return 0;
 }

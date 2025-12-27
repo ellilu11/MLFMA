@@ -111,7 +111,7 @@ namespace Math {
     inline Eigen::Matrix3cd dyadicG(const vec3d& X, double k) noexcept {
         const double r = X.norm(), kr = k*r, invkrsq = 1.0/(kr*kr);
         const cmplx iinvkr = iu/kr;
-        const vec3d& rhat = X / r;
+        const vec3d& rhat = X / r; // X.normalized()
         const mat3d& RR = rhat * rhat.transpose();
 
         return

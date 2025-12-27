@@ -8,6 +8,7 @@
 #include "config.h"
 #include "interp.h"
 #include "phys.h"
+#include "solver.h"
 #include "tables.h"
 #include "sources/rwg.h"
 
@@ -38,7 +39,10 @@ public:
         return std::make_pair(thetas[level].size(), phis[level].size());
     }
 
-    static void setNodeParams(const Config&, const std::shared_ptr<Excitation::PlaneWave>&);
+    static void initNodes(
+        const Config&, 
+        const std::shared_ptr<Excitation::PlaneWave>&, 
+        std::shared_ptr<Solver>);
 
     static void buildAngularSamples();
 
@@ -78,7 +82,7 @@ public:
 
     bool isSrcless() const { return srcs.empty(); }
 
-    void resetSols() { for (const auto& src : srcs) src->resetSol(); }
+    // void resetSols() { for (const auto& src : srcs) src->resetSol(); }
 
 public:
     Node(const SrcVec&, const int, Node* const);
@@ -128,6 +132,7 @@ public:
 
 protected:
     static Config config;
+    static std::shared_ptr<Solver> solver;
     static double wavenum;
     inline static int numNodes = 0;
     inline static int maxLevel = 0;
