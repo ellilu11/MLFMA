@@ -8,17 +8,18 @@ std::vector<realVec> Node::phis;
 std::vector<int> Node::Ls;
 
 Tables Node::tables;
-std::shared_ptr<Solver> Node::solver;
+// std::shared_ptr<Solver> Node::solver;
 NodeVec Node::nodes;
 
 void Node::initNodes(
     const Config& config_, 
-    const std::shared_ptr<Excitation::PlaneWave>& Einc,
-    std::shared_ptr<Solver> solver_) 
+    const std::shared_ptr<Excitation::PlaneWave>& Einc
+    // std::shared_ptr<Solver> solver_
+    ) 
 {
     config = config_;
     wavenum = Einc->wavenum;
-    solver = std::move(solver_);
+    // solver = std::move(solver_);
 }
 
 /* Node(particles,branchIdx,base)

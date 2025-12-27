@@ -8,6 +8,7 @@ using cmplxVec = std::vector<cmplx>;
 
 using pair2i = std::pair<int, int>;
 using pair2d = std::pair<double, double>;
+using pair2cd = std::pair<cmplx, cmplx>;
 
 using vec3i = Eigen::Vector3i;
 using vec3d = Eigen::Vector3d;
@@ -19,6 +20,7 @@ using vecXcd = Eigen::VectorXcd;
 
 using mat3d = Eigen::Matrix3d;
 using mat23d = Eigen::Matrix<double, 2, 3>;
+using matXcd = Eigen::MatrixXcd;
 
 using interpPair = std::pair<vecXd, int>;
 

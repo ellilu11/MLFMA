@@ -144,6 +144,11 @@ namespace Math {
         return uint_i;
     }
 
+    inline pair2cd givensRotation(cmplx z, cmplx w) noexcept {
+        const double norm = sqrt(std::norm(z) + std::norm(w));
+        return make_pair(z/norm, z/norm);
+    }
+
     vec3d idx2pm(int);
 
     pair2d legendreP(double, int);

@@ -49,7 +49,7 @@ SrcVec makeDipoles(const Config& config, const shared_ptr<Excitation::PlaneWave>
         rand2 = dist2(-lim, lim);
     }
 
-    for (int n = 0; n < config.nsrcs; ++n) {
+    for (size_t n = 0; n < config.nsrcs; ++n) {
         vec3d X = [&] {
             double r, th, ph, z;
 
@@ -115,7 +115,7 @@ SrcVec importDipoles(
     if (!inFile) throw runtime_error("Unable to find file");
     string line;
     SrcVec dipoles;
-    int idx = 0;
+    size_t idx = 0;
 
     while (getline(inFile, line)) {
         istringstream iss(line);
@@ -185,7 +185,7 @@ SrcVec importRWG(
     string line;
     if (!file) throw std::runtime_error("Unable to find file");
     SrcVec rwgs;
-    int rwgIdx = 0;
+    size_t rwgIdx = 0;
     
     while (getline(file, line)) {
         istringstream iss(line);

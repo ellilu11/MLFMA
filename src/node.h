@@ -39,10 +39,7 @@ public:
         return std::make_pair(thetas[level].size(), phis[level].size());
     }
 
-    static void initNodes(
-        const Config&, 
-        const std::shared_ptr<Excitation::PlaneWave>&, 
-        std::shared_ptr<Solver>);
+    static void initNodes(const Config&, const std::shared_ptr<Excitation::PlaneWave>&);
 
     static void buildAngularSamples();
 
@@ -132,7 +129,6 @@ public:
 
 protected:
     static Config config;
-    static std::shared_ptr<Solver> solver;
     static double wavenum;
     inline static int numNodes = 0;
     inline static int maxLevel = 0;
@@ -143,6 +139,10 @@ protected:
     static std::vector<int> Ls;
     
     static Tables tables;
+
+    // std::shared_ptr<Solver> solver;
+    static vecXcd& currents;
+    static vecXcd& sols;
 
     std::vector<vec2cd> coeffs;
     std::pair<vec2cd, vec2cd> polarCoeffs;
