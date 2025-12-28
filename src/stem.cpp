@@ -290,7 +290,7 @@ void Stem::buildLocalCoeffs() {
         buildMpoleToLocalCoeffs();
         t.M2L += Clock::now() - start;
 
-        evalLeafIlistSols();
+        // evalLeafIlistSols(); // Puzzle: Can a stem have a leafIlist?
 
         start = Clock::now();
         if (!base->isRoot()) {

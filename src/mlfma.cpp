@@ -18,7 +18,7 @@ int main() {
     auto [srcs, Einc] = importFromConfig(config);
     auto nsrcs = srcs.size();
 
-    auto solver = make_shared<Solver>(srcs);
+    auto solver = make_unique<Solver>(srcs);
 
     Node::initNodes(config, Einc, solver);
 
@@ -54,6 +54,17 @@ int main() {
 
     Node::buildAngularSamples();
     Node::buildTables();
+
+    end = Clock::now();
+    duration_ms = end - start;
+    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
+
+    // ==================== Build nearfield ===================== //
+    cout << " Building nearfield interactions...\n";
+
+    start = Clock::now();
+
+    Leaf::buildNearRads();
 
     end = Clock::now();
     duration_ms = end - start;
@@ -110,18 +121,18 @@ int main() {
     cout << "   Elapsed time (S2T): " << t.S2T.count() << " ms\n\n";
     cout << " FMM total elapsed time: " << fmm_duration_ms.count() << " ms\n";
 
-    // solver->printSols("sol_d" + to_string(config.digits) + ".txt");
     solver->printSols("sol.txt");
 
     if (!config.evalDirect) return 0;
 
     // ================== Compute direct ===================== //
     solver->resetSols();
+    // auto leafRoot = make_shared<Leaf>(srcs, 0, nullptr);
 
     cout << "\n Computing direct...\n";
     start = Clock::now();
 
-    root->evalSelfSols();
+    root->evalSelfSolsDir();
 
     end = Clock::now();
     duration_ms = end - start;

@@ -3,15 +3,15 @@
 Solver::Solver(const SrcVec& srcs)
     : nsols(srcs.size()),
       Q(matXcd(nsols, 1)),
-      qvec(vecXcd::Zero(nsols)),
-      sols(vecXcd::Zero(nsols))
+      qvec(std::make_shared<vecXcd>(vecXcd::Zero(nsols))),
+      sols(std::make_shared<vecXcd>(vecXcd::Zero(nsols)))
 {
     // Guess zero initial current for all sources
     for (int idx = 0; idx < nsols; ++idx)
-        qvec[idx] = -srcs[idx]->getVoltage();
+        (*qvec)[idx] = -srcs[idx]->getVoltage();
 
-    qvec.normalize(); // qvec_0
-    Q.col(0) = qvec; // store qvec as first column of Q
+    (*qvec).normalize(); // qvec_0
+    Q.col(0) = *qvec; // store qvec as first column of Q
 
     // gvec.push_back(qvec.norm());
 }
@@ -26,19 +26,19 @@ void Solver::iterateArnoldi(int iter) {
     // Do Arnoldi iteration
     for (int i = 0; i < iter; ++i) {
         const auto& q_i = Q.col(i); // get qvec_i
-        cmplx h = q_i.dot(sols);
-        sols -= h * q_i;
+        cmplx h = q_i.dot(*sols);
+        *sols -= h * q_i;
         hvec[i] = h;
         // Normalize sols at every Arnoldi iteration?
     }
-    hvec[iter] = sols.norm();
+    hvec[iter] = (*sols).norm();
 
     // Replace current qvec with new qvec
-    qvec = sols.normalized();
+    *qvec = (*sols).normalized();
 
     // Store new qvec as new column of Q
     Q.conservativeResize(nsols, iter+1);
-    Q.col(iter) = qvec;
+    Q.col(iter) = *qvec;
 
     // Store new hvec as new column of H
     assert(hvec.rows() == iter+1);
@@ -66,22 +66,24 @@ pair2cd Solver::applyGivensRotation(
     return make_pair(vcos_k, vsin_k);
 }
 
-void Solver::solve(int numIter) {
+void Solver::updateCurrent(int k, int numIter) {
 
     const vecXcd vcos = vecXcd::Zero(numIter);
     const vecXcd vsin = vecXcd::Zero(numIter);
-    
 
-    for (int iter = 0; iter < numIter; ++iter) {
-        // doMLFMA();
+    vecXcd H_k = H.col(k);
 
-        iterateArnoldi(iter);
+    auto [vcos_k, vsin_k] = applyGivensRotation(H_k, vcos, vsin, k);
 
-        vecXcd H_k = H.col(iter);
+    // Finish
+}
 
-        auto [vcos_k, vsin_k] = applyGivensRotation(H_k, vcos, vsin, iter);
+void Solver::solve(int numIter) {
 
-        // Finish
+    for (int k = 1; k <= numIter; ++k) {
+        // root->doMLFMA();
+
+        iterateArnoldi(k);
     }
 }
 
@@ -100,7 +102,7 @@ void Solver::printSols(const std::string& fname)
 
     file << std::setprecision(15) << std::scientific;
 
-    for (const auto& sol : sols)
+    for (const auto& sol : *sols)
         file << sol.real() << ' ' << sol.imag() << '\n';
 
 }

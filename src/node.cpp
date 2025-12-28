@@ -8,17 +8,21 @@ std::vector<realVec> Node::phis;
 std::vector<int> Node::Ls;
 
 Tables Node::tables;
-// std::shared_ptr<Solver> Node::solver;
 NodeVec Node::nodes;
+
+std::shared_ptr<vecXcd> Node::currents;
+std::shared_ptr<vecXcd> Node::sols;
 
 void Node::initNodes(
     const Config& config_, 
-    const std::shared_ptr<Excitation::PlaneWave>& Einc
-    // std::shared_ptr<Solver> solver_
-    ) 
+    const std::shared_ptr<Excitation::PlaneWave>& Einc,
+    const std::unique_ptr<Solver>& solver) 
 {
     config = config_;
     wavenum = Einc->wavenum;
+
+    currents = std::move(solver->getQvec());
+    sols = std::move(solver->getSols());
     // solver = std::move(solver_);
 }
 
@@ -183,7 +187,7 @@ void Node::buildMpoleToLocalCoeffs() {
  */
 void Node::evalLeafIlistSols() {
      for (const auto& node : leafIlist)
-        evalPairSols(node);
+        evalPairSolsDir(node);
      return;
 
     /* No psi LUT
@@ -203,12 +207,12 @@ void Node::evalLeafIlistSols() {
     */
 }
 
-/* evalPairSols(srcNode)
- * (S2T) Evaluate sols at sources in this node due to sources in srcNode
- * and vice versa
+/* evalNonNearPairSols(srcNode)
+ * (S2T) Evaluate sols at sources in this node due to sources in non-near neighbor 
+ * srcNode and vice versa
  * srcNode : source node
  */
-void Node::evalPairSols(const std::shared_ptr<Node> srcNode) {
+void Node::evalPairSolsDir(const std::shared_ptr<Node> srcNode) {
 
     const int numObss = srcs.size(), numSrcs = srcNode->srcs.size();
 
@@ -219,35 +223,30 @@ void Node::evalPairSols(const std::shared_ptr<Node> srcNode) {
         for (size_t srcIdx = 0; srcIdx < numSrcs; ++srcIdx) {
             const auto obs = srcs[obsIdx], src = srcNode->srcs[srcIdx];
 
-            const auto glObsIdx = obs->getIdx(), glSrcIdx = src->getIdx();
+            const cmplx rad = obs->getIntegratedRad(src); // TODO: Precompute
 
-            const cmplx rad = obs->getIntegratedRad(src);
-
-            solAtObss[obsIdx] += solver->getQvec(glSrcIdx) * rad;
-            solAtSrcs[srcIdx] += solver->getQvec(glObsIdx) * rad;
+            solAtObss[obsIdx] += (*currents)[src->getIdx()] * rad;
+            solAtSrcs[srcIdx] += (*currents)[obs->getIdx()] * rad;
         }
     }
 
     for (int n = 0; n < numObss; ++n)
-        solver->addToSols(srcs[n]->getIdx(), Phys::C * wavenum * solAtObss[n]);
-        // srcs[n]->addToSol(Phys::C * wavenum * solAtObss[n]);
+        (*sols)[srcs[n]->getIdx()] += Phys::C * wavenum * solAtObss[n];
+    // addToSol(srcs[n]->getIdx(), Phys::C * wavenum * solAtObss[n]);
 
     for (int n = 0; n < numSrcs; ++n)
-        solver->addToSols(srcNode->srcs[n]->getIdx(), Phys::C * wavenum * solAtSrcs[n]);
-        // (srcNode->srcs[n])->addToSol(Phys::C * wavenum * solAtSrcs[n]);
+        (*sols)[srcNode->srcs[n]->getIdx()] += Phys::C * wavenum * solAtSrcs[n];
+    // addToSol(srcNode->srcs[n]->getIdx(), Phys::C * wavenum * solAtSrcs[n]);
 }
 
-/* evalSelfSols()
- * (S2T) Evaluate sols at sources in this node due to other sources
- * in this node
- */
-void Node::evalSelfSols() {
+void Node::evalSelfSolsDir() {
 
     const int numSrcs = srcs.size();
 
-    cmplxVec sols(numSrcs, 0.0);
+    cmplxVec solAtObss(numSrcs, 0.0);
 
     // TODO: Handle self-interactions
+    int pairIdx = 0;
     for (size_t obsIdx = 1; obsIdx < numSrcs; ++obsIdx) { // obsIdx = 0
         for (size_t srcIdx = 0; srcIdx < obsIdx; ++srcIdx) { // srcIdx <= obsIdx 
             auto obs = srcs[obsIdx], src = srcs[srcIdx];
@@ -256,80 +255,47 @@ void Node::evalSelfSols() {
 
             const cmplx rad = obs->getIntegratedRad(src);
 
-            sols[obsIdx] += solver->getQvec(glSrcIdx) * rad;
-            sols[srcIdx] += solver->getQvec(glObsIdx) * rad;
+            solAtObss[obsIdx] += (*currents)[src->getIdx()] * rad;
+            solAtObss[srcIdx] += (*currents)[obs->getIdx()] * rad;
         }
     }
 
     for (int n = 0; n < numSrcs; ++n)
-        solver->addToSols(srcs[n]->getIdx(), Phys::C * wavenum * sols[n]);
-        // srcs[n]->addToSol(Phys::C * wavenum * sols[n]);
+        (*sols)[srcs[n]->getIdx()] += Phys::C * wavenum * solAtObss[n];
 
 }
-
-/*void Node::evalPairSols(const std::shared_ptr<Node> srcNode) {
-
-    assert(getSelf() != srcNode);
-
-    const auto& srcSrcs = srcNode->srcs;
-
-    for (const auto& obs : srcs) {
-        cmplx sol = 0;
-
-        for (const auto& src : srcSrcs)
-            sol += src->getCurrent() * obs->getIntegratedRad(src);
-
-        obs->addToSol(Phys::C * wavenum * sol);
-    }
-}
-
-void Node::evalSelfSols() {
-
-    for (const auto& obs : srcs) {
-        cmplx sol = 0;
-
-        for (const auto& src : srcs) {
-            if (src == obs) continue; // TODO: Use analytic expression
-
-            sol += src->getCurrent() * obs->getIntegratedRad(src);
-
-        }
-
-        obs->addToSol(Phys::C * wavenum * sol);
-    }
-}*/
 
 /* getFarSol()
- * Return sols at all sampled directions at distance r 
+ * Return sols at all sampled directions at distance r
  * due to all sources in this node using farfield approximation
  */
-/*std::vector<vec3cd> Node::getFarSols(double r) {
+ /*std::vector<vec3cd> Node::getFarSols(double r) {
 
-    assert(r >= 5.0 * config.rootLeng); // verify farfield condition
+     assert(r >= 5.0 * config.rootLeng); // verify farfield condition
 
-    const cmplx kernel = C * wavenum * exp(iu*wavenum*r) / r;
+     const cmplx kernel = C * wavenum * exp(iu*wavenum*r) / r;
 
-    const auto [nth, nph] = getNumAngles(level);
+     const auto [nth, nph] = getNumAngles(level);
 
-    std::vector<vec3cd> sols(nth*nph, vec3cd::Zero());
+     std::vector<vec3cd> sols(nth*nph, vec3cd::Zero());
 
-    size_t idx = 0;
-    for (int ith = 0; ith < nth; ++ith) {
+     size_t idx = 0;
+     for (int ith = 0; ith < nth; ++ith) {
 
-        for (int iph = 0; iph < nph; ++iph) {
+         for (int iph = 0; iph < nph; ++iph) {
 
-            const auto& ImKK = tables.ImKK[level][idx];
-            const auto& kvec = tables.khat[level][idx] * wavenum;
+             const auto& ImKK = tables.ImKK[level][idx];
+             const auto& kvec = tables.khat[level][idx] * wavenum;
 
-            vec3cd dirCoeff = vec3cd::Zero();
-            for (const auto& src : srcs)
-                dirCoeff += src->getRadAlongDir(center, kvec);
+             vec3cd dirCoeff = vec3cd::Zero();
+             for (const auto& src : srcs)
+                 dirCoeff += src->getRadAlongDir(center, kvec);
 
-            sols[idx] = kernel * ImKK * dirCoeff;
+             sols[idx] = kernel * ImKK * dirCoeff;
 
-            idx++;
-        }
-    }
+             idx++;
+         }
+     }
 
-    return sols;
-}*/
+     return sols;
+ }*/

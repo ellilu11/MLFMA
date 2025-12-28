@@ -1,8 +1,14 @@
 #pragma once
 
 #include <filesystem>
+#include "node.h"
 #include "types.h"
 #include "sources/source.h"
+
+//namespace Solver {
+//    class Solver;
+//    struct StateVecs;
+//};
 
 class Solver {
 
@@ -13,13 +19,19 @@ public :
 
     pair2cd applyGivensRotation(vecXcd&, const vecXcd&, const vecXcd&, int);
 
-    void solve(int numIter);
+    void updateCurrent(int, int);
 
-    cmplx getQvec(size_t idx) { return qvec[idx]; }
+    void solve(int);
 
-    void addToSols(size_t idx, cmplx val) { sols[idx] += val; }
+    std::shared_ptr<vecXcd> getQvec() { return qvec; }
 
-    void resetSols() { sols = vecXcd::Zero(nsols); }
+    std::shared_ptr<vecXcd> getSols() { return sols; }
+
+    // cmplx getQvec(size_t idx) { return qvec[idx]; }
+
+    // void addToSols(size_t idx, cmplx val) { sols[idx] += val; }
+
+    void resetSols() { (*sols) = vecXcd::Zero(nsols); }
 
     void printSols(const std::string&);
 
@@ -33,8 +45,8 @@ private :
     matXcd Q;
     matXcd H;
 
-    vecXcd qvec;
-    vecXcd sols;
+    std::shared_ptr<vecXcd> qvec;
+    std::shared_ptr<vecXcd> sols;
     
     vecXcd gvec;
     vecXcd currents;

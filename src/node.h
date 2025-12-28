@@ -31,19 +31,26 @@ class Node {
     friend struct Tables;
 
 public:
-    static int getMaxLvl() { return maxLevel; }
-    
-    static int getNumNodes() { return numNodes; }
-
-    static pair2i getNumAngles(const int level) { 
-        return std::make_pair(thetas[level].size(), phis[level].size());
-    }
-
-    static void initNodes(const Config&, const std::shared_ptr<Excitation::PlaneWave>&);
+    static void initNodes(
+        const Config&, 
+        const std::shared_ptr<Excitation::PlaneWave>&, 
+        const std::unique_ptr<Solver>&);
 
     static void buildAngularSamples();
 
     static void buildTables() { tables = Tables(config); }
+
+    static int getMaxLvl() { return maxLevel; }
+
+    static int getNumNodes() { return numNodes; }
+
+    static pair2i getNumAngles(const int level) {
+        return std::make_pair(thetas[level].size(), phis[level].size());
+    }
+
+    //static cmplx getCurrent(size_t idx) { return (*currents)(idx); }
+
+    static void addToSol(size_t idx, cmplx val) { (*sols)(idx) += val; }
 
 public:
     SrcVec getSrcs() const { return srcs; }
@@ -96,11 +103,11 @@ public:
 
     void evalLeafIlistSols();
 
-    void evalPairSols(const std::shared_ptr<Node>);
+    void evalPairSolsDir(const std::shared_ptr<Node>);
 
-    void evalSelfSols();
+    void evalSelfSolsDir();
 
-    void evalSelfSolsSlow();
+    // void evalSelfSolsSlow();
 
     std::vector<vec3cd> getFarSolsFromCoeffs(double);
 
@@ -141,8 +148,8 @@ protected:
     static Tables tables;
 
     // std::shared_ptr<Solver> solver;
-    static vecXcd& currents;
-    static vecXcd& sols;
+    static std::shared_ptr<vecXcd> currents;
+    static std::shared_ptr<vecXcd> sols;
 
     std::vector<vec2cd> coeffs;
     std::pair<vec2cd, vec2cd> polarCoeffs;

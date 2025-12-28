@@ -25,23 +25,29 @@ public:
 
     NodeVec getNearNbors() const { return nearNbors; }
 
+    void buildNeighbors() override;
+
+    void buildLists() override;
+
+    static void findNearNborPairs();
+
+    static void buildNearRads();
+
     static void buildRadPats();
+
+    void buildMpoleCoeffs() override;
+
+    void buildLocalCoeffs() override;
 
     void evalFarSols();
 
     void evalNearNonNborSols();
 
-    static std::vector<LeafPair> findNearNborPairs();
+    void evalPairSols(const std::shared_ptr<Node>);
+
+    void evalSelfSols();
 
     static void evaluateSols();
-
-    void buildNeighbors() override;
-
-    void buildLists() override;
-
-    void buildMpoleCoeffs() override;
-
-    void buildLocalCoeffs() override;
 
     void printNode(std::ofstream& f) {
         f << center << " " << nodeLeng << " " << '\n';
@@ -49,6 +55,10 @@ public:
 
 protected:
     static LeafVec leaves;
+    static std::vector<LeafPair> nearPairs;
+
+    cmplxVec nearRads;
+    cmplxVec selfRads;
 
     std::vector<std::vector<vec2cd>> radPats;
 
