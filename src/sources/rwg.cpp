@@ -13,16 +13,16 @@ RWG::RWG(
       center((X0+X1)/2.0), 
       leng((X0-X1).norm())
 {
-    buildVoltage();
-
     // Find non-common vertices
     for (int i = 0; i < 2; ++i)
         for (const auto& vIdx : tris[i]->vIdx)
             if (vIdx != idx[0] && vIdx != idx[1])
                 Xpm[i] = vertices[vIdx];
 
-    //std::cout << '(' << X0 << ") (" << X1 << ") ("
-    //    << Xpm[0] << ") (" << Xpm[1] << ") " << leng << '\n';
+    buildVoltage(); // needs Xpm initialized!
+
+    /*std::cout << '(' << X0 << ") (" << X1 << ") ("
+        << Xpm[0] << ") (" << Xpm[1] << ") " << leng << '\n';*/
 };
 
 vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
@@ -38,8 +38,8 @@ vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
             auto [nodes, weight] = tri->getQuads();
             for (const auto& node : nodes)
                 rad += weight * exp(iu*kvec.dot(node))
-                        * (node - Xpm[triIdx])
-                        * sign(triIdx);
+                * (node - Xpm[triIdx])
+                * sign(triIdx);
             ++triIdx;
         }
 

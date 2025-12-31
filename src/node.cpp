@@ -50,7 +50,7 @@ void Node::buildAngularSamples() {
 
     constexpr double EPS_NR = 1.0E-9; // Newton-Raphson precision
 
-    // std::cout << "   (Lvl,Nth,Nph) =\n";
+    std::cout << "   (Lvl,Nth,Nph) =\n";
 
     for (int lvl = 0; lvl <= maxLevel; ++lvl) {
         const double nodeLeng = config.rootLeng / pow(2.0, lvl);
@@ -84,7 +84,7 @@ void Node::buildAngularSamples() {
 
         phis.push_back(phis_lvl);
 
-        // std::cout << "   (" << lvl << "," << nth << "," << nph << ")\n";
+        std::cout << "   (" << lvl << "," << nth << "," << nph << ")\n";
     }
 }
 
@@ -171,7 +171,7 @@ void Node::buildMpoleToLocalCoeffs() {
  * (S2L/S2T) Add contribution from list 4 to local coeffs
  */
 void Node::evalLeafIlistSols() {
-    // Do nothing! Contribution from list 4 node was 
+    // Do nothing! Contribution from list 4 node is 
     // to be evaluated by Leaf::evalNearNonNborSols()
     //for (const auto& node : leafIlist)
     //    evalPairSols(node, nonNearRads[nonNearPairIdx++]);

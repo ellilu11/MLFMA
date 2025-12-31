@@ -17,4 +17,3 @@ struct ClockTimes {
 
     Time M2L_lookup{ 0 };
 };
-

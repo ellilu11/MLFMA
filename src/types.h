@@ -34,6 +34,13 @@ std::vector<T> operator+ (const std::vector<T>& zs, const std::vector<T>& ws) {
     return sum;
 }
 
+std::ostream& operator<< (std::ostream& os, const cmplx z) {
+    char sign = z.imag() >= 0.0 ? '+' : '-';
+    
+    os << z.real() << sign << abs(z.imag()) << 'i';
+    return os;
+}
+
 std::ostream& operator<< (std::ostream& os, const vec3d& X) {
     os << X[0] << " " << X[1] << " " << X[2];
     return os;

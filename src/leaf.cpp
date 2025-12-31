@@ -114,14 +114,33 @@ void Leaf::buildNearRads() {
         obsLeaf->nonNearRads.push_back(nodePairRads);
     }
 
+    std::ofstream zmatFile("out/zmat.txt");
+    std::ofstream vvecFile("out/vvec.txt");
+
     for (const auto& leaf : leaves) {
         for (size_t obsIdx = 1; obsIdx < leaf->srcs.size(); ++obsIdx) { // obsIdx = 0
+            const auto& obs = leaf->srcs[obsIdx];
+
             for (size_t srcIdx = 0; srcIdx < obsIdx; ++srcIdx) { // srcIdx <= obsIdx 
-                const auto& obs = leaf->srcs[obsIdx], src = leaf->srcs[srcIdx];
+                const auto& src = leaf->srcs[srcIdx];
 
                 leaf->selfRads.push_back(obs->getIntegratedRad(src));
 
             }
+        }
+
+        // GMRES testing
+        for (size_t obsIdx = 0; obsIdx < leaf->srcs.size(); ++obsIdx) { 
+            const auto& obs = leaf->srcs[obsIdx];
+
+            for (size_t srcIdx = 0; srcIdx < leaf->srcs.size(); ++srcIdx) {  
+                const auto& src = leaf->srcs[srcIdx];
+                zmatFile << std::setprecision(9) << Phys::C * wavenum * obs->getIntegratedRad(src) << ' ';
+
+            }
+            
+            vvecFile << std::setprecision(9) << obs->getVoltage() << '\n';
+            zmatFile << '\n';
         }
     }
 }
@@ -298,8 +317,6 @@ void Leaf::evalSelfSols() {
     for (size_t obsIdx = 1; obsIdx < numSrcs; ++obsIdx) { // obsIdx = 0
         for (size_t srcIdx = 0; srcIdx < obsIdx; ++srcIdx) { // srcIdx <= obsIdx 
             auto obs = srcs[obsIdx], src = srcs[srcIdx];
-
-            const auto glObsIdx = obs->getIdx(), glSrcIdx = src->getIdx();
 
             const cmplx rad = selfRads[pairIdx++];
 

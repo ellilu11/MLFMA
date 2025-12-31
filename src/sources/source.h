@@ -18,25 +18,11 @@ public:
 
     cmplx getVoltage() const { return voltage; }
 
-    //cmplx getCurrent() const { return current; }
-
-    //cmplx getSol() const { return sol; }
-
-    //void addToSol(cmplx sol_) { sol += sol_; }
-
-    //void resetSol() { sol = 0.0; }
-
-    //void printSol(std::ofstream& f) const {
-    //    f << sol.real() << ' ' << sol.imag() << '\n';
-    //}
-
     size_t getIdx() const { return idx; }
 
     virtual vec3d getCenter() const = 0;
 
     virtual void buildVoltage() = 0;
-
-    // virtual void buildCurrent() = 0;
 
     virtual vec3cd getRadAlongDir(const vec3d&, const vec3d&) const = 0;
 
@@ -45,9 +31,6 @@ public:
 protected:
     std::shared_ptr<Excitation::PlaneWave> Einc;
     cmplx voltage;
-    //cmplx current;
-    //cmplx sol;
-
     size_t idx;
 
 };

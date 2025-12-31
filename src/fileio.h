@@ -254,7 +254,7 @@ pair<SrcVec, shared_ptr<Excitation::PlaneWave>> importFromConfig(const Config& c
     // cout << "   RWG quad rule:   " << Triangle::prec2Int(config.quadPrec) << "-point\n";
     cout << "   Digit precision: " << config.digits << '\n';
     cout << "   Interp order:    " << config.interpOrder << '\n';
-    cout << "   Max node RWGs:   " << config.maxNodeSrcs << '\n';
+    cout << "   Max node srcs:   " << config.maxNodeSrcs << '\n';
     cout << "   Root length:     " << config.rootLeng << '\n';
     cout << "   Wave number:     " << Einc->wavenum << "\n\n";
 

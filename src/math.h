@@ -149,7 +149,8 @@ namespace Math {
     }
 
     inline pair2cd givensRotation(cmplx z, cmplx w) noexcept {
-        const double norm = sqrt(std::norm(z) + std::norm(w));
+        // const double norm = sqrt(std::norm(z) + std::norm(w)); // squared norms
+        const cmplx norm = sqrt(z*z + w*w);
         return make_pair(z/norm, w/norm);
     }
 

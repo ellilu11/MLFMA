@@ -7,11 +7,11 @@ Stem::Stem(
     : Node(srcs, branchIdx, base)
 {
     // Assign every src to a branch based on src center relative to node center
-    std::array<SrcVec,8> branchSrcs;
+    std::array<SrcVec, 8> branchSrcs;
 
     for (const auto& src : srcs)
         branchSrcs[Math::bools2Idx(src->getCenter() > center)].push_back(src);
- 
+
     // Construct branch nodes
     for (size_t k = 0; k < branchSrcs.size(); ++k) {
         std::shared_ptr<Node> branch;
@@ -140,7 +140,7 @@ void Stem::addInterpCoeffs(
 
     assert(!(mph%2)); // mph needs to be even
 
-    // Choose which interp tables to use
+    // Select which interp tables to use
     const auto& interpTheta = 
         (srcLvl > tgtLvl) ? tables.interpTheta : tables.invInterpTheta;
     const auto& interpPhi = 
@@ -288,7 +288,7 @@ void Stem::buildLocalCoeffs() {
         buildMpoleToLocalCoeffs();
         t.M2L += Clock::now() - start;
 
-        // evalLeafIlistSols(); // Puzzle: Can a stem have a leafIlist?
+        evalLeafIlistSols();
 
         start = Clock::now();
         if (!base->isRoot()) {

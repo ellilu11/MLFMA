@@ -29,7 +29,7 @@ int main() {
         root = make_shared<Leaf>(srcs, 0, nullptr);
 
     cout << "   # Nodes: " << Node::getNumNodes() << '\n';
-    cout << "   # Leaves: " << Leaf::getNumLeaves() << '\n';
+    // cout << "   # Leaves: " << Leaf::getNumLeaves() << '\n';
     cout << "   Max node level: " << Node::getMaxLvl() << "\n\n";
 
     // ==================== Build tables ===================== //
@@ -68,19 +68,26 @@ int main() {
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     // ==================== Solve iterative ==================== //
-    constexpr int NUM_ITER = 20;
+    cout << " Solving iterative...\n";
 
-    auto solver = make_unique<Solver>(srcs, root, NUM_ITER);
+    constexpr int NUM_ITER = 1000;
+    constexpr double EPS = 1.0E-6;
+
+    auto solver = make_unique<Solver>(srcs, root, NUM_ITER, EPS);
     Node::linkStates(solver);
+
+    start = Clock::now();
 
     solver->solve();
 
-    return 0;
+    end = Clock::now();
+    duration_ms = end - start;
+    cout << "   Total elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    // if (!config.evalDirect) return 0;
+    if (!config.evalDirect) return 0;
 
     // ================== Compute direct ===================== //
-    /*solver->resetSols();
+    solver->resetSols();
 
     cout << " Computing direct...\n";
     start = Clock::now();
@@ -93,5 +100,5 @@ int main() {
 
     solver->printSols("solDir.txt");
 
-    return 0;*/
+    return 0;
 }

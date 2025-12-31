@@ -378,3 +378,6 @@ FodyWeavers.xsd
 /plt/testInterp.m
 /plt/plotVals.m
 /plt/plotSols.m
+/plt/dip_n2000_master.fig
+/plt/plotSol.asv
+/plt/testRWGs.m

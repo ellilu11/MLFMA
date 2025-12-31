@@ -9,7 +9,7 @@ class Node;
 class Solver {
 
 public :
-    Solver(const SrcVec& srcs, std::shared_ptr<Node>, int);
+    Solver(const SrcVec& srcs, std::shared_ptr<Node>, int, double);
 
     void iterateArnoldi(int);
 
@@ -31,8 +31,7 @@ public :
 
     void resetSols() { (*sols) = vecXcd::Zero(numSols); }
 
-    // void printSols(const std::string&);
-    void printSols(std::ofstream&);
+    void printSols(const std::string&);
 
 private :
     //Solver();
@@ -43,12 +42,15 @@ private :
 
     int numSols;
     int numIter;
+    double EPS;
 
-    matXcd Q;
-    matXcd H;
+    matXcd Qmat;
+    matXcd Hmat;
 
     vecXcd gvec;
     vecXcd currents;
+
+    double g0;
 
     std::shared_ptr<vecXcd> qvec;
     std::shared_ptr<vecXcd> sols;
