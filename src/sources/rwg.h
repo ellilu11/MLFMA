@@ -16,6 +16,8 @@ public:
     vec3d getCenter() const override { return center; } 
 
     void buildVoltage() override {
+        // voltage = -1.0;
+
         voltage = -Einc->amplitude
             * conj(getIntegratedPlaneWave(Einc->wavevec,true).dot(Einc->pol)); // Hermitian dot!
     }

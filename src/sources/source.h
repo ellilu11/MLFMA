@@ -12,13 +12,13 @@ class Source {
 public:
     Source() = default;
     
-    Source(std::shared_ptr<Excitation::PlaneWave> Einc, size_t idx)
-        : Einc(std::move(Einc)), idx(idx), voltage(0.0)
-    {}
+    Source(std::shared_ptr<Excitation::PlaneWave> Einc)
+        : Einc(std::move(Einc)), voltage(0.0), current(0.0), sol(0.0) 
+    {};
 
     cmplx getVoltage() const { return voltage; }
 
-    size_t getIdx() const { return idx; }
+    cmplx getSol() const { return sol; }
 
     void setIdx(size_t idx_) { idx = idx_; }
 

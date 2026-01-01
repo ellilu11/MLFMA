@@ -24,6 +24,7 @@ enum class QDist {
 };
 
 enum class Precision {
+    VERYLOW,
     LOW,
     MEDIUM,
     HIGH

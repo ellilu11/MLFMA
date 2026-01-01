@@ -35,8 +35,7 @@ vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
     if (doNumeric) {
         for (const auto& tri : tris) {
 
-            auto [nodes, weight] = tri->getQuads();
-            for (const auto& node : nodes)
+            for (const auto& [node, weight] : tri->getQuads())
                 rad += weight * exp(iu*kvec.dot(node))
                 * (node - Xpm[triIdx])
                 * sign(triIdx);
@@ -104,13 +103,13 @@ cmplx RWG::getIntegratedRad(const std::shared_ptr<Source> src) const {
     int obsTriIdx = 0;
     for (const auto& obsTri : tris) {
 
-        auto [obsNodes, obsWeight] = obsTri->getQuads();
+        const auto& obsQuads = obsTri->getQuads();
         const auto& obsXpm = Xpm[obsTriIdx];
 
         int srcTriIdx = 0;
         for (const auto& srcTri : srcRWG->tris) {
 
-            auto [srcNodes, srcWeight] = srcTri->getQuads();
+            const auto& srcQuads = srcTri->getQuads();
             const auto& srcXpm = srcRWG->Xpm[srcTriIdx];
             
             if (obsTri == srcTri) {
@@ -118,8 +117,8 @@ cmplx RWG::getIntegratedRad(const std::shared_ptr<Source> src) const {
                 continue; // TODO: Handle coincident tris
             }
 
-            for (const auto& obs : obsNodes) {
-                for (const auto& src : srcNodes) {
+            for (const auto& [obs, obsWeight] : obsQuads) {
+                for (const auto& [src, srcWeight] : srcQuads) {
 
                     const vec3cd& rad = 
                         srcWeight 
