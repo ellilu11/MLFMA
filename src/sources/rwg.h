@@ -17,13 +17,13 @@ public:
 
     void buildVoltage() override {
         voltage = -Einc->amplitude
-            * conj(getIntegratedPlaneWave(Einc->wavevec).dot(Einc->pol)); // Hermitian dot!
+            * conj(getIntegratedPlaneWave(Einc->wavevec,true).dot(Einc->pol)); // Hermitian dot!
     }
 
     vec3cd getRadAlongDir(
         const vec3d& X, const vec3d& kvec) const override {
 
-        return exp(iu*kvec.dot(X)) * getIntegratedPlaneWave(kvec).conjugate();
+        return exp(iu*kvec.dot(X)) * getIntegratedPlaneWave(kvec,true).conjugate();
     }
 
     vec3cd getIntegratedPlaneWave(const vec3d&, bool = 0) const;

@@ -9,11 +9,11 @@ class Node;
 class Solver {
 
 public :
-    Solver(const SrcVec& srcs, std::shared_ptr<Node>, int, double);
-
-    void iterateArnoldi(int);
+    Solver(SrcVec& srcs, std::shared_ptr<Node>, int, double);
 
     void updateSols(int);
+
+    void iterateArnoldi(int);
 
     void applyGivensRotation(vecXcd&, vecXcd&, vecXcd&, int);
 
@@ -27,8 +27,6 @@ public :
 
     // cmplx getQvec(size_t idx) { return qvec[idx]; }
 
-    // void addToSols(size_t idx, cmplx val) { sols[idx] += val; }
-
     void resetSols() { (*sols) = vecXcd::Zero(numSols); }
 
     void printSols(const std::string&);
@@ -41,7 +39,7 @@ private :
     std::shared_ptr<Node> root;
 
     int numSols;
-    int numIter;
+    int maxIter;
     double EPS;
 
     matXcd Qmat;

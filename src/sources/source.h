@@ -20,6 +20,8 @@ public:
 
     size_t getIdx() const { return idx; }
 
+    void setIdx(size_t idx_) { idx = idx_; }
+
     virtual vec3d getCenter() const = 0;
 
     virtual void buildVoltage() = 0;

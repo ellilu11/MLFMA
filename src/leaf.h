@@ -56,6 +56,7 @@ public:
 protected:
     static LeafVec leaves;
     static std::vector<LeafPair> nearPairs;
+    inline static size_t glSrcIdx = 0;
 
     std::vector<cmplxVec> nearRads;
     std::vector<cmplxVec> nonNearRads;

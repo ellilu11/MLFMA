@@ -70,10 +70,10 @@ int main() {
     // ==================== Solve iterative ==================== //
     cout << " Solving iterative...\n";
 
-    constexpr int NUM_ITER = 1000;
+    constexpr int MAX_ITER = 500;
     constexpr double EPS = 1.0E-6;
 
-    auto solver = make_unique<Solver>(srcs, root, NUM_ITER, EPS);
+    auto solver = make_unique<Solver>(srcs, root, MAX_ITER, EPS);
     Node::linkStates(solver);
 
     start = Clock::now();
@@ -101,4 +101,5 @@ int main() {
     solver->printSols("solDir.txt");
 
     return 0;
+
 }

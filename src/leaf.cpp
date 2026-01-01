@@ -11,6 +11,16 @@ Leaf::Leaf(
       leafPairIdx(0), nonNearPairIdx(0)
 {
     maxLevel = std::max(level, maxLevel);
+
+    /* Assign indices to all sources in this leaf
+    for (const auto& src : srcs) {
+        // src->setIdx(glSrcIdx++);
+
+        std::cout << src->getIdx() << ' ';
+    }
+
+    if (!isSrcless()) std::cout << '\n';
+    */
 }
 
 /* buildNeighbors()
@@ -74,8 +84,7 @@ void Leaf::buildNearRads() {
 
     findNearNborPairs();
 
-    for (const auto& pair : nearPairs) {
-        auto [obsLeaf, srcLeaf] = pair;
+    for (const auto& [obsLeaf, srcLeaf] : nearPairs) {
         assert(obsLeaf < srcLeaf);
 
         const size_t numObss = obsLeaf->srcs.size(), numSrcs = srcLeaf->srcs.size();
@@ -94,8 +103,7 @@ void Leaf::buildNearRads() {
         obsLeaf->nearRads.push_back(leafPairRads);
     }
 
-    for (const auto& pair : nonNearPairs) {
-        auto [obsNode, srcNode] = pair;
+    for (const auto& [obsNode, srcNode] : nonNearPairs) {
         auto obsLeaf = dynamic_pointer_cast<Leaf>(obsNode);
 
         const size_t numObss = obsLeaf->srcs.size(), numSrcs = srcNode->getSrcs().size();
@@ -114,8 +122,8 @@ void Leaf::buildNearRads() {
         obsLeaf->nonNearRads.push_back(nodePairRads);
     }
 
-    std::ofstream zmatFile("out/zmat.txt");
-    std::ofstream vvecFile("out/vvec.txt");
+    //std::ofstream zmatFile("out/zmat.txt");
+    //std::ofstream vvecFile("out/vvec.txt");
 
     for (const auto& leaf : leaves) {
         for (size_t obsIdx = 1; obsIdx < leaf->srcs.size(); ++obsIdx) { // obsIdx = 0
@@ -129,7 +137,7 @@ void Leaf::buildNearRads() {
             }
         }
 
-        // GMRES testing
+        /* GMRES testing
         for (size_t obsIdx = 0; obsIdx < leaf->srcs.size(); ++obsIdx) { 
             const auto& obs = leaf->srcs[obsIdx];
 
@@ -142,6 +150,7 @@ void Leaf::buildNearRads() {
             vvecFile << std::setprecision(9) << obs->getVoltage() << '\n';
             zmatFile << '\n';
         }
+        */
     }
 }
 
@@ -335,8 +344,7 @@ void Leaf::evalSelfSols() {
  */ 
 void Leaf::evaluateSols() {
 
-    for (const auto& pair : nearPairs) {
-        auto [obsLeaf, srcLeaf] = pair;
+    for (const auto& [obsLeaf, srcLeaf] : nearPairs) {
         auto pairIdx = obsLeaf->leafPairIdx++;
         obsLeaf->evalPairSols(srcLeaf, obsLeaf->nearRads[pairIdx]);
     }

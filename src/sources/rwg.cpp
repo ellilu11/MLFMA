@@ -2,11 +2,11 @@
 
 RWG::RWG(
     std::shared_ptr<Excitation::PlaneWave> Einc,
-    const size_t srcIdx,
+    size_t rwgIdx,
     const Eigen::Vector4i& idx,
     const std::vector<vec3d>& vertices,
     const TriVec& triangles)
-    : Source(Einc, srcIdx),
+    : Source(std::move(Einc), rwgIdx),
       tris({triangles[idx[2]], triangles[idx[3]]}),
       X0(vertices[idx[0]]), 
       X1(vertices[idx[1]]),
@@ -97,6 +97,8 @@ cmplx RWG::getIntegratedRad(const std::shared_ptr<Source> src) const {
     const auto srcRWG = dynamic_pointer_cast<RWG>(src);
     const double k = Einc->wavenum;
 
+    // if (center == srcRWG->center) return 0.0; // TODO: Handle self-interactions
+ 
     cmplx intRad = 0.0;
 
     int obsTriIdx = 0;

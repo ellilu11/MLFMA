@@ -16,8 +16,8 @@ for i=1:2
     sol1Sort = sortrows(sol1,i);
     sol2Sort = sortrows(sol2,i);
     figure(2*i-1);
-    % plot(nvec, sol1Sort(:,i), nvec, sol2Sort(:,i));
-    semilogy(nvec, abs(sol1Sort(:,i)), nvec, abs(sol2Sort(:,i)));
+    plot(nvec, sol1Sort(:,i), nvec, sol2Sort(:,i));
+    % semilogy(nvec, abs(sol1Sort(:,i)), nvec, abs(sol2Sort(:,i)));
 
     relErr = abs(sol1Sort(:,i)-sol2Sort(:,i)) ./ abs(sol2Sort(:,i));
     figure(2*i);

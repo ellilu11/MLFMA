@@ -1,22 +1,31 @@
 #include "solver.h"
 
-Solver::Solver(const SrcVec& srcs, std::shared_ptr<Node> root, int numIter, double EPS)
+Solver::Solver(
+    SrcVec& srcs, 
+    std::shared_ptr<Node> root, 
+    int maxIter, double EPS)
     : root(std::move(root)),
       numSols(srcs.size()),
-      numIter(numIter),
+      maxIter(maxIter),
       EPS(EPS),
       Qmat(matXcd(numSols, 1)),
-      gvec(vecXcd::Zero(numIter+1)),
-      currents(vecXcd::Zero(numSols)), // Guess zero currents
+      gvec(vecXcd::Zero(maxIter+1)),
+      currents(vecXcd::Zero(numSols)), // assume I = 0 initially
       qvec(std::make_shared<vecXcd>(vecXcd::Zero(numSols))),
       sols(std::make_shared<vecXcd>(vecXcd::Zero(numSols)))
 {
-    // Guess zero currents
+    // Sort sources by srcIdx
+    std::sort(srcs.begin(), srcs.end(),
+        [](std::shared_ptr<Source> src0, std::shared_ptr<Source> src1)
+        { return src0->getIdx() < src1->getIdx(); }
+    );
+
+    // (*qvec) = r = ZI - w = -w assuming I = 0 initially
     // std::transform
     for (int idx = 0; idx < numSols; ++idx)
         (*qvec)[idx] = -srcs[idx]->getVoltage();
 
-    g0 = (*qvec).norm();
+    g0 = (*qvec).norm(); // store g0 for use later
     gvec[0] = g0;
 
     (*qvec).normalize(); // qvec_0
@@ -29,6 +38,13 @@ void Solver::updateSols(int k) {
     root->buildLocalCoeffs();
 
     Leaf::evaluateSols();
+
+    if (!k) {
+        std::cout << "   Elapsed time (S2M): " << t.S2M.count() << " ms\n";
+        std::cout << "   Elapsed time (M2M): " << t.M2M.count() << " ms\n";
+        std::cout << "   Elapsed time (M2L): " << t.M2L.count() << " ms\n";
+        std::cout << "   Elapsed time (L2L): " << t.L2L.count() << " ms\n";
+    }
 }
 
 void Solver::iterateArnoldi(int k) {
@@ -62,7 +78,7 @@ void Solver::applyGivensRotation(
 
     assert(hcol.size() == k+2);
 
-    for (int i = 0; i < k; ++i) {
+    for (int i = 0; i <= k-1; ++i) {
         const cmplx hprev = vcos[i] * hcol[i] + vsin[i] * hcol[i+1] ;
         hcol[i+1] = -vsin[i] * hcol[i] + vcos[i] * hcol[i+1];
         hcol[i] = hprev;
@@ -87,10 +103,12 @@ void Solver::updateGvec(vecXcd& vcos, vecXcd& vsin, int k) {
     gvec[k] = vcos[k] * gvec[k];
 }
 
-void Solver::solve() {
+/*void Solver::solve() {
 
-    vecXcd vcos = vecXcd::Zero(numIter);
-    vecXcd vsin = vecXcd::Zero(numIter);
+    vecXcd vcos = vecXcd::Zero(maxIter);
+    vecXcd vsin = vecXcd::Zero(maxIter);
+
+    // std::cout << std::setprecision(9) << std::scientific;
 
     int iter = 0;
     do {
@@ -102,13 +120,14 @@ void Solver::solve() {
         iterateArnoldi(iter);
 
         updateGvec(vcos, vsin, iter);
-        
+
         resetSols();
 
         Time fmm_duration_ms = Clock::now() - iter_start;
-        std::cout << "   Elapsed time: " << fmm_duration_ms.count() << " ms\n";
+        // std::cout << "   Elapsed time: " << fmm_duration_ms.count() << " ms\n";
 
-    } while (abs(gvec[++iter])/g0 > EPS);
+    } // while (++iter < maxIter);
+    while (abs(gvec[++iter])/g0 > EPS && iter < maxIter); // careful
 
     std::cout << " Solving for current...\n";
 
@@ -117,25 +136,20 @@ void Solver::solve() {
     currents = Qmat.leftCols(iter) * yvec;
 
     printSols("solDir.txt");
-}
+}*/
 
-/*void Solver::solve() {
-
-    vecXcd vcos = vecXcd::Zero(numIter);
-    vecXcd vsin = vecXcd::Zero(numIter);
-
-    // std::string outStr = "out/sol/sol.txt";
-    // std::filesystem::remove(outStr);
-    // std::ofstream outFile(outStr);
+//
+void Solver::solve() {
+    constexpr int MAX_ITER = 1;
 
     int iter = 0;
-    for (int iter = 0; iter < numIter; ++iter) {
+    for (int iter = 0; iter < MAX_ITER; ++iter) {
         std::cout << " Do iteration #" << iter << '\n';
         auto iter_start = Clock::now();
 
         updateSols(iter);
 
-        if (iter == numIter-1) printSols("sol.txt");
+        if (iter == MAX_ITER-1) printSols("sol.txt");
 
         resetSols();
 
@@ -143,9 +157,13 @@ void Solver::solve() {
         std::cout << "   Elapsed time: " << fmm_duration_ms.count() << " ms\n";
 
     }
-}*/
+}//
 
 /*void Solver::solve() {
+
+    // std::string outStr = "out/sol/sol.txt";
+    // std::filesystem::remove(outStr);
+    // std::ofstream outFile(outStr);
 
     //
     namespace fs = std::filesystem;
@@ -161,10 +179,10 @@ void Solver::solve() {
     std::ofstream file(dir/"sol.txt", std::ios::app);
     //
 
-    vecXcd vcos = vecXcd::Zero(numIter);
-    vecXcd vsin = vecXcd::Zero(numIter);
+    vecXcd vcos = vecXcd::Zero(maxIter);
+    vecXcd vsin = vecXcd::Zero(maxIter);
 
-    for (int iter = 0; iter < numIter; ++iter) {
+    for (int iter = 0; iter < maxIter; ++iter) {
         updateSols(iter);
 
         iterateArnoldi(iter);
@@ -203,9 +221,7 @@ void Solver::printSols(const std::string& fname) {
 
     file << std::setprecision(15) << std::scientific;
 
-    //for (const auto& sol : *sols)
-    //    file << sol.real() << ' ' << sol.imag() << '\n';
+    for (const auto& sol : *sols) file << sol << '\n';
 
-    for (const auto& curr : currents)
-        file << curr.real() << ' ' << curr.imag() << '\n';
+    // for (const auto& curr : currents) file << curr << '\n';
 }

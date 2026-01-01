@@ -130,6 +130,7 @@ SrcVec importDipoles(
     return dipoles;
 }
 
+
 vector<vec3d> importVertices(const filesystem::path& fpath) {
     ifstream file(fpath);
     if (!file) throw std::runtime_error("Unable to find file");
@@ -186,7 +187,7 @@ SrcVec importRWG(
     if (!file) throw std::runtime_error("Unable to find file");
     SrcVec rwgs;
     size_t rwgIdx = 0;
-    
+
     while (getline(file, line)) {
         istringstream iss(line);
         Eigen::Vector4i idx;
@@ -220,7 +221,7 @@ pair<SrcVec, shared_ptr<Excitation::PlaneWave>> importFromConfig(const Config& c
 {
     auto Einc = importPlaneWave("config/pwave.txt");
 
-    // Dipole sources
+    /* Dipole sources
     const auto fpath = makePath(config);
     SrcVec srcs;
     switch (config.mode) {
@@ -237,16 +238,16 @@ pair<SrcVec, shared_ptr<Excitation::PlaneWave>> importFromConfig(const Config& c
         }
     }
     cout << "   Source file:     " << fpath.generic_string() << '\n';
-    //
+    */
 
-    /* RWG sources
+    // RWG sources
     const string configPath = "config/rwg/n"+to_string(config.nsrcs)+"/";
     auto srcs = importRWG(configPath+"vertices.txt",
                           configPath+"faces.txt",
                           configPath+"rwgs.txt",
                           config.quadPrec,
                           Einc);
-    */
+    //
     
     cout << fixed << setprecision(3);
     cout << "   Mode:            " << (config.mode == Mode::READ ? "READ" : "WRITE") << '\n';

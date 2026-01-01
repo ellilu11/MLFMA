@@ -9,7 +9,7 @@ public:
 
     Dipole(
         std::shared_ptr<Excitation::PlaneWave> Einc, size_t idx, const vec3d& X)
-        : Source(Einc, idx), pos(X), 
+        : Source(std::move(Einc), idx), pos(X), 
         pmag(Phys::p0), pol(vec3d(pmag, 0, 0)), phat(pol/pmag)
     {
         buildVoltage();
@@ -17,7 +17,7 @@ public:
 
     Dipole(
         std::shared_ptr<Excitation::PlaneWave> Einc, size_t idx, const vec3d& X, const vec3d& P)
-        : Dipole(Einc, idx, X)
+        : Dipole(std::move(Einc), idx, X)
     {
         pol = P;
         pmag = P.norm();
