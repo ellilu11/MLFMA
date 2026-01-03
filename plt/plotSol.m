@@ -4,9 +4,12 @@ digits = 6;
 
 dir = "C:\Users\ellil\Documents\WORK\MLFMA\MLFMA\out\build\x64-debug\out\sol\";
 
-sol1 = readmatrix(dir+"sol.txt");
-% sol1 = readmatrix(dir+"sol_d" + digits +".txt");
-sol2 = readmatrix(dir+"solDir.txt");
+sol1 = readmatrix(dir+"curr_nq7.txt");
+sol2 = readmatrix(dir+"currDir_nq7.txt");
+% sol1 = readmatrix(dir+"rvec_nq7.txt");
+% sol2 = readmatrix(dir+"rvecDir_nq7.txt");
+% sol1 = readmatrix(dir+"dip\curr.txt");
+% sol2 = readmatrix(dir+"dip\currDir.txt");
 
 nvec = 1:length(sol1);
 

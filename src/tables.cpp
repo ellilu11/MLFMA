@@ -2,12 +2,13 @@
 
 void Tables::buildAngularTables() {
    
-    for (int level = 0; level <= Node::maxLevel; ++level) {
+    for (int level = 0; level <= maxLevel; ++level) {
 
         const auto [nth, nph] = Node::getNumAngles(level);
 
         std::vector<vec3d> khat_lvl(nth*nph);
         std::vector<mat23d> toThPh_lvl(nth*nph);
+        std::vector<mat3d> ImRR_lvl(nth*nph);
 
         size_t idx = 0;
         for (int ith = 0; ith < nth; ++ith) {
@@ -17,12 +18,16 @@ void Tables::buildAngularTables() {
                 const double ph = Node::phis[level][iph];
 
                 khat_lvl[idx] = Math::fromSph(vec3d(1.0, th, ph));
-                toThPh_lvl[idx++] = Math::toThPh(th, ph);
+                toThPh_lvl[idx] = Math::toThPh(th, ph);
+                ImRR_lvl[idx] = Math::ImRR(khat_lvl[idx]);
+
+                ++idx;
             }
         }
 
         khat.push_back(khat_lvl);
         toThPh.push_back(toThPh_lvl);
+        ImRR.push_back(ImRR_lvl);
     }
 }
 
@@ -108,7 +113,7 @@ std::vector<interpPair> Tables::getInterpPhiAtLvl(int srcLvl, int tgtLvl) {
 
 void Tables::buildInterpTables() {
 
-    for (int lvl = 0; lvl < Node::maxLevel; ++lvl) {
+    for (int lvl = 0; lvl < maxLevel; ++lvl) {
 
         // M2M interpolation tables
         interpTheta.push_back(getInterpThetaAtLvl(lvl+1, lvl));
@@ -121,124 +126,146 @@ void Tables::buildInterpTables() {
     }
 }
 
-void Tables::buildTranslationTable() {
+Map<vecXcd> Tables::getAlphaAtLvl(int level) {
 
     using namespace Math;
 
-    const int rootLeng = Node::config.rootLeng;
     const double wavenum = Node::wavenum;
 
-    const auto& dists = getINodeDistances();
+    const int L = Node::Ls[level];
+    const int nth = Node::getNumAngles(level).first;
+    const int nps = std::floor(Node::config.overInterp*(nth-1));
 
-    for (size_t level = 0; level <= Node::maxLevel; ++level) {
+    const double nodeLeng = Node::config.rootLeng / pow(2.0, level);
 
-        const int L = Node::Ls[level];
-
-        const int nth = Node::getNumAngles(level).first;
-        const int nps = std::floor(Node::config.overInterp*(nth-1));
-
-        const double nodeLeng = rootLeng / pow(2.0, level);
-
-        Map<double,vecXcd> transl_lvl;
+    Map<vecXcd> alpha;
         
-        for (const auto& dist : dists) {
+    for (const auto& dist : dists) {
+        const double kr = wavenum * dist * nodeLeng;
 
-            const double kr = wavenum * dist * nodeLeng;
+        vecXcd transl_dist(nps);
 
-            vecXcd transl_dist(nps);
+        for (int ips = 0; ips < nps; ++ips) {
 
-            for (int ips = 0; ips < nps; ++ips) {
+            const double xi = cos(PI*ips/static_cast<double>(nps-1));
+            cmplx coeff = 0.0;
 
-                const double xi = cos(PI*ips/static_cast<double>(nps-1));
-                cmplx coeff = 0.0;
+            for (int l = 0; l <= L; ++l)
+                coeff += 
+                    powI(l) * (2.0*l+1.0)
+                    * sphericalHankel1(kr, l) 
+                    * legendreP(xi, l).first;
 
-                for (int l = 0; l <= L; ++l)
-                    coeff += 
-                        powI(l) * (2.0*l+1.0)
-                        * sphericalHankel1(kr, l) 
-                        * legendreP(xi, l).first;
-
-                transl_dist[ips] = iu * wavenum / (4.0*PI) * coeff;
-            }
-
-            transl_lvl.emplace(dist, transl_dist);
+            transl_dist[ips] = iu * wavenum / (4.0*PI) * coeff;
         }
 
-        transl.push_back(transl_lvl);
+        alpha.emplace(dist, transl_dist);
     }
 
+    assert(alpha.size() == dists.size());
+
+    return alpha;
 };
 
-void Tables::buildInterpPsiTable() {
+HashMap<interpPair> Tables::getInterpPsiAtLvl(int level) {
 
-    // auto start = Clock::now();
+    // Find all unique psi = acos(khat.dot(rhat))
+    const auto [nth, nph] = Node::getNumAngles(level);
 
-    const auto& rhats = Math::getINodeDirections();
+    realVec psis(nth*nph*rhats.size());
 
-    std::vector<realVec> psis(Node::maxLevel+1);
+    size_t m = 0;
+    for (size_t l = 0; l < nth*nph; ++l) {
 
-    // Find all unique psi = acos(khat.dot(rhat)) at each level
-    for (size_t level = 0; level <= Node::maxLevel; ++level) {
+        const auto& khat = this->khat[level][l];
+
+        for (const auto& rhat : rhats)
+            psis[m++] = acos(khat.dot(rhat));
+    }
+
+    std::sort(psis.begin(), psis.end()); 
+    psis.erase(std::unique(psis.begin(), psis.end()), psis.end());
+
+    // Compute Lagrange coefficients for each possible psi
+    const int nps = std::floor(Node::config.overInterp*(nth-1));
+
+    HashMap<interpPair> interpPairs;
+
+    size_t idx = 0;
+    for (auto psi : psis) {
+
+        // Find idx of psi node nearest this psi
+        const int nearIdx = std::floor((nps-1) * psi / PI);
+
+        // Assemble psis interpolating this psi
+        realVec psis;
+        for (int ips = nearIdx+1-order; ips <= nearIdx+order; ++ips)
+            psis.push_back(PI*ips/static_cast<double>(nps-1));
+
+        // CONSIDER: Use barycentric coordinates
+        vecXd coeffs(2*order);
+        for (size_t k = 0; k < 2*order; ++k)
+            coeffs[k] = Interp::evalLagrangeBasis(psi, psis, k); 
+
+        interpPairs.emplace(psi, std::make_pair(coeffs, nearIdx));
+
+        // if (!level) std::cout << std::setprecision(15) << psi << '\n';
+    }
+
+    // assert(interpPairs.size() == psis.size());
+    // std::cout << interpPairs.size() << ' ' << psis.size() << '\n';
+
+    return interpPairs;
+}
+
+void Tables::buildTranslationTable() {
+
+    const auto& dXs = Math::getINodeDistVecs();
+
+    for (size_t level = 0; level <= maxLevel; ++level) {
+
+        const auto& alphas = getAlphaAtLvl(level);
+        const auto& interpPsis = getInterpPsiAtLvl(level); 
 
         const auto [nth, nph] = Node::getNumAngles(level);
 
-        realVec psis_lvl(nth*nph*rhats.size());
-
-        size_t m = 0;
-        for (size_t l = 0; l < nth*nph; ++l) {
-
-            const auto& khat_ = khat[level][l];
-
-            for (const auto& rhat : rhats)
-                psis_lvl[m++] = acos(khat_.dot(rhat));
-        }
-
-        std::sort(psis_lvl.begin(), psis_lvl.end()); 
-        psis_lvl.erase(
-            std::unique(psis_lvl.begin(), psis_lvl.end()), psis_lvl.end());
-
-        psis[level] = psis_lvl;
-    }
-
-    //auto end = Clock::now();
-    //Time duration_ms = end - start;
-    //std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
-
-    // start = Clock::now();
-
-    // Compute Lagrange coefficients for each possible psi at each level
-    for (size_t level = 0; level <= Node::maxLevel; ++level) {
-
-        const int nth = Node::getNumAngles(level).first;
         const int nps = std::floor(Node::config.overInterp*(nth-1));
 
-        HashMap<double,interpPair> interpPairs;
+        VecHashMap<vecXcd> transl_lvl;
 
-        size_t idx = 0;
-        for (auto psi : psis[level]) {
+        for (const auto& dX : dXs) {
+            const double r = dX.norm();
 
-            // Find idx of psi node nearest this psi
-            const int nearIdx = std::floor((nps-1) * psi / PI);
+            const auto& rhat = dX / r;
 
-            // Assemble psis interpolating this psi
-            realVec psis;
-            for (int ips = nearIdx+1-order; ips <= nearIdx+order; ++ips)
-                psis.push_back(PI*ips/static_cast<double>(nps-1));
+            const auto& alpha_dX = alphas.at(r);
 
-            vecXd coeffs(2*order);
-            for (size_t k = 0; k < 2*order; ++k)
-                coeffs[k] = 
-                     Interp::evalLagrangeBasis(psi, psis, k); // TODO: Use barycentric coordinates
+            vecXcd transl_dX(nth*nph);
 
-            interpPairs.emplace(psi, std::make_pair(coeffs, nearIdx));
+            for (int idx = 0; idx < nth*nph; ++idx) {
+                const auto& khat = this->khat[level][idx];
 
+                const double psi = acos(khat.dot(rhat));
+
+                cmplx translCoeff = 0.0;
+
+                const auto [interpPsi, nearIdx] = interpPsis.at(psi);
+
+                for (int ips = nearIdx+1-order, k = 0; k < 2*order; ++ips, ++k) {
+
+                    const int ips_flipped = Math::flipIdxToRange(ips, nps);
+
+                    translCoeff += alpha_dX[ips_flipped] * interpPsi[k];
+                }
+
+                transl_dX[idx] = translCoeff;
+            }
+
+            transl_lvl.emplace(dX, transl_dX);
         }
 
-        interpPsi.push_back(interpPairs);
+        assert(transl_lvl.size() == dXs.size());
+
+        transl.push_back(transl_lvl);
     }
-
-    //auto end = Clock::now();
-    //auto duration_ms = end - start;
-    //std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
-
 }

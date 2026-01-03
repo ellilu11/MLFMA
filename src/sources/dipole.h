@@ -7,20 +7,36 @@ class Dipole final : public Source {
 public:
     Dipole() = default;
 
-    Dipole(std::shared_ptr<Excitation::PlaneWave>, const vec3d&);
+    Dipole(
+        std::shared_ptr<Excitation::PlaneWave> Einc, size_t idx, const vec3d& X)
+        : Source(std::move(Einc), idx), pos(X), 
+        pmag(Phys::p0), pol(vec3d(pmag, 0, 0)), phat(pol/pmag)
+    {
+        buildVoltage();
+    };
 
-    Dipole(std::shared_ptr<Excitation::PlaneWave>, const vec3d&, const vec3d&);
+    Dipole(
+        std::shared_ptr<Excitation::PlaneWave> Einc, size_t idx, const vec3d& X, const vec3d& P)
+        : Dipole(std::move(Einc), idx, X)
+    {
+        pol = P;
+        pmag = P.norm();
+        phat = P / pmag;
 
-    void buildVoltage() override;
+        // std::cout << "Pol: " << P << '\n';
+    };
 
-    void buildCurrent() override;
+    void buildVoltage() override {
+        voltage = -Einc->amplitude * exp(iu*Einc->wavevec.dot(pos))
+            * pol.dot(Einc->pol);
+    }
+
+    //void buildCurrent() override {
+    //    current = iu * Phys::c0 * Einc->wavenum * pmag; // |J| = i \omega |P|
+    //    // std::cout << current << '\n';
+    //}
 
     vec3d getCenter() const override { return pos; }
-
-    friend std::ostream& operator<<(std::ostream& os, Dipole& src) {
-        os << src.pos << ' ' << src.pol << '\n';
-        return os;
-    }
 
     /* getRadAlongDir(X,kvec)
      * Return the outgoing radiated amplitude at X along direction kvec
@@ -34,14 +50,11 @@ public:
         return exp(iu*kvec.dot(X-pos)) * phat;
     }
 
-    /* getRadAtPoint(X)
-     * Return the radiated field due to this dipole
-     * at field point X
-     */
-    //vec3cd getRadAtPoint(const vec3d& X) const override {
-    //    assert(X != pos);
-    //    return Math::dyadicG(X - pos, Einc->wavenum) * phat;
-    //}
+    vec3cd getFarAlongDir(
+        const vec3d& krhat) const override
+    {
+        return exp(-iu*pos.dot(krhat)) * phat;
+    }
 
     /* getIntegratedRad(src)
      * Return the radiated field due to src tested with this dipole
@@ -49,11 +62,16 @@ public:
     cmplx getIntegratedRad(const std::shared_ptr<Source> src) const override {
         const auto srcDip = dynamic_pointer_cast<Dipole>(src);
 
-        if (pos == srcDip->pos) return 0.0;
+        if (pos == srcDip->pos) return 0.0; // TODO: Radiation reaction field
 
         const auto& rad = Math::dyadicG(pos - srcDip->pos, Einc->wavenum) * srcDip->phat;
 
         return conj(rad.dot(phat));
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, Dipole& src) {
+        os << src.pos << ' ' << src.pol << '\n';
+        return os;
     }
 
 private:

@@ -1,14 +1,26 @@
 #include "leaf.h"
 
 LeafVec Leaf::leaves;
+std::vector<LeafPair> Leaf::nearPairs;
 
 Leaf::Leaf(
     const SrcVec& srcs,
     const int branchIdx,
     Stem* const base)
-    : Node(srcs, branchIdx, base)
+    : Node(srcs, branchIdx, base), 
+      leafPairIdx(0), nonNearPairIdx(0)
 {
     maxLevel = std::max(level, maxLevel);
+
+    /* Assign indices to all sources in this leaf
+    for (const auto& src : srcs) {
+        src->setIdx(glSrcIdx++);
+
+        std::cout << src->getIdx() << ' ';
+    }
+
+    if (!isSrcless()) std::cout << '\n';
+    */
 }
 
 /* buildNeighbors()
@@ -22,7 +34,7 @@ void Leaf::buildNeighbors() {
         Dir dir = static_cast<Dir>(i);
         auto nbor = getNeighborGeqSize(dir);
 
-        if (nbor != nullptr) {
+        if (nbor) {
             nbors.push_back(nbor);
             auto nbors = getNeighborsLeqSize(nbor, dir);
             nearNbors.insert(nearNbors.end(), nbors.begin(), nbors.end());
@@ -32,13 +44,15 @@ void Leaf::buildNeighbors() {
     assert(nbors.size() <= numDir);
 }
 
-/* buildLists()
+/* initNode()
  * Add self to list of leaves 
  * Find neighbor and interaction lists
  * Add self as near non-neighbor (list 3 node) of any list 4 nodes
  */
-void Leaf::buildLists() {
+void Leaf::initNode() {
     leaves.push_back(shared_from_this()); 
+
+    resizeCoeffs();
 
     if (isRoot()) return;
     
@@ -47,8 +61,95 @@ void Leaf::buildLists() {
     buildInteractionList();
 
     pushSelfToNearNonNbors();
+}
 
-    nodes.push_back(shared_from_this()); // 
+/* findNearNborPairs()
+ * From list of leaves, find all near neighbor leaf pairs
+ */
+void Leaf::findNearNborPairs() {
+
+    for (const auto& leaf : leaves) {
+        for (const auto& nbor : leaf->nearNbors) {
+            auto nborLeaf = dynamic_pointer_cast<Leaf>(nbor);
+
+            if (leaf < nborLeaf)
+                nearPairs.emplace_back(leaf, nborLeaf);
+        }
+    }
+}
+
+void Leaf::buildNearRads() {
+
+    findNearNborPairs();
+
+    for (const auto& [obsLeaf, srcLeaf] : nearPairs) {
+        assert(obsLeaf < srcLeaf);
+
+        const size_t numObss = obsLeaf->srcs.size(), numSrcs = srcLeaf->srcs.size();
+
+        auto leafPairRads = cmplxVec(numObss*numSrcs);
+
+        int pairIdx = 0;
+        for (size_t obsIdx = 0; obsIdx < numObss; ++obsIdx) {
+            for (size_t srcIdx = 0; srcIdx < numSrcs; ++srcIdx) {
+                const auto obs = obsLeaf->srcs[obsIdx], src = srcLeaf->srcs[srcIdx];
+
+                leafPairRads[pairIdx++] = obs->getIntegratedRad(src);
+            }
+        }
+
+        obsLeaf->nearRads.push_back(leafPairRads);
+    }
+
+    for (const auto& [obsNode, srcNode] : nonNearPairs) {
+        auto obsLeaf = dynamic_pointer_cast<Leaf>(obsNode);
+
+        const size_t numObss = obsLeaf->srcs.size(), numSrcs = srcNode->getSrcs().size();
+
+        auto nodePairRads = cmplxVec(numObss*numSrcs);
+
+        int pairIdx = 0;
+        for (size_t obsIdx = 0; obsIdx < numObss; ++obsIdx) {
+            for (size_t srcIdx = 0; srcIdx < numSrcs; ++srcIdx) {
+                const auto obs = obsLeaf->srcs[obsIdx], src = srcNode->getSrcs()[srcIdx];
+
+                nodePairRads[pairIdx++] = obs->getIntegratedRad(src);
+            }
+        }
+
+        obsLeaf->nonNearRads.push_back(nodePairRads);
+    }
+
+    //std::ofstream zmatFile("out/zmat.txt");
+    //std::ofstream vvecFile("out/vvec.txt");
+
+    for (const auto& leaf : leaves) {
+        for (size_t obsIdx = 1; obsIdx < leaf->srcs.size(); ++obsIdx) { // obsIdx = 0
+            const auto& obs = leaf->srcs[obsIdx];
+
+            for (size_t srcIdx = 0; srcIdx < obsIdx; ++srcIdx) { // srcIdx <= obsIdx 
+                const auto& src = leaf->srcs[srcIdx];
+
+                leaf->selfRads.push_back(obs->getIntegratedRad(src));
+
+            }
+        }
+
+        /* GMRES testing
+        for (size_t obsIdx = 0; obsIdx < leaf->srcs.size(); ++obsIdx) { // obsIdx = 0
+            const auto& obs = leaf->srcs[obsIdx];
+
+            for (size_t srcIdx = 0; srcIdx < leaf->srcs.size(); ++srcIdx) { // srcIdx <= obsIdx 
+                const auto& src = leaf->srcs[srcIdx];
+
+                zmatFile << Phys::C * wavenum * obs->getIntegratedRad(src) << ' ';
+
+            }
+            vvecFile << obs->getVoltage() << '\n';
+            zmatFile << '\n';
+        }
+        */
+    }
 }
 
 /* buildRadPats()
@@ -63,10 +164,10 @@ void Leaf::buildRadPats() {
 
         const auto [nth, nph] = getNumAngles(level);
 
-        for (int angIdx = 0; angIdx < nth*nph; ++angIdx) {
+        for (int dirIdx = 0; dirIdx < nth*nph; ++dirIdx) {
 
-            const auto& kvec = tables.khat[level][angIdx] * wavenum;
-            const auto& toThPh = tables.toThPh[level][angIdx];
+            const auto& kvec = tables.khat[level][dirIdx] * wavenum;
+            const auto& toThPh = tables.toThPh[level][dirIdx];
 
             std::vector<vec2cd> radPat(leaf->srcs.size(), vec2cd::Zero());
 
@@ -83,36 +184,23 @@ void Leaf::buildRadPats() {
  * (S2M) Build multipole coefficients from sources in this node  
  */
 void Leaf::buildMpoleCoeffs() {
-
     if (isSrcless() || isRoot()) return;
 
-    const auto [nth, nph] = getNumAngles(level);
+    std::fill(coeffs.begin(), coeffs.end(), vec2cd::Zero());
 
     auto start = Clock::now();
 
-    for (int angIdx = 0; angIdx < nth*nph; ++angIdx) {
+    for (int dirIdx = 0; dirIdx < coeffs.size(); ++dirIdx) {
 
         vec2cd coeff = vec2cd::Zero();
 
         int srcIdx = 0;
         for (const auto& src : srcs)
-            coeff += -src->getVoltage() * radPats[angIdx][srcIdx++];
+            coeff += (*lvec)[src->getIdx()] * radPats[dirIdx][srcIdx++];
 
-        coeffs.push_back(coeff);
+        coeffs[dirIdx] = coeff;
 
     }
-
-    /* Get polar coeffs in cartesian components
-    vec2cd northCoeff = vec2cd::Zero();
-    for (const auto& rwg : rwgs)
-        northCoeff += rwg->getRadAlongDir(center, wavenum*northPole);
-    polarCoeffs.first = Math::IminusRR(0, 0) * northCoeff;
-
-    vec2cd southCoeff = vec2cd::Zero();
-    for (const auto& rwg : rwgs)
-        southCoeff += rwg->getRadAlongDir(center, wavenum*southPole);
-    polarCoeffs.second = Math::IminusRR(0, PI) * southCoeff;
-    */
 
     t.S2M += Clock::now() - start;
 
@@ -155,7 +243,7 @@ void Leaf::evalFarSols() {
     int obsIdx = 0;
     for (const auto& obs : srcs) {
 
-        size_t angIdx = 0;
+        size_t dirIdx = 0;
         cmplx sol = 0;
 
         for (int ith = 0; ith < nth; ++ith) {
@@ -164,13 +252,13 @@ void Leaf::evalFarSols() {
             for (int iph = 0; iph < nph; ++iph) {
                 // Do the angular integration
                 sol += weight 
-                    * radPats[angIdx][obsIdx].dot(localCoeffs[angIdx]); // Hermitian dot!
+                    * radPats[dirIdx][obsIdx].dot(localCoeffs[dirIdx]); // Hermitian dot!
 
-                ++angIdx;
+                ++dirIdx;
             }
         }
 
-        obs->addToSol(Phys::C * wavenum * phiWeight * sol);
+        (*rvec)[obs->getIdx()] += Phys::C * wavenum * phiWeight * sol;
 
         ++obsIdx;
     }
@@ -180,33 +268,70 @@ void Leaf::evalFarSols() {
  * (M2T/S2T) Evaluate sols from mpole expansion due to list 3 nodes
  */
 void Leaf::evalNearNonNborSols() {
-    // No reciprocity
-    //for (const auto& node : nearNonNbors)
-    //    evalPairSols(node);
-    //return;
-
-    // Do nothing! Contribution from list 3 node was 
-    // already evaluated by Node::evalLeafIlistSols()
+    for (const auto& node : nearNonNbors)
+        evalPairSols(node, nonNearRads[nonNearPairIdx++]);
+    return;
 }
 
-/* findNearNborPairs()
- * From list of leaves, find all near neighbor leaf pairs
+/* (S2T) Evaluate sols at sources in this leaf due to sources in srcNode
+ * and vice versa
+ * srcNode : source node
+ * rads    : precomputed radiation coefficients
  */
-std::vector<LeafPair> Leaf::findNearNborPairs(){
-    std::vector<LeafPair> leafPairs;
+void Leaf::evalPairSols(const std::shared_ptr<Node> srcNode, const cmplxVec& rads) {
 
-    for (const auto& leaf : leaves) {
+    const auto& srcSrcs = srcNode->getSrcs();
 
-        for (const auto& nbor : leaf->nearNbors) {
+    const int numObss = srcs.size(), numSrcs = srcSrcs.size();
 
-            auto nborLeaf = dynamic_pointer_cast<Leaf>(nbor);
-            if (leaf < nborLeaf)
-                leafPairs.emplace_back(leaf, nborLeaf);
+    cmplxVec solAtObss(numObss, 0.0);
+    cmplxVec solAtSrcs(numSrcs, 0.0);
 
+    int pairIdx = 0;
+    for (size_t obsIdx = 0; obsIdx < numObss; ++obsIdx) {
+        for (size_t srcIdx = 0; srcIdx < numSrcs; ++srcIdx) {
+            const auto obs = srcs[obsIdx], src = srcSrcs[srcIdx];
+
+            const cmplx rad = rads[pairIdx++];
+
+            solAtObss[obsIdx] += (*lvec)[src->getIdx()] * rad;
+            solAtSrcs[srcIdx] += (*lvec)[obs->getIdx()] * rad;
         }
     }
 
-    return leafPairs;
+    for (int n = 0; n < numObss; ++n)
+        (*rvec)[srcs[n]->getIdx()] += Phys::C * wavenum * solAtObss[n];
+
+    for (int n = 0; n < numSrcs; ++n)
+        (*rvec)[srcSrcs[n]->getIdx()] += Phys::C * wavenum * solAtSrcs[n];
+}
+
+/* evalSelfSols()
+ * (S2T) Evaluate sols at sources in this node due to other sources
+ * in this node
+ */
+void Leaf::evalSelfSols() {
+
+    const int numSrcs = srcs.size();
+
+    cmplxVec solAtObss(numSrcs, 0.0);
+
+    // TODO: Handle self-interactions
+    int pairIdx = 0;
+    for (size_t obsIdx = 1; obsIdx < numSrcs; ++obsIdx) { // obsIdx = 0
+        for (size_t srcIdx = 0; srcIdx < obsIdx; ++srcIdx) { // srcIdx <= obsIdx 
+            auto obs = srcs[obsIdx], src = srcs[srcIdx];
+
+            const cmplx rad = selfRads[pairIdx++];
+
+            solAtObss[obsIdx] += (*lvec)[src->getIdx()] * rad;
+            solAtObss[srcIdx] += (*lvec)[obs->getIdx()] * rad;
+        }
+    }
+
+    for (int n = 0; n < numSrcs; ++n)
+        (*rvec)[srcs[n]->getIdx()] += Phys::C * wavenum * solAtObss[n];
+
 }
 
 /* evaluateSols()
@@ -214,28 +339,19 @@ std::vector<LeafPair> Leaf::findNearNborPairs(){
  */ 
 void Leaf::evaluateSols() {
 
-    auto start = Clock::now();
-    for (const auto& leaf : leaves)
-        leaf->evalFarSols();
-    t.L2T += Clock::now() - start;
-
-    start = Clock::now();
-
-    for (const auto& leaf : leaves)
-        leaf->evalNearNonNborSols();
-
-    for (const auto& pair : findNearNborPairs()) {
-        auto [obsLeaf, srcLeaf] = pair;
-        obsLeaf->evalPairSols(srcLeaf);
+    for (const auto& [obsLeaf, srcLeaf] : nearPairs) {
+        auto pairIdx = obsLeaf->leafPairIdx++;
+        obsLeaf->evalPairSols(srcLeaf, obsLeaf->nearRads[pairIdx]);
     }
 
-    // No reciprocity
-    //for (const auto& obsLeaf : leaves)
-    //    for (const auto& srcLeaf : obsLeaf->nearNbors)
-    //        obsLeaf->evalPairSols(srcLeaf);
+    for (const auto& leaf : leaves) {
+        leaf->evalFarSols();
 
-    for (const auto& leaf : leaves)
+        leaf->evalNearNonNborSols();
+
         leaf->evalSelfSols();
-    
-    t.S2T += Clock::now() - start;
+
+        leaf->leafPairIdx = 0;
+        leaf->nonNearPairIdx = 0;
+    }
 }

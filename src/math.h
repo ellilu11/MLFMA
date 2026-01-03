@@ -33,14 +33,18 @@ namespace Math {
         }
     }
 
-    inline bool approxZero(double x) {
+    inline bool approxZero(double x) noexcept {
         return fabs(x) < FEPS;
     }
 
-    inline bool approxLess(double x, double y) {
+    inline bool approxLess(double x, double y) noexcept {
         if (fabs(x-y) < FEPS) return false;
         return x < y;
     }
+
+    //inline bool vecEquals(const vec3d X, const vec3d Y) noexcept {
+    //    return ((X-Y).norm()) < 3.0*FEPS;
+    //}
 
     inline vec3d toSph(const vec3d& X) noexcept {
         auto x = X[0], y = X[1], z = X[2], r = X.norm();
@@ -70,23 +74,15 @@ namespace Math {
             z);
     }
 
-    inline Eigen::Matrix3cd dyadicG(const vec3d& X, double k) noexcept {
-        const double r = X.norm(), kr = k*r, invkrsq = 1.0/(kr*kr);
-        const cmplx iinvkr = iu/kr;
-        const vec3d& rhat = X / r;
-        const mat3d& RR = rhat * rhat.transpose();
-
-        return
-            exp(iu*kr)/r * (
-                mat3d::Identity() * (1.0 + iinvkr - invkrsq) -
-                RR * (1.0 + 3.0*iinvkr - 3.0*invkrsq));
-    };
-
     inline mat23d toThPh(double th, double ph) noexcept {
         return mat23d{
             {  cos(th)*cos(ph),  cos(th)*sin(ph), -sin(th) },
             { -sin(ph),          cos(ph),          0.0     }
         };
+    }
+
+    inline mat3d ImRR(const vec3d& rhat) {
+        return mat3d::Identity() - rhat * rhat.transpose();
     }
 
     //inline mat23d crossToThPh(double th, double ph) noexcept {
@@ -120,6 +116,18 @@ namespace Math {
     //    };
     //}
 
+    inline Eigen::Matrix3cd dyadicG(const vec3d& X, double k) noexcept {
+        const double r = X.norm(), kr = k*r, invkrsq = 1.0/(kr*kr);
+        const cmplx iinvkr = iu/kr;
+        const vec3d& rhat = X / r; // X.normalized()
+        const mat3d& RR = rhat * rhat.transpose();
+
+        return
+            exp(iu*kr)/r * (
+                mat3d::Identity() * (1.0 + iinvkr - invkrsq) -
+                RR * (1.0 + 3.0*iinvkr - 3.0*invkrsq));
+    };
+
     inline size_t flipIdxToRange(int i, int size) noexcept {
         int uint_i = i;
 
@@ -144,6 +152,12 @@ namespace Math {
         return uint_i;
     }
 
+    inline pair2cd givensRotation(cmplx z, cmplx w) noexcept {
+        // const double norm = sqrt(std::norm(z) + std::norm(w)); // squared norms
+        const cmplx t = sqrt(z*z + w*w);
+        return make_pair(z/t, w/t);
+    }
+
     vec3d idx2pm(int);
 
     pair2d legendreP(double, int);
@@ -151,6 +165,8 @@ namespace Math {
     cmplx sphericalHankel1(double, int);
 
     realVec getINodeDistances();
+
+    std::array<vec3d, 316> getINodeDistVecs();
 
     std::vector<vec3d> getINodeDirections();
 
@@ -254,16 +270,33 @@ realVec Math::getINodeDistances() {
 
     dists.erase(std::unique(dists.begin(), dists.end()), dists.end());
 
-    //std::cout << '{';
-    //for (const auto& dist : dists) std::cout << dist << ", ";
-    //std::cout << "}\n";
+    // for (const auto& dist : dists) std::cout << dist << "\n";
 
     return dists;
 }
 
-std::vector<vec3d> Math::getINodeDirections() {
-    std::vector<vec3d> dirs;
+std::array<vec3d,316> Math::getINodeDistVecs() {
+    std::array<vec3d,316> dvecs;
 
+    int idx = 0;
+    for (double dz = -3; dz <= 3; ++dz)
+        for (double dy = -3; dy <= 3; ++dy)
+            for (double dx = -3; dx <= 3; ++dx) {
+                auto dvec = vec3d(dx, dy, dz);
+
+                if (dvec.lpNorm<Eigen::Infinity>() > 1.0)
+                    dvecs[idx++] = dvec;
+            }
+
+    // for (const auto& dvec : dvecs) std::cout << dvec.norm() << "\n";
+
+    return dvecs;
+}
+
+std::vector<vec3d> Math::getINodeDirections() {
+    std::vector<vec3d> dirs(316);
+
+    int idx = 0;
     for (double dz = -3; dz <= 3; ++dz)
         for (double dy = -3; dy <= 3; ++dy)
             for (double dx = -3; dx <= 3; ++dx) {
@@ -271,7 +304,7 @@ std::vector<vec3d> Math::getINodeDirections() {
                 auto dist = dir.norm();
 
                 if (dir.lpNorm<Eigen::Infinity>() > 1.0) 
-                    dirs.push_back(dir/dist);
+                    dirs[idx++] = dir/dist;
             }
 
     auto vecLessThan = [&](const vec3d& X, const vec3d& Y) {
@@ -282,7 +315,7 @@ std::vector<vec3d> Math::getINodeDirections() {
         if (approxLess(Y[1], X[1])) return false;
 
         return X[2] < Y[2];
-    };
+        };
 
     auto vecEquals = [](const vec3d X, const vec3d Y) {
         return ((X-Y).norm()) < FEPS;
@@ -291,10 +324,8 @@ std::vector<vec3d> Math::getINodeDirections() {
     std::sort(dirs.begin(), dirs.end(), vecLessThan);
 
     dirs.erase(
-        std::unique(dirs.begin(), dirs.end(), vecEquals), 
+        std::unique(dirs.begin(), dirs.end(), vecEquals),
         dirs.end());
-
-    // std::cout << "  # Directions: " << dirs.size() << '\n';
 
     return dirs;
 }

@@ -25,7 +25,7 @@ Triangle::Triangle(
     buildQuads(quadPrec);
 };
 
-int Triangle::prec2Int(const Precision quadPrec) {
+int Triangle::prec2Int(Precision quadPrec) {
     return
         [&]() {
         switch (quadPrec) {
@@ -37,11 +37,13 @@ int Triangle::prec2Int(const Precision quadPrec) {
         } ();
 }
 
-void Triangle::buildQuads(const Precision quadPrec) {
+void Triangle::buildQuads(Precision quadPrec) {
 
     auto baryPt = [&](double w0, double w1, double w2) {
         return w0*Xs[0] + w1*Xs[1] + w2*Xs[2];
     };
+
+    // TODO: permutation function
 
     switch (quadPrec) {
         case Precision::VERYLOW:
@@ -80,14 +82,40 @@ void Triangle::buildQuads(const Precision quadPrec) {
         }
 
         case Precision::HIGH: {
-            // TODO: 13-point quadrature
+            constexpr double weight0 = -0.074785022233841;
+
+            quads.emplace_back(center, weight0);
+
+            constexpr double weight1 = 0.087807628716604;
+            constexpr double alpha = 0.479308067841920, beta = 0.260345966079040;
+            quads.emplace_back(baryPt(alpha, beta, beta), weight1);
+            quads.emplace_back(baryPt(beta, alpha, beta), weight1);
+            quads.emplace_back(baryPt(beta, beta, alpha), weight1);
+
+            constexpr double weight2 = 0.026673617804419;
+            constexpr double gamma = 0.869739794195568, delta = 0.065130102902216;
+            quads.emplace_back(baryPt(gamma, delta, delta), weight2);
+            quads.emplace_back(baryPt(delta, gamma, delta), weight2);
+            quads.emplace_back(baryPt(delta, delta, gamma), weight2);
+
+            constexpr double weight3 = 0.0385568804451285;
+            constexpr double eps = 0.048690315425316, zeta = 0.312865496004874, theta = 0.638444188569810;
+            quads.emplace_back(baryPt(eps, zeta, theta), weight3);
+            quads.emplace_back(baryPt(theta, eps, zeta), weight3);
+            quads.emplace_back(baryPt(zeta, theta, eps), weight3);
+            quads.emplace_back(baryPt(eps, theta, zeta), weight3);
+            quads.emplace_back(baryPt(zeta, eps, theta), weight3);
+            quads.emplace_back(baryPt(theta, zeta, eps), weight3);
+
+            constexpr double weightErr = weight0 + 3.0*(weight1+weight2) + 6.0*weight3 - 0.5;
+            static_assert(weightErr > -Math::FEPS && weightErr < Math::FEPS);
+
+            break;
         }
     }
 }
 
 bool Triangle::isAdjacent(const std::shared_ptr<Triangle>& tri) {
-
-
 
     return false;
 }

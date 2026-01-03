@@ -19,17 +19,11 @@ public:
         const std::vector<vec3d>&,
         const Precision);
 
-    // vec3i getVidx() { return vIdx; }
-
-    //std::array<vec3d, 3> getVertices() { return Xs; }
-
-    //std::array<vec3d, 3> getDistVecs() { return Ds; }
-
     std::vector<quadPair> getQuads() { return quads; }
 
-    static int prec2Int(const Precision);
+    static int prec2Int(Precision);
 
-    void buildQuads(const Precision);
+    void buildQuads(Precision);
 
     bool isAdjacent(const std::shared_ptr<Triangle>&);
 

@@ -8,6 +8,7 @@
 #include "config.h"
 #include "interp.h"
 #include "phys.h"
+#include "solver.h"
 #include "tables.h"
 #include "sources/rwg.h"
 
@@ -25,24 +26,33 @@ enum class Dir {
 class Node;
 
 using NodeVec = std::vector<std::shared_ptr<Node>>;
+using NodePair = std::pair<std::shared_ptr<Node>, std::shared_ptr<Node>>;
 
 class Node {
     friend struct Tables;
 
 public:
-    static int getMaxLvl() { return maxLevel; }
-    
-    static int getNumNodes() { return numNodes; }
+    static void initParams(
+        const Config&, 
+        const std::shared_ptr<Excitation::PlaneWave>&);
 
-    static pair2i getNumAngles(const int level) { 
-        return std::make_pair(thetas[level].size(), phis[level].size());
-    }
-
-    static void setNodeParams(const Config&, const std::shared_ptr<Excitation::PlaneWave>&);
+    static void linkStates(const std::unique_ptr<Solver>&);
 
     static void buildAngularSamples();
 
-    static void buildTables() { tables = Tables(config); }
+    static void buildTables() { tables = Tables(maxLevel, config.interpOrder); }
+
+    static int getMaxLvl() { return maxLevel; }
+
+    static int getNumNodes() { return numNodes; }
+
+    static pair2i getNumAngles(const int level) {
+        return std::make_pair(thetas[level].size(), phis[level].size());
+    }
+
+    //static cmplx getCurrent(size_t idx) { return (*currents)(idx); }
+
+    // static void addToSol(size_t idx, cmplx val) { (*sols)(idx) += val; }
 
 public:
     SrcVec getSrcs() const { return srcs; }
@@ -78,7 +88,7 @@ public:
 
     bool isSrcless() const { return srcs.empty(); }
 
-    void resetSols() { for (const auto& src : srcs) src->resetSol(); }
+    // void resetSols() { for (const auto& src : srcs) src->resetSol(); }
 
 public:
     Node(const SrcVec&, const int, Node* const);
@@ -86,6 +96,8 @@ public:
     std::shared_ptr<Node> getNeighborGeqSize(const Dir) const;
 
     NodeVec getNeighborsLeqSize(const std::shared_ptr<Node>, const Dir) const;
+
+    void resizeCoeffs();
     
     void buildInteractionList();
     
@@ -95,21 +107,15 @@ public:
 
     void evalLeafIlistSols();
 
-    void evalPairSols(const std::shared_ptr<Node>);
+    void printFarSols(const std::string&);
 
-    void evalSelfSols();
-
-    void evalSelfSolsSlow();
-
-    std::vector<vec3cd> getFarSolsFromCoeffs(double);
-
-    // std::vector<vec3cd> getFarSols(double);
+    void printAngles();
    
     virtual std::shared_ptr<Node> getSelf() = 0;
     
     virtual void buildNeighbors() = 0;
 
-    virtual void buildLists() = 0;
+    virtual void initNode() = 0;
     
     virtual void buildMpoleCoeffs() = 0;
     
@@ -126,6 +132,8 @@ public:
 
     static std::shared_ptr<Node> getNode();
 
+    std::vector<vec3cd> getFarSolsFromCoeffs(double);
+
 protected:
     static Config config;
     static double wavenum;
@@ -136,8 +144,12 @@ protected:
     static std::vector<realVec> thetaWeights;
     static std::vector<realVec> phis;
     static std::vector<int> Ls;
-    
     static Tables tables;
+    static std::vector<NodePair> nonNearPairs;
+
+    static std::shared_ptr<vecXcd> lvec;
+    static std::shared_ptr<vecXcd> rvec;
+    static std::shared_ptr<vecXcd> currents;
 
     std::vector<vec2cd> coeffs;
     std::pair<vec2cd, vec2cd> polarCoeffs;
@@ -154,8 +166,4 @@ protected:
     const double nodeLeng;
     const int level;
     const vec3d center;
-
-    // Test members
-    static NodeVec nodes;
-    int nodeIdx;
 };

@@ -21,27 +21,38 @@ public:
 
     static int getNumLeaves() { return leaves.size(); }
 
+    static void resetLeaves() { 
+        leaves.clear(); 
+        nearPairs.clear();
+    }
+
     NodeVec getNearNonNbors() const { return nearNonNbors; }
 
     NodeVec getNearNbors() const { return nearNbors; }
 
+    void buildNeighbors() override;
+
+    void initNode() override;
+
+    static void findNearNborPairs();
+
+    static void buildNearRads();
+
     static void buildRadPats();
+
+    void buildMpoleCoeffs() override;
+
+    void buildLocalCoeffs() override;
 
     void evalFarSols();
 
     void evalNearNonNborSols();
 
-    static std::vector<LeafPair> findNearNborPairs();
+    void evalPairSols(const std::shared_ptr<Node>, const cmplxVec&);
+
+    void evalSelfSols();
 
     static void evaluateSols();
-
-    void buildNeighbors() override;
-
-    void buildLists() override;
-
-    void buildMpoleCoeffs() override;
-
-    void buildLocalCoeffs() override;
 
     void printNode(std::ofstream& f) {
         f << center << " " << nodeLeng << " " << '\n';
@@ -49,9 +60,18 @@ public:
 
 protected:
     static LeafVec leaves;
+    static std::vector<LeafPair> nearPairs;
+    inline static size_t glSrcIdx = 0;
+
+    std::vector<cmplxVec> nearRads;
+    std::vector<cmplxVec> nonNearRads;
+    cmplxVec selfRads;
 
     std::vector<std::vector<vec2cd>> radPats;
 
     NodeVec nearNbors; // list 1
     NodeVec nearNonNbors; // list 3
+
+    size_t leafPairIdx; // index of near pairs with this leaf as observer
+    size_t nonNearPairIdx; // index of non-near pairs with this leaf as observer
 };

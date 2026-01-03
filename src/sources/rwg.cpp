@@ -2,39 +2,31 @@
 
 RWG::RWG(
     std::shared_ptr<Excitation::PlaneWave> Einc,
+    size_t rwgIdx,
     const Eigen::Vector4i& idx,
     const std::vector<vec3d>& vertices,
     const TriVec& triangles)
-    : Source(Einc),
+    : Source(std::move(Einc), rwgIdx),
       tris({triangles[idx[2]], triangles[idx[3]]}),
       X0(vertices[idx[0]]), 
       X1(vertices[idx[1]]),
       center((X0+X1)/2.0), 
       leng((X0-X1).norm())
 {
-
     // Find non-common vertices
     for (int i = 0; i < 2; ++i)
         for (const auto& vIdx : tris[i]->vIdx)
             if (vIdx != idx[0] && vIdx != idx[1])
                 Xpm[i] = vertices[vIdx];
 
-    buildVoltage();
+    buildVoltage(); // needs Xpm initialized!
 
-    buildCurrent();
-
-    //std::cout << '(' << X0 << ") (" << X1 << ") ("
-    //    << Xpm[0] << ") (" << Xpm[1] << ") " << leng << '\n';
+    /*std::cout << '(' << X0 << ") (" << X1 << ") ("
+        << Xpm[0] << ") (" << Xpm[1] << ") " << leng << '\n';*/
 };
 
-void RWG::buildCurrent() {
-    current = 1.0;
-
-    // TODO: Predict current from rhs vector
-
-}
-
 vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
+
     using namespace Math;
 
     vec3cd rad = vec3cd::Zero();
@@ -62,7 +54,7 @@ vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
 
         const cmplx expI_alpha = exp(iu*alpha), expI_beta = exp(iu*beta);
 
-        const cmplx // TODO: Needed only if gamma != 0
+        const cmplx // TODO: Only compute if gamma != 0
             f0_alpha = (approxZero(alpha) ? -iu : (1.0 - expI_alpha) / alpha),
             f0_beta = (approxZero(beta) ? -iu : (1.0 - expI_beta) / beta);
 
@@ -104,18 +96,20 @@ cmplx RWG::getIntegratedRad(const std::shared_ptr<Source> src) const {
     const auto srcRWG = dynamic_pointer_cast<RWG>(src);
     const double k = Einc->wavenum;
 
+    // if (center == srcRWG->center) return 0.0; // TODO: Handle self-interactions
+ 
     cmplx intRad = 0.0;
 
     int obsTriIdx = 0;
     for (const auto& obsTri : tris) {
 
-        const auto& obsQuads = obsTri->getQuads();
+        const auto& obsQuads = obsTri->quads;
         const auto& obsXpm = Xpm[obsTriIdx];
 
         int srcTriIdx = 0;
         for (const auto& srcTri : srcRWG->tris) {
 
-            const auto& srcQuads = srcTri->getQuads();
+            const auto& srcQuads = srcTri->quads;
             const auto& srcXpm = srcRWG->Xpm[srcTriIdx];
             
             if (obsTri == srcTri) {

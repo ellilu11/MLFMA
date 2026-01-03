@@ -11,7 +11,7 @@ public:
 
     void buildNeighbors() override;
 
-    void buildLists() override;
+    void initNode() override;
 
     void buildMpoleCoeffs() override;
 

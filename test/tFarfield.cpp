@@ -150,6 +150,41 @@ void Node::printAngularSamples(int level) {
         phiFile << phis[level][iph] << '\n';
 }
 
+/* getFarSol()
+ * Return sols at all sampled directions at distance r
+ * due to all sources in this node using farfield approximation
+ */
+ /*std::vector<vec3cd> Node::getFarSols(double r) {
+
+     assert(r >= 5.0 * config.rootLeng); // verify farfield condition
+
+     const cmplx kernel = C * wavenum * exp(iu*wavenum*r) / r;
+
+     const auto [nth, nph] = getNumAngles(level);
+
+     std::vector<vec3cd> sols(nth*nph, vec3cd::Zero());
+
+     size_t idx = 0;
+     for (int ith = 0; ith < nth; ++ith) {
+
+         for (int iph = 0; iph < nph; ++iph) {
+
+             const auto& ImKK = tables.ImKK[level][idx];
+             const auto& kvec = tables.khat[level][idx] * wavenum;
+
+             vec3cd dirCoeff = vec3cd::Zero();
+             for (const auto& src : srcs)
+                 dirCoeff += src->getRadAlongDir(center, kvec);
+
+             sols[idx] = kernel * ImKK * dirCoeff;
+
+             idx++;
+         }
+     }
+
+     return sols;
+ }*/
+
 extern auto t = ClockTimes();
 
 int main() {

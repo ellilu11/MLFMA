@@ -8,13 +8,14 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <utility>
 
 #include "leaf.cpp"
 #include "nbor.cpp"
 #include "node.cpp"
+#include "solver.cpp"
 #include "stem.cpp"
 #include "tables.cpp"
-#include "sources/dipole.cpp"
 #include "sources/rwg.cpp"
 #include "sources/triangle.cpp"
 

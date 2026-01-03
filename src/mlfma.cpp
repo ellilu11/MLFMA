@@ -10,17 +10,17 @@ extern auto t = ClockTimes();
 
 int main() {
     // ===================== Read config ==================== //
+    cout << " Importing sources...\n";
+
     Config config("config/config.txt");
 
     auto [srcs, Einc] = importFromConfig(config);
     auto nsrcs = srcs.size();
 
-    Node::setNodeParams(config, Einc);
+    Node::initParams(config, Einc);
 
-    // ==================== Set up domain ==================== //
-    cout << " Setting up domain...\n";
-    auto fmm_start = Clock::now();
-    auto start = Clock::now();
+    // ==================== Set up nodes ==================== //
+    cout << " Setting up nodes...\n";
 
     shared_ptr<Node> root;
     if (nsrcs > config.maxNodeSrcs)
@@ -28,23 +28,29 @@ int main() {
     else
         root = make_shared<Leaf>(srcs, 0, nullptr);
 
-    root->buildLists();
-
-    auto end = Clock::now();
-    Time duration_ms = end - start;
-
     cout << "   # Nodes: " << Node::getNumNodes() << '\n';
-    cout << "   # Leaves: " << Leaf::getNumLeaves() << '\n';
-    cout << "   Max node level: " << Node::getMaxLvl() << '\n';
-    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
+    // cout << "   # Leaves: " << Leaf::getNumLeaves() << '\n';
+    cout << "   Max node level: " << Node::getMaxLvl() << "\n\n";
 
     // ==================== Build tables ===================== //
     cout << " Building tables...\n";
 
-    start = Clock::now();
+    auto start = Clock::now();
 
     Node::buildAngularSamples();
     Node::buildTables();
+    root->initNode();
+
+    auto end = Clock::now();
+    Time duration_ms = end - start;
+    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
+
+    // ==================== Build nearfield ===================== //
+    cout << " Building nearfield interactions...\n";
+
+    start = Clock::now();
+
+    Leaf::buildNearRads();
 
     end = Clock::now();
     duration_ms = end - start;
@@ -55,76 +61,59 @@ int main() {
 
     start = Clock::now();
 
-    ofstream anlFile("out/radpat_anl.txt");
     Leaf::buildRadPats();
 
     end = Clock::now();
     duration_ms = end - start;
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    // return 0;
+    // ==================== Solve iterative FMM ================ //
+    cout << " Solving w/ FMM...\n";
 
-    // ==================== Upward pass ===================== //
-    cout << " Computing upward pass...\n";
+    constexpr int MAX_ITER = 1000;
+    constexpr double EPS = 1.0E-6;
+
+    auto solver = make_unique<Solver>(srcs, root, MAX_ITER, EPS);
+    Node::linkStates(solver);
 
     start = Clock::now();
 
-    root->buildMpoleCoeffs();
+    solver->solve();
 
     end = Clock::now();
     duration_ms = end - start;
-    cout << "   Elapsed time: " << duration_ms.count() << " ms\n";
-    cout << "   Elapsed time (S2M): " << t.S2M.count() << " ms\n";
-    cout << "   Elapsed time (M2M): " << t.M2M.count() << " ms\n\n";
+    cout << "   Total elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    // ==================== Downward pass ==================== //
-    cout << " Computing downward pass...\n";
-    start = Clock::now();
-
-    root->buildLocalCoeffs();
-
-    end = Clock::now();
-    duration_ms = end - start;
-    cout << "   Elapsed time: " << duration_ms.count() << " ms\n";
-    cout << "   Elapsed time (M2L): " << t.M2L.count() << " ms\n";
-    // cout << "   Elapsed time (M2L lookup): " << t.M2L_lookup.count() << " ms\n";
-    cout << "   Elapsed time (L2L): " << t.L2L.count() << " ms\n\n";
-
-    // return 0;
-
-    // ================== Evaluate solutions ================= //
-    cout << " Evaluating solutions...\n";
-    start = Clock::now();
-
-    Leaf::evaluateSols();
-
-    end = Clock::now();
-    duration_ms = end - start;
-    Time fmm_duration_ms = end - fmm_start;
-
-    cout << "   Elapsed time: " << duration_ms.count() << " ms\n";
-    cout << "   Elapsed time (L2T): " << t.L2T.count() << " ms\n";
-    cout << "   Elapsed time (S2T): " << t.S2T.count() << " ms\n\n";
-    cout << " FMM total elapsed time: " << fmm_duration_ms.count() << " ms\n";
-
-    // printSols(srcs, "sol_d" + to_string(config.digits) + ".txt");
-    printSols(srcs, "sol.txt");
+    // solver->printSols("curr_nq7.txt");
+    root->printFarSols("ff_nq7.txt");
+    root->printAngles();
 
     if (!config.evalDirect) return 0;
 
-    // ================== Compute direct ===================== //
-    root->resetSols();
+    // ================== Solve iterative direct ================ //
+    Leaf::resetLeaves();
+    root = make_shared<Leaf>(srcs, 0, nullptr);
+    root->initNode();
 
-    cout << "\n Computing direct...\n";
+    cout << " Building nearfield interactions...\n";
+
     start = Clock::now();
+    Leaf::buildNearRads();
+    end = Clock::now();
+    duration_ms = end - start;
+    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    root->evalSelfSols();
+    cout << " Solving w/ direct...\n";
+    auto solverDir = make_unique<Solver>(srcs, root, MAX_ITER, EPS);
+    Node::linkStates(solverDir);
 
+    start = Clock::now();
+    solverDir->solve();
     end = Clock::now();
     duration_ms = end - start;
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n";
 
-    printSols(srcs, "solDir.txt");
+    solverDir->printSols("currDir_nq7.txt");
 
     return 0;
 }

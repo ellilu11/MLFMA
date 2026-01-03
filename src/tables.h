@@ -2,39 +2,30 @@
 
 #include "clock.h"
 #include "interp.h"
-#include "map.h"
+#include "maps.h"
 
-struct Tables {
+class Tables {
+
+public: 
     Tables() = default;
-    Tables(const Config& config)
-        : order(config.interpOrder)
+
+    Tables(int maxLevel, int order)
+        : maxLevel(maxLevel),
+          order(order),
+          dists(Math::getINodeDistances()),
+          rhats(Math::getINodeDirections())
     {
         buildAngularTables();
         
         buildInterpTables();
         
         buildTranslationTable();
-
-        buildInterpPsiTable();
     }
     
-    void buildAngularTables();
-
-    std::vector<interpPair> getInterpThetaAtLvl(int, int);
-
-    std::vector<interpPair> getInterpPhiAtLvl(int, int);
-
-    void buildInterpTables();
-
-    void buildTranslationTable();
-
-    void buildInterpPsiTable();
-
-    int order;
-
     // Angular tables
     std::vector<std::vector<vec3d>> khat;
     std::vector<std::vector<mat23d>> toThPh;
+    std::vector<std::vector<mat3d>> ImRR;
 
     // M2M interpolation tables
     std::vector<std::vector<interpPair>> interpTheta;
@@ -44,9 +35,27 @@ struct Tables {
     std::vector<std::vector<interpPair>> invInterpTheta;
     std::vector<std::vector<interpPair>> invInterpPhi;
 
-    // M2L translation tables
-    std::vector<Map<double,vecXcd>> transl;
-    std::vector<HashMap<double,interpPair>> interpPsi;
+    // M2L translation table
+    std::vector<VecHashMap<vecXcd>> transl;
 
+private:
+    std::vector<interpPair> getInterpThetaAtLvl(int, int);
+
+    std::vector<interpPair> getInterpPhiAtLvl(int, int);
+
+    Map<vecXcd> getAlphaAtLvl(int);
+
+    HashMap<interpPair> getInterpPsiAtLvl(int);
+
+    void buildAngularTables();
+
+    void buildInterpTables();
+
+    void buildTranslationTable();
+
+    int maxLevel;
+    int order;
+    realVec dists;
+    std::vector<vec3d> rhats;
 };
 
