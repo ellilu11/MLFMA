@@ -84,7 +84,7 @@ int main() {
     duration_ms = end - start;
     cout << "   Total elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    // solver->printSols("curr_nq7.txt");
+    solver->printSols("curr_nq7.txt");
     root->printFarSols("ff_nq7.txt");
     root->printAngles();
 

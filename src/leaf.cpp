@@ -136,10 +136,10 @@ void Leaf::buildNearRads() {
         }
 
         /* GMRES testing
-        for (size_t obsIdx = 0; obsIdx < leaf->srcs.size(); ++obsIdx) { // obsIdx = 0
+        for (size_t obsIdx = 0; obsIdx < leaf->srcs.size(); ++obsIdx) {
             const auto& obs = leaf->srcs[obsIdx];
 
-            for (size_t srcIdx = 0; srcIdx < leaf->srcs.size(); ++srcIdx) { // srcIdx <= obsIdx 
+            for (size_t srcIdx = 0; srcIdx < leaf->srcs.size(); ++srcIdx) {
                 const auto& src = leaf->srcs[srcIdx];
 
                 zmatFile << Phys::C * wavenum * obs->getIntegratedRad(src) << ' ';
@@ -240,25 +240,24 @@ void Leaf::evalFarSols() {
 
     const double phiWeight = 2.0*PI / static_cast<double>(nph); // TODO: static member
 
-    int obsIdx = 0;
+    size_t obsIdx = 0;
     for (const auto& obs : srcs) {
-
         size_t dirIdx = 0;
-        cmplx sol = 0;
+        cmplx intRad = 0;
 
         for (int ith = 0; ith < nth; ++ith) {
-            const double weight = thetaWeights[level][ith];
+            const double weight = thetas[level].second[ith];
 
             for (int iph = 0; iph < nph; ++iph) {
                 // Do the angular integration
-                sol += weight 
+                intRad += weight 
                     * radPats[dirIdx][obsIdx].dot(localCoeffs[dirIdx]); // Hermitian dot!
 
                 ++dirIdx;
             }
         }
 
-        (*rvec)[obs->getIdx()] += Phys::C * wavenum * phiWeight * sol;
+        (*rvec)[obs->getIdx()] += Phys::C * wavenum * phiWeight * intRad;
 
         ++obsIdx;
     }
@@ -338,6 +337,10 @@ void Leaf::evalSelfSols() {
  * Sum solutions at all sources in all leaves 
  */ 
 void Leaf::evaluateSols() {
+    auto start = Clock::now();
+    for (const auto& leaf : leaves)
+        leaf->evalFarSols();
+    t.L2T += Clock::now() - start;
 
     for (const auto& [obsLeaf, srcLeaf] : nearPairs) {
         auto pairIdx = obsLeaf->leafPairIdx++;
@@ -345,8 +348,6 @@ void Leaf::evaluateSols() {
     }
 
     for (const auto& leaf : leaves) {
-        leaf->evalFarSols();
-
         leaf->evalNearNonNborSols();
 
         leaf->evalSelfSols();

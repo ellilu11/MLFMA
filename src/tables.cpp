@@ -12,7 +12,7 @@ void Tables::buildAngularTables() {
 
         size_t idx = 0;
         for (int ith = 0; ith < nth; ++ith) {
-            const double th = Node::thetas[level][ith];
+            const double th = Node::thetas[level].first[ith];
 
             for (int iph = 0; iph < nph; ++iph) {
                 const double ph = Node::phis[level][iph];
@@ -38,8 +38,8 @@ std::vector<interpPair> Tables::getInterpThetaAtLvl(int srcLvl, int tgtLvl) {
     const int mth = Node::getNumAngles(srcLvl).first;
     const int nth = Node::getNumAngles(tgtLvl).first;
 
-    const auto& srcThetas = Node::thetas[srcLvl];
-    const auto& tgtThetas = Node::thetas[tgtLvl];
+    const auto& srcThetas = Node::thetas[srcLvl].first;
+    const auto& tgtThetas = Node::thetas[tgtLvl].first;
 
     std::vector<interpPair> interpPairs;
 
@@ -193,7 +193,6 @@ HashMap<interpPair> Tables::getInterpPsiAtLvl(int level) {
 
     size_t idx = 0;
     for (auto psi : psis) {
-
         // Find idx of psi node nearest this psi
         const int nearIdx = std::floor((nps-1) * psi / PI);
 
@@ -219,7 +218,6 @@ HashMap<interpPair> Tables::getInterpPsiAtLvl(int level) {
 }
 
 void Tables::buildTranslationTable() {
-
     const auto& dXs = Math::getINodeDistVecs();
 
     for (size_t level = 0; level <= maxLevel; ++level) {
@@ -235,7 +233,6 @@ void Tables::buildTranslationTable() {
 
         for (const auto& dX : dXs) {
             const double r = dX.norm();
-
             const auto& rhat = dX / r;
 
             const auto& alpha_dX = alphas.at(r);

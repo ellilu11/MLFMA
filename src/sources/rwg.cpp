@@ -96,7 +96,7 @@ cmplx RWG::getIntegratedRad(const std::shared_ptr<Source> src) const {
     const auto srcRWG = dynamic_pointer_cast<RWG>(src);
     const double k = Einc->wavenum;
 
-    // if (center == srcRWG->center) return 0.0; // TODO: Handle self-interactions
+    if (center == srcRWG->center) return 0.0; // TODO: Handle self-interactions
  
     cmplx intRad = 0.0;
 

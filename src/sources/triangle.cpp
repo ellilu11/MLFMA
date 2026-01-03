@@ -10,16 +10,9 @@ Triangle::Triangle(
     Xs({ vList[vIdx[0]], vList[vIdx[1]], vList[vIdx[2]] }),
     center( (Xs[0]+Xs[1]+Xs[2])/3.0 )
 {
-    //for (const auto& X : Xs)
-    //    std::cout << X << '\n';
-    //std::cout << '\n';
-
     for (int i = 0; i < 3; ++i) {
         const int ipp = Math::wrapIdxToRange(i+1, 3);
         Ds[i] = Xs[ipp] - Xs[i];
-
-        // const int imm = Math::wrapIdxToRange(i-1, 3);
-        // Dms[i] = Xs[i] - Xs[imm];
     }
 
     buildQuads(quadPrec);
@@ -43,7 +36,7 @@ void Triangle::buildQuads(Precision quadPrec) {
         return w0*Xs[0] + w1*Xs[1] + w2*Xs[2];
     };
 
-    // TODO: permutation function
+    // TODO: use permutation function
 
     switch (quadPrec) {
         case Precision::VERYLOW:
@@ -115,7 +108,8 @@ void Triangle::buildQuads(Precision quadPrec) {
     }
 }
 
+/*
 bool Triangle::isAdjacent(const std::shared_ptr<Triangle>& tri) {
 
-    return false;
 }
+*/

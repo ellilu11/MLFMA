@@ -47,12 +47,8 @@ public:
     static int getNumNodes() { return numNodes; }
 
     static pair2i getNumAngles(const int level) {
-        return std::make_pair(thetas[level].size(), phis[level].size());
+        return std::make_pair(thetas[level].first.size(), phis[level].size());
     }
-
-    //static cmplx getCurrent(size_t idx) { return (*currents)(idx); }
-
-    // static void addToSol(size_t idx, cmplx val) { (*sols)(idx) += val; }
 
 public:
     SrcVec getSrcs() const { return srcs; }
@@ -140,8 +136,7 @@ protected:
     inline static int numNodes = 0;
     inline static int maxLevel = 0;
 
-    static std::vector<realVec> thetas;
-    static std::vector<realVec> thetaWeights;
+    static std::vector<std::pair<realVec, realVec>> thetas;
     static std::vector<realVec> phis;
     static std::vector<int> Ls;
     static Tables tables;

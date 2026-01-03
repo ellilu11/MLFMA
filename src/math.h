@@ -13,7 +13,6 @@ const vec3d northVec(0, 0, 1);
 const vec3d southVec(0, 0, -1);
 
 namespace Math {
-
     constexpr double FEPS = 1.0E-6; // floating point error tolerance
 
     inline size_t bools2Idx(const std::array<bool,3>& x) noexcept {

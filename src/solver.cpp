@@ -14,11 +14,12 @@ Solver::Solver(
       rvec(std::make_shared<vecXcd>(vecXcd::Zero(numSrcs))),
       currents(std::make_shared<vecXcd>(vecXcd::Zero(numSrcs))) // assume I = 0 initially
 {
-    // Sort sources by srcIdx
+    /* Sort sources by srcIdx
     std::sort(srcs.begin(), srcs.end(),
         [](std::shared_ptr<Source> src0, std::shared_ptr<Source> src1)
         { return src0->getIdx() < src1->getIdx(); }
     );
+    */
 
     // (*lvec) = r = ZI - w = -w assuming I = 0 initially
     // std::transform
@@ -32,7 +33,7 @@ Solver::Solver(
     Qmat.col(0) = *lvec; // store lvec as first column of Qmat
 }
 
-void Solver::updateRvec(int k) {
+void Solver::evalRvec(int k) {
     if (root->isNodeType<Stem>()) {
         root->buildMpoleCoeffs();
 
@@ -46,6 +47,7 @@ void Solver::updateRvec(int k) {
         std::cout << "   Elapsed time (M2M): " << t.M2M.count() << " ms\n";
         std::cout << "   Elapsed time (M2L): " << t.M2L.count() << " ms\n";
         std::cout << "   Elapsed time (L2L): " << t.L2L.count() << " ms\n";
+        std::cout << "   Elapsed time (L2T): " << t.L2T.count() << " ms\n";
     }
 }
 
@@ -117,7 +119,7 @@ void Solver::solve() {
         std::cout << " Do iteration #" << iter << '\n';
         auto iter_start = Clock::now();
 
-        updateRvec(iter);
+        evalRvec(iter);
 
         iterateArnoldi(iter);
 
@@ -188,12 +190,6 @@ void Solver::solve() {
     //
     namespace fs = std::filesystem;
     fs::path dir = "out/sol";
-    std::error_code ec;
-
-    if (fs::create_directory(dir, ec))
-        std::cout << " Created directory " << dir.generic_string() << "/\n";
-    else if (ec)
-        std::cerr << " Error creating directory " << ec.message() << "\n";
 
     std::filesystem::remove(dir/"sol.txt");
     std::ofstream file(dir/"sol.txt", std::ios::app);

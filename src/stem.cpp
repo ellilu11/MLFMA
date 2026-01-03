@@ -94,7 +94,6 @@ void Stem::buildMpoleCoeffs() {
         addInterpCoeffs(shiftedCoeffs, coeffs, level+1, level);
 
         t.M2M += Clock::now() - start;
-
     }
 }
 

@@ -642,4 +642,3 @@ NodeVec Node::getNeighborsLeqSize(
 
     return nbors;
 }
-

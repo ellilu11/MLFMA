@@ -2,8 +2,7 @@
 
 Config Node::config;
 double Node::wavenum;
-std::vector<realVec> Node::thetas;
-std::vector<realVec> Node::thetaWeights;
+std::vector<std::pair<realVec, realVec>> Node::thetas;
 std::vector<realVec> Node::phis;
 std::vector<int> Node::Ls;
 Tables Node::tables;
@@ -58,9 +57,7 @@ void Node::buildAngularSamples() {
         const double nodeLeng = config.rootLeng / pow(2.0, lvl);
 
         // Use excess bandwidth formula
-        const int tau = 
-            ceil(
-                (1.73*wavenum*nodeLeng +
+        const int tau = ceil((1.73*wavenum*nodeLeng +
                 2.16*pow(config.digits, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0)));
                 
         Ls.push_back(floor(0.50*tau)); // TODO: Find optimal formula
@@ -74,8 +71,7 @@ void Node::buildAngularSamples() {
             [](double weight, double theta) { return weight * sin(theta); }
         );
 
-        thetas.push_back(nodes);
-        thetaWeights.push_back(weights);
+        thetas.emplace_back(nodes, weights);
 
         // Construct phis
         const int nph = 2*nth;
@@ -137,6 +133,7 @@ void Node::pushSelfToNearNonNbors() {
 
     for (const auto& node : leafIlist) {
         auto leaf = dynamic_pointer_cast<Leaf>(node);
+
         leaf->pushToNearNonNbors(getSelf());
         nonNearPairs.emplace_back(leaf, getSelf()); // record list4-list3 pair
     }
@@ -156,9 +153,22 @@ void Node::buildMpoleToLocalCoeffs() {
         const auto& dX = center - node->center;
         const auto& transl_dX = tables.transl[level].at(dX/nodeLeng);
 
-        for (int idx = 0; idx < numAngles; ++idx)
+        for (int idx = 0; idx < numAngles; ++idx) // TODO: use Eigen::Array
             localCoeffs[idx] += transl_dX[idx] * node->coeffs[idx];
     }
+
+    /* Apply integration weights
+    // const double phiWeight = 2.0*PI / static_cast<double>(nph);
+    size_t idx = 0;
+    for (int ith = 0; ith < nth; ++ith) {
+        const double weight = thetas[level].second[ith];
+
+        for (int iph = 0; iph < nph; ++iph) {
+            localCoeffs[idx] *= weight * phiWeight;
+
+            ++idx;
+        }
+    }*/
 }
 
 /* evalLeafIlistSols()
@@ -210,7 +220,7 @@ void Node::printFarSols(const std::string& fname) {
 
         vec3cd dirFar = vec3cd::Zero();
         for (const auto& src : srcs)
-            dirFar += (*currents)[src->getIdx()] * src->getFarAlongDir(krhat); // TODO: use radpats
+            dirFar += (*currents)[src->getIdx()] * src->getFarAlongDir(krhat);
 
         const vec3cd& far = Phys::C * wavenum * tables.ImRR[level][dirIdx] * dirFar;
 
@@ -222,7 +232,7 @@ void Node::printAngles() {
     std::filesystem::path dir = "out/ff";
     std::ofstream thfile(dir/"thetas.txt"), phfile(dir/"phis.txt");
 
-    for (const auto& theta : thetas[level])
+    for (const auto& theta : thetas[level].first)
         thfile << theta << '\n';
 
     for (const auto& phi : phis[level])

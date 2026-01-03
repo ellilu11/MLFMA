@@ -11,7 +11,7 @@ class Solver {
 public :
     Solver(SrcVec& srcs, std::shared_ptr<Node>, int, double);
 
-    void updateRvec(int);
+    void evalRvec(int);
 
     void iterateArnoldi(int);
 
