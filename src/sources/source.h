@@ -20,11 +20,15 @@ public:
 
     size_t getIdx() const { return idx; }
 
+    void setIdx(size_t idx) { this->idx = idx; }
+
     virtual vec3d getCenter() const = 0;
 
     virtual void buildVoltage() = 0;
 
     virtual vec3cd getRadAlongDir(const vec3d&, const vec3d&) const = 0;
+
+    virtual vec3cd getFarAlongDir(const vec3d&) const = 0;
 
     virtual cmplx getIntegratedRad(const std::shared_ptr<Source>) const = 0;
 

@@ -50,6 +50,12 @@ public:
         return exp(iu*kvec.dot(X-pos)) * phat;
     }
 
+    vec3cd getFarAlongDir(
+        const vec3d& krhat) const override
+    {
+        return exp(-iu*pos.dot(krhat)) * phat;
+    }
+
     /* getIntegratedRad(src)
      * Return the radiated field due to src tested with this dipole
      */

@@ -25,6 +25,7 @@ public:
     // Angular tables
     std::vector<std::vector<vec3d>> khat;
     std::vector<std::vector<mat23d>> toThPh;
+    std::vector<std::vector<mat3d>> ImRR;
 
     // M2M interpolation tables
     std::vector<std::vector<interpPair>> interpTheta;

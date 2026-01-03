@@ -21,7 +21,7 @@ Stem::Stem(
         else
             branch = std::make_shared<Leaf>(branchSrcs[k], k, this);
 
-        branches.push_back(branch);
+        branches.push_back(std::move(branch));
     }
 }
 
@@ -35,7 +35,7 @@ void Stem::buildNeighbors() {
         Dir dir = static_cast<Dir>(i);
         auto nbor = getNeighborGeqSize(dir);
 
-        if (nbor != nullptr) nbors.push_back(nbor);
+        if (nbor) nbors.push_back(nbor);
     }
 
     assert(nbors.size() <= numDir);
@@ -64,7 +64,6 @@ void Stem::initNode() {
  * (M2M) Build mpole coeffs by merging branch mpole coeffs 
  */
 void Stem::buildMpoleCoeffs() {
-
     const int order = config.interpOrder;
 
     const auto [mth, mph] = getNumAngles(level+1);
@@ -153,11 +152,9 @@ void Stem::addInterpCoeffs(
 
     size_t m = 0;
     for (int jth = 0; jth < nth; ++jth) {
-        
         const auto [interp, nearIdx] = interpTheta[tblLvl][jth];
 
         for (int iph = 0; iph < mph; ++iph) {
-
             for (int ith = nearIdx+1-order, k = 0; ith <= nearIdx+order; ++ith, ++k) {
 
                 // Flip ith if not in [0, mth-1]

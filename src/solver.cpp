@@ -5,14 +5,14 @@ Solver::Solver(
     std::shared_ptr<Node> root, 
     int maxIter, double EPS)
     : root(std::move(root)),
-      numSols(srcs.size()),
+      numSrcs(srcs.size()),
       maxIter(maxIter),
       EPS(EPS),
-      Qmat(matXcd(numSols, 1)),
+      Qmat(matXcd(numSrcs, 1)),
       gvec(vecXcd::Zero(maxIter+1)),
-      currents(vecXcd::Zero(numSols)), // assume I = 0 initially
-      qvec(std::make_shared<vecXcd>(vecXcd::Zero(numSols))),
-      sols(std::make_shared<vecXcd>(vecXcd::Zero(numSols)))
+      lvec(std::make_shared<vecXcd>(vecXcd::Zero(numSrcs))),
+      rvec(std::make_shared<vecXcd>(vecXcd::Zero(numSrcs))),
+      currents(std::make_shared<vecXcd>(vecXcd::Zero(numSrcs))) // assume I = 0 initially
 {
     // Sort sources by srcIdx
     std::sort(srcs.begin(), srcs.end(),
@@ -20,22 +20,24 @@ Solver::Solver(
         { return src0->getIdx() < src1->getIdx(); }
     );
 
-    // (*qvec) = r = ZI - w = -w assuming I = 0 initially
+    // (*lvec) = r = ZI - w = -w assuming I = 0 initially
     // std::transform
-    for (int idx = 0; idx < numSols; ++idx)
-        (*qvec)[idx] = -srcs[idx]->getVoltage();
+    for (int idx = 0; idx < numSrcs; ++idx)
+        (*lvec)[idx] = -srcs[idx]->getVoltage();
 
-    g0 = (*qvec).norm(); // store g0 for use later
+    g0 = (*lvec).norm(); // store g0 for use later
     gvec[0] = g0;
 
-    (*qvec).normalize(); // qvec_0
-    Qmat.col(0) = *qvec; // store qvec as first column of Qmat
+    (*lvec).normalize(); // lvec_0
+    Qmat.col(0) = *lvec; // store lvec as first column of Qmat
 }
 
-void Solver::updateSols(int k) {
-    root->buildMpoleCoeffs();
+void Solver::updateRvec(int k) {
+    if (root->isNodeType<Stem>()) {
+        root->buildMpoleCoeffs();
 
-    root->buildLocalCoeffs();
+        root->buildLocalCoeffs();
+    }
 
     Leaf::evaluateSols();
 
@@ -53,19 +55,19 @@ void Solver::iterateArnoldi(int k) {
     // Do Arnoldi iteration
     vecXcd hcol(k+2);
     for (int i = 0; i <= k; ++i) {
-        const auto& q_i = Qmat.col(i); // get qvec_i
-        cmplx h = q_i.dot(*sols); // Hermitian dot
-        *sols -= h * q_i;
+        const auto& q_i = Qmat.col(i); // get lvec_i
+        cmplx h = q_i.dot(*rvec); // Hermitian dot
+        *rvec -= h * q_i;
         hcol[i] = h;
     }
-    hcol[k+1] = (*sols).norm();
+    hcol[k+1] = (*rvec).norm();
 
-    // Replace present qvec with new qvec
-    *qvec = (*sols) / hcol[k+1]; // .normalized();
+    // Replace present lvec with new lvec
+    *lvec = (*rvec) / hcol[k+1]; // .normalized();
 
-    // Store new qvec as new column of Qmat
-    Qmat.conservativeResize(numSols, k+2);
-    Qmat.col(k+1) = *qvec;
+    // Store new lvec as new column of Qmat
+    Qmat.conservativeResize(numSrcs, k+2);
+    Qmat.col(k+1) = *lvec;
 
     // Store new hcol as new column of Hmat
     Hmat.conservativeResize(k+2, k+1); // 2x1, 3x2, 4x3 ...
@@ -103,42 +105,59 @@ void Solver::updateGvec(vecXcd& vcos, vecXcd& vsin, int k) {
     gvec[k] = vcos[k] * gvec[k];
 }
 
-/*void Solver::solve() {
+//
+void Solver::solve() {
 
+    // TODO: Member variables
     vecXcd vcos = vecXcd::Zero(maxIter);
     vecXcd vsin = vecXcd::Zero(maxIter);
-
-    // std::cout << std::setprecision(9) << std::scientific;
 
     int iter = 0;
     do {
         std::cout << " Do iteration #" << iter << '\n';
         auto iter_start = Clock::now();
 
-        updateSols(iter);
+        updateRvec(iter);
 
         iterateArnoldi(iter);
 
         updateGvec(vcos, vsin, iter);
 
-        resetSols();
+        resetRvec();
 
         Time fmm_duration_ms = Clock::now() - iter_start;
         // std::cout << "   Elapsed time: " << fmm_duration_ms.count() << " ms\n";
 
-    } // while (++iter < maxIter);
-    while (abs(gvec[++iter])/g0 > EPS && iter < maxIter); // careful
+    } while (abs(gvec[++iter])/g0 > EPS && iter < maxIter); // careful
 
     std::cout << " Solving for current...\n";
 
     const auto& Hp = Hmat.block(0, 0, Hmat.rows()-1, Hmat.cols());
     vecXcd yvec = Hp.lu().solve(gvec.segment(0, iter));
-    currents = Qmat.leftCols(iter) * yvec;
-
-    printSols("solDir.txt");
-}*/
-
+    (*currents) = Qmat.leftCols(iter) * yvec;
+}
 //
+
+void Solver::printSols(const std::string& fname) {
+    namespace fs = std::filesystem;
+    fs::path dir = "out/sol";
+    std::error_code ec;
+
+    if (fs::create_directory(dir, ec))
+        std::cout << " Created directory " << dir.generic_string() << "/\n";
+    else if (ec)
+        std::cerr << " Error creating directory " << ec.message() << "\n";
+
+    std::ofstream file(dir/fname);
+
+    file << std::setprecision(15) << std::scientific;
+
+    // for (const auto& sol : *rvec) file << sol << '\n';
+
+    for (const auto& curr : *currents) file << curr << '\n';
+}
+
+/*
 void Solver::solve() {
     constexpr int MAX_ITER = 1;
 
@@ -157,7 +176,8 @@ void Solver::solve() {
         std::cout << "   Elapsed time: " << fmm_duration_ms.count() << " ms\n";
 
     }
-}//
+}*/
+
 
 /*void Solver::solve() {
 
@@ -206,22 +226,3 @@ void Solver::solve() {
         if (err < EPS) break;
     }
 }*/
-
-void Solver::printSols(const std::string& fname) {
-    namespace fs = std::filesystem;
-    fs::path dir = "out/sol";
-    std::error_code ec;
-
-    if (fs::create_directory(dir, ec))
-        std::cout << " Created directory " << dir.generic_string() << "/\n";
-    else if (ec)
-        std::cerr << " Error creating directory " << ec.message() << "\n";
-
-    std::ofstream file(dir/fname);
-
-    file << std::setprecision(15) << std::scientific;
-
-    for (const auto& sol : *sols) file << sol << '\n';
-
-    // for (const auto& curr : currents) file << curr << '\n';
-}

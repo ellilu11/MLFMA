@@ -14,7 +14,7 @@ Leaf::Leaf(
 
     /* Assign indices to all sources in this leaf
     for (const auto& src : srcs) {
-        // src->setIdx(glSrcIdx++);
+        src->setIdx(glSrcIdx++);
 
         std::cout << src->getIdx() << ' ';
     }
@@ -34,7 +34,7 @@ void Leaf::buildNeighbors() {
         Dir dir = static_cast<Dir>(i);
         auto nbor = getNeighborGeqSize(dir);
 
-        if (nbor != nullptr) {
+        if (nbor) {
             nbors.push_back(nbor);
             auto nbors = getNeighborsLeqSize(nbor, dir);
             nearNbors.insert(nearNbors.end(), nbors.begin(), nbors.end());
@@ -69,13 +69,11 @@ void Leaf::initNode() {
 void Leaf::findNearNborPairs() {
 
     for (const auto& leaf : leaves) {
-
         for (const auto& nbor : leaf->nearNbors) {
-
             auto nborLeaf = dynamic_pointer_cast<Leaf>(nbor);
+
             if (leaf < nborLeaf)
                 nearPairs.emplace_back(leaf, nborLeaf);
-
         }
     }
 }
@@ -136,6 +134,20 @@ void Leaf::buildNearRads() {
 
             }
         }
+
+        /* GMRES testing
+        for (size_t obsIdx = 0; obsIdx < leaf->srcs.size(); ++obsIdx) { // obsIdx = 0
+            const auto& obs = leaf->srcs[obsIdx];
+
+            for (size_t srcIdx = 0; srcIdx < leaf->srcs.size(); ++srcIdx) { // srcIdx <= obsIdx 
+                const auto& src = leaf->srcs[srcIdx];
+
+                zmatFile << Phys::C * wavenum * obs->getIntegratedRad(src) << ' ';
+
+            }
+            vvecFile << obs->getVoltage() << '\n';
+            zmatFile << '\n';
+        }
         */
     }
 }
@@ -152,10 +164,10 @@ void Leaf::buildRadPats() {
 
         const auto [nth, nph] = getNumAngles(level);
 
-        for (int angIdx = 0; angIdx < nth*nph; ++angIdx) {
+        for (int dirIdx = 0; dirIdx < nth*nph; ++dirIdx) {
 
-            const auto& kvec = tables.khat[level][angIdx] * wavenum;
-            const auto& toThPh = tables.toThPh[level][angIdx];
+            const auto& kvec = tables.khat[level][dirIdx] * wavenum;
+            const auto& toThPh = tables.toThPh[level][dirIdx];
 
             std::vector<vec2cd> radPat(leaf->srcs.size(), vec2cd::Zero());
 
@@ -178,16 +190,15 @@ void Leaf::buildMpoleCoeffs() {
 
     auto start = Clock::now();
 
-    for (int angIdx = 0; angIdx < coeffs.size(); ++angIdx) {
+    for (int dirIdx = 0; dirIdx < coeffs.size(); ++dirIdx) {
 
         vec2cd coeff = vec2cd::Zero();
 
         int srcIdx = 0;
         for (const auto& src : srcs)
-            // coeff += src->getCurrent() * radPats[angIdx][srcIdx++];
-            coeff += (*currents)[src->getIdx()] * radPats[angIdx][srcIdx++];
+            coeff += (*lvec)[src->getIdx()] * radPats[dirIdx][srcIdx++];
 
-        coeffs[angIdx] = coeff;
+        coeffs[dirIdx] = coeff;
 
     }
 
@@ -232,7 +243,7 @@ void Leaf::evalFarSols() {
     int obsIdx = 0;
     for (const auto& obs : srcs) {
 
-        size_t angIdx = 0;
+        size_t dirIdx = 0;
         cmplx sol = 0;
 
         for (int ith = 0; ith < nth; ++ith) {
@@ -241,15 +252,13 @@ void Leaf::evalFarSols() {
             for (int iph = 0; iph < nph; ++iph) {
                 // Do the angular integration
                 sol += weight 
-                    * radPats[angIdx][obsIdx].dot(localCoeffs[angIdx]); // Hermitian dot!
+                    * radPats[dirIdx][obsIdx].dot(localCoeffs[dirIdx]); // Hermitian dot!
 
-                ++angIdx;
+                ++dirIdx;
             }
         }
 
-        // obs->addToSol(Phys::C * wavenum * phiWeight * sol);
-        // addToSol(obs->getIdx(), Phys::C * wavenum * phiWeight * sol);
-        (*sols)[obs->getIdx()] += Phys::C * wavenum * phiWeight * sol;
+        (*rvec)[obs->getIdx()] += Phys::C * wavenum * phiWeight * sol;
 
         ++obsIdx;
     }
@@ -285,16 +294,16 @@ void Leaf::evalPairSols(const std::shared_ptr<Node> srcNode, const cmplxVec& rad
 
             const cmplx rad = rads[pairIdx++];
 
-            solAtObss[obsIdx] += (*currents)[src->getIdx()] * rad;
-            solAtSrcs[srcIdx] += (*currents)[obs->getIdx()] * rad;
+            solAtObss[obsIdx] += (*lvec)[src->getIdx()] * rad;
+            solAtSrcs[srcIdx] += (*lvec)[obs->getIdx()] * rad;
         }
     }
 
     for (int n = 0; n < numObss; ++n)
-        (*sols)[srcs[n]->getIdx()] += Phys::C * wavenum * solAtObss[n];
+        (*rvec)[srcs[n]->getIdx()] += Phys::C * wavenum * solAtObss[n];
 
     for (int n = 0; n < numSrcs; ++n)
-        (*sols)[srcSrcs[n]->getIdx()] += Phys::C * wavenum * solAtSrcs[n];
+        (*rvec)[srcSrcs[n]->getIdx()] += Phys::C * wavenum * solAtSrcs[n];
 }
 
 /* evalSelfSols()
@@ -315,13 +324,13 @@ void Leaf::evalSelfSols() {
 
             const cmplx rad = selfRads[pairIdx++];
 
-            solAtObss[obsIdx] += (*currents)[src->getIdx()] * rad;
-            solAtObss[srcIdx] += (*currents)[obs->getIdx()] * rad;
+            solAtObss[obsIdx] += (*lvec)[src->getIdx()] * rad;
+            solAtObss[srcIdx] += (*lvec)[obs->getIdx()] * rad;
         }
     }
 
     for (int n = 0; n < numSrcs; ++n)
-        (*sols)[srcs[n]->getIdx()] += Phys::C * wavenum * solAtObss[n];
+        (*rvec)[srcs[n]->getIdx()] += Phys::C * wavenum * solAtObss[n];
 
 }
 

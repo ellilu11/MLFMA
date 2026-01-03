@@ -81,6 +81,10 @@ namespace Math {
         };
     }
 
+    inline mat3d ImRR(const vec3d& rhat) {
+        return mat3d::Identity() - rhat * rhat.transpose();
+    }
+
     //inline mat23d crossToThPh(double th, double ph) noexcept {
     //    return mat23d{
     //        { -sin(ph),          cos(ph),          0.0     },

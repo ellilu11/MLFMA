@@ -67,10 +67,10 @@ int main() {
     duration_ms = end - start;
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    // ==================== Solve iterative ==================== //
-    cout << " Solving iterative...\n";
+    // ==================== Solve iterative FMM ================ //
+    cout << " Solving w/ FMM...\n";
 
-    constexpr int MAX_ITER = 500;
+    constexpr int MAX_ITER = 1000;
     constexpr double EPS = 1.0E-6;
 
     auto solver = make_unique<Solver>(srcs, root, MAX_ITER, EPS);
@@ -84,22 +84,36 @@ int main() {
     duration_ms = end - start;
     cout << "   Total elapsed time: " << duration_ms.count() << " ms\n\n";
 
+    // solver->printSols("curr_nq7.txt");
+    root->printFarSols("ff_nq7.txt");
+    root->printAngles();
+
     if (!config.evalDirect) return 0;
 
-    // ================== Compute direct ===================== //
-    solver->resetSols();
+    // ================== Solve iterative direct ================ //
+    Leaf::resetLeaves();
+    root = make_shared<Leaf>(srcs, 0, nullptr);
+    root->initNode();
 
-    cout << " Computing direct...\n";
+    cout << " Building nearfield interactions...\n";
+
     start = Clock::now();
+    Leaf::buildNearRads();
+    end = Clock::now();
+    duration_ms = end - start;
+    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    root->evalSelfSolsDir();
+    cout << " Solving w/ direct...\n";
+    auto solverDir = make_unique<Solver>(srcs, root, MAX_ITER, EPS);
+    Node::linkStates(solverDir);
 
+    start = Clock::now();
+    solverDir->solve();
     end = Clock::now();
     duration_ms = end - start;
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n";
 
-    solver->printSols("solDir.txt");
+    solverDir->printSols("currDir_nq7.txt");
 
     return 0;
-
 }

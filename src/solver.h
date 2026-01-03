@@ -11,7 +11,7 @@ class Solver {
 public :
     Solver(SrcVec& srcs, std::shared_ptr<Node>, int, double);
 
-    void updateSols(int);
+    void updateRvec(int);
 
     void iterateArnoldi(int);
 
@@ -21,13 +21,13 @@ public :
 
     void solve();
 
-    std::shared_ptr<vecXcd> getQvec() { return qvec; }
+    std::shared_ptr<vecXcd> getLvec() { return lvec; }
 
-    std::shared_ptr<vecXcd> getSols() { return sols; }
+    std::shared_ptr<vecXcd> getRvec() { return rvec; }
 
-    // cmplx getQvec(size_t idx) { return qvec[idx]; }
+    std::shared_ptr<vecXcd> getCurrents() { return currents; }
 
-    void resetSols() { (*sols) = vecXcd::Zero(numSols); }
+    void resetRvec() { (*rvec) = vecXcd::Zero(numSrcs); }
 
     void printSols(const std::string&);
 
@@ -38,19 +38,17 @@ private :
     
     std::shared_ptr<Node> root;
 
-    int numSols;
+    int numSrcs;
     int maxIter;
     double EPS;
 
     matXcd Qmat;
     matXcd Hmat;
-
     vecXcd gvec;
-    vecXcd currents;
-
     double g0;
 
-    std::shared_ptr<vecXcd> qvec;
-    std::shared_ptr<vecXcd> sols;
-    
+    std::shared_ptr<vecXcd> lvec;
+    std::shared_ptr<vecXcd> rvec;
+    std::shared_ptr<vecXcd> currents;
+  
 };

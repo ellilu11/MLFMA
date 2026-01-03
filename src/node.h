@@ -52,7 +52,7 @@ public:
 
     //static cmplx getCurrent(size_t idx) { return (*currents)(idx); }
 
-    static void addToSol(size_t idx, cmplx val) { (*sols)(idx) += val; }
+    // static void addToSol(size_t idx, cmplx val) { (*sols)(idx) += val; }
 
 public:
     SrcVec getSrcs() const { return srcs; }
@@ -107,9 +107,9 @@ public:
 
     void evalLeafIlistSols();
 
-    void evalSelfSolsDir();
+    void printFarSols(const std::string&);
 
-    std::vector<vec3cd> getFarSolsFromCoeffs(double);
+    void printAngles();
    
     virtual std::shared_ptr<Node> getSelf() = 0;
     
@@ -132,6 +132,8 @@ public:
 
     static std::shared_ptr<Node> getNode();
 
+    std::vector<vec3cd> getFarSolsFromCoeffs(double);
+
 protected:
     static Config config;
     static double wavenum;
@@ -143,11 +145,11 @@ protected:
     static std::vector<realVec> phis;
     static std::vector<int> Ls;
     static Tables tables;
-
     static std::vector<NodePair> nonNearPairs;
 
+    static std::shared_ptr<vecXcd> lvec;
+    static std::shared_ptr<vecXcd> rvec;
     static std::shared_ptr<vecXcd> currents;
-    static std::shared_ptr<vecXcd> sols;
 
     std::vector<vec2cd> coeffs;
     std::pair<vec2cd, vec2cd> polarCoeffs;

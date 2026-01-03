@@ -8,6 +8,7 @@ void Tables::buildAngularTables() {
 
         std::vector<vec3d> khat_lvl(nth*nph);
         std::vector<mat23d> toThPh_lvl(nth*nph);
+        std::vector<mat3d> ImRR_lvl(nth*nph);
 
         size_t idx = 0;
         for (int ith = 0; ith < nth; ++ith) {
@@ -17,12 +18,16 @@ void Tables::buildAngularTables() {
                 const double ph = Node::phis[level][iph];
 
                 khat_lvl[idx] = Math::fromSph(vec3d(1.0, th, ph));
-                toThPh_lvl[idx++] = Math::toThPh(th, ph);
+                toThPh_lvl[idx] = Math::toThPh(th, ph);
+                ImRR_lvl[idx] = Math::ImRR(khat_lvl[idx]);
+
+                ++idx;
             }
         }
 
         khat.push_back(khat_lvl);
         toThPh.push_back(toThPh_lvl);
+        ImRR.push_back(ImRR_lvl);
     }
 }
 
@@ -136,7 +141,6 @@ Map<vecXcd> Tables::getAlphaAtLvl(int level) {
     Map<vecXcd> alpha;
         
     for (const auto& dist : dists) {
-
         const double kr = wavenum * dist * nodeLeng;
 
         vecXcd transl_dist(nps);

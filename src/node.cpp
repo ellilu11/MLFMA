@@ -9,8 +9,9 @@ std::vector<int> Node::Ls;
 Tables Node::tables;
 std::vector<NodePair> Node::nonNearPairs;
 
+std::shared_ptr<vecXcd> Node::lvec;
+std::shared_ptr<vecXcd> Node::rvec;
 std::shared_ptr<vecXcd> Node::currents;
-std::shared_ptr<vecXcd> Node::sols;
 
 void Node::initParams(
     const Config& config_,
@@ -21,8 +22,9 @@ void Node::initParams(
 }
 
 void Node::linkStates(const std::unique_ptr<Solver>& solver) {
-    currents = std::move(solver->getQvec());
-    sols = std::move(solver->getSols());
+    lvec = std::move(solver->getLvec());
+    rvec = std::move(solver->getRvec());
+    currents = std::move(solver->getCurrents());
 }
 
 /* Node(particles,branchIdx,base)
@@ -35,12 +37,12 @@ Node::Node(
     const int branchIdx,
     Node* const base)
     : srcs(srcs), branchIdx(branchIdx), base(base),
-    nodeLeng(base == nullptr ? config.rootLeng : base->nodeLeng / 2.0),
+    nodeLeng(base == nullptr ? config.rootLeng : base->nodeLeng/2.0),
     level(base == nullptr ? 0 : base->level + 1),
     center(base == nullptr ? zeroVec :
-        base->center + nodeLeng / 2.0 * Math::idx2pm(branchIdx))
+        base->center + nodeLeng/2.0 * Math::idx2pm(branchIdx))
 {
-    numNodes++;
+    ++numNodes;
 }
 
 /* buildAngularSamples()
@@ -131,14 +133,11 @@ void Node::buildInteractionList() {
  * (if leaf is in list 4 of self, self is in list 3 of leaf) 
  */
 void Node::pushSelfToNearNonNbors() {
-
     if (leafIlist.empty()) return;
 
     for (const auto& node : leafIlist) {
         auto leaf = dynamic_pointer_cast<Leaf>(node);
-
-        leaf->pushToNearNonNbors(getSelf()); // call shared_from_this()
-
+        leaf->pushToNearNonNbors(getSelf());
         nonNearPairs.emplace_back(leaf, getSelf()); // record list4-list3 pair
     }
 }
@@ -154,16 +153,11 @@ void Node::buildMpoleToLocalCoeffs() {
     const size_t numAngles = localCoeffs.size();
 
     for (const auto& node : iList) {
-
-        const auto& mpoleCoeffs = node->coeffs;
-
         const auto& dX = center - node->center;
-
         const auto& transl_dX = tables.transl[level].at(dX/nodeLeng);
 
-        // std::transform
         for (int idx = 0; idx < numAngles; ++idx)
-            localCoeffs[idx] += transl_dX[idx] * mpoleCoeffs[idx];
+            localCoeffs[idx] += transl_dX[idx] * node->coeffs[idx];
     }
 }
 
@@ -194,28 +188,43 @@ void Node::evalLeafIlistSols() {
     */
 }
 
-// evalSelfSols without precomputed rads
-void Node::evalSelfSolsDir() {
+void Node::printFarSols(const std::string& fname) {
+    // assert(r >= 5.0 * config.rootLeng); // verify farfield condition
+    // const cmplx kernel = Phys::C * wavenum * exp(iu*wavenum*r) / r;
 
-    const int numSrcs = srcs.size();
+    namespace fs = std::filesystem;
+    fs::path dir = "out/ff";
+    std::error_code ec;
 
-    cmplxVec solAtObss(numSrcs, 0.0);
+    if (fs::create_directory(dir, ec))
+        std::cout << " Created directory " << dir.generic_string() << "/\n";
+    else if (ec)
+        std::cerr << " Error creating directory " << ec.message() << "\n";
 
-    // TODO: Handle self-interactions
-    int pairIdx = 0;
-    for (size_t obsIdx = 1; obsIdx < numSrcs; ++obsIdx) { // obsIdx = 0
-        for (size_t srcIdx = 0; srcIdx < obsIdx; ++srcIdx) { // srcIdx <= obsIdx 
-            auto obs = srcs[obsIdx], src = srcs[srcIdx];
+    std::ofstream farfile(dir/fname);
+    farfile << std::setprecision(15) << std::scientific;
 
-            const auto glObsIdx = obs->getIdx(), glSrcIdx = src->getIdx();
+    const auto [nth, nph] = getNumAngles(level);
+    for (int dirIdx = 0; dirIdx < nth*nph; ++dirIdx) {
+        const auto& krhat = tables.khat[level][dirIdx] * wavenum;
 
-            const cmplx rad = obs->getIntegratedRad(src);
+        vec3cd dirFar = vec3cd::Zero();
+        for (const auto& src : srcs)
+            dirFar += (*currents)[src->getIdx()] * src->getFarAlongDir(krhat); // TODO: use radpats
 
-            solAtObss[obsIdx] += (*currents)[src->getIdx()] * rad;
-            solAtObss[srcIdx] += (*currents)[obs->getIdx()] * rad;
-        }
+        const vec3cd& far = Phys::C * wavenum * tables.ImRR[level][dirIdx] * dirFar;
+
+        farfile << far << '\n';
     }
+}
 
-    for (int n = 0; n < numSrcs; ++n)
-        (*sols)[srcs[n]->getIdx()] += Phys::C * wavenum * solAtObss[n];
+void Node::printAngles() {
+    std::filesystem::path dir = "out/ff";
+    std::ofstream thfile(dir/"thetas.txt"), phfile(dir/"phis.txt");
+
+    for (const auto& theta : thetas[level])
+        thfile << theta << '\n';
+
+    for (const auto& phi : phis[level])
+        phfile << phi << '\n';
 }

@@ -16,16 +16,16 @@ public:
     vec3d getCenter() const override { return center; } 
 
     void buildVoltage() override {
-        // voltage = -1.0;
-
         voltage = -Einc->amplitude
-            * conj(getIntegratedPlaneWave(Einc->wavevec,true).dot(Einc->pol)); // Hermitian dot!
+            * conj(getIntegratedPlaneWave(Einc->wavevec).dot(Einc->pol)); // Hermitian dot!
     }
 
-    vec3cd getRadAlongDir(
-        const vec3d& X, const vec3d& kvec) const override {
+    vec3cd getRadAlongDir(const vec3d& X, const vec3d& kvec) const override {
+        return exp(iu*kvec.dot(X)) * getIntegratedPlaneWave(kvec).conjugate();
+    }
 
-        return exp(iu*kvec.dot(X)) * getIntegratedPlaneWave(kvec,true).conjugate();
+    vec3cd getFarAlongDir(const vec3d& krhat) const override {
+        return getIntegratedPlaneWave(krhat).conjugate();
     }
 
     vec3cd getIntegratedPlaneWave(const vec3d&, bool = 0) const;

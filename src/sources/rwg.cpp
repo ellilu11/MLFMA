@@ -37,8 +37,8 @@ vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
 
             for (const auto& [node, weight] : tri->getQuads())
                 rad += weight * exp(iu*kvec.dot(node))
-                * (node - Xpm[triIdx])
-                * sign(triIdx);
+                        * (node - Xpm[triIdx])
+                        * sign(triIdx);
             ++triIdx;
         }
 
@@ -103,13 +103,13 @@ cmplx RWG::getIntegratedRad(const std::shared_ptr<Source> src) const {
     int obsTriIdx = 0;
     for (const auto& obsTri : tris) {
 
-        const auto& obsQuads = obsTri->getQuads();
+        const auto& obsQuads = obsTri->quads;
         const auto& obsXpm = Xpm[obsTriIdx];
 
         int srcTriIdx = 0;
         for (const auto& srcTri : srcRWG->tris) {
 
-            const auto& srcQuads = srcTri->getQuads();
+            const auto& srcQuads = srcTri->quads;
             const auto& srcXpm = srcRWG->Xpm[srcTriIdx];
             
             if (obsTri == srcTri) {

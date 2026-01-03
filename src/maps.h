@@ -7,7 +7,7 @@ namespace Maps {
 
     // Pick largest values that avoid collisions
     constexpr double EPS_dr = 1.0E-1;
-    constexpr double EPS_psi = 1.0E-6;
+    constexpr double EPS_psi = 1.0E-9;
     constexpr double EPS_dX = 1.0E-3;
 
     struct DoubleComp {
