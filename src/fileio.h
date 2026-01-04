@@ -218,8 +218,6 @@ pair<SrcVec, shared_ptr<Excitation::PlaneWave>> importFromConfig(const Config& c
 {
     cout << " Importing config...\n";
 
-    const auto fpath = makePath(config);
-
     auto Einc = importPlaneWave("config/pwave.txt");
 
     // Dipole sources

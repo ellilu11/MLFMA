@@ -186,6 +186,7 @@ void Stem::addInterpCoeffs(
     // Interpolate over phi
     size_t n = 0;
     for (int jth = 0; jth < nth; ++jth) {
+        int jthmph = jth*mph;
 
         for (int jph = 0; jph < nph; ++jph) {
             const auto [interp, nearIdx] = interpPhi[tblLvl][jph]; // TODO: don't need to lookup for every jth

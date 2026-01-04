@@ -166,7 +166,7 @@ void Leaf::evalFarSols() {
             }
         }
 
-        (*rvec)[obs->getIdx()] += Phys::C * wavenum * intRad;
+        obs->addToSol(Phys::C * wavenum * intRad);
 
         ++obsIdx;
     }
