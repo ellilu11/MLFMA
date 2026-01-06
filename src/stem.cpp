@@ -93,7 +93,7 @@ void Stem::buildMpoleCoeffs() {
         }
 
         // Interpolate shifted coeffs to this node's angular grid
-        addInterpCoeffs(shiftedCoeffs, coeffs, level+1, level);
+        addInterpCoeffs<vec2cd>(shiftedCoeffs, coeffs, level+1, level);
 
         t.M2M += Clock::now() - start;
 
@@ -124,15 +124,14 @@ std::vector<vec2cd> Stem::getShiftedLocalCoeffs(int branchIdx) const {
     }
 
     // Interpolate shifted coeffs to branch's angular grid
-    addAnterpCoeffs(shiftedCoeffs, outCoeffs, level, level+1);
+    addAnterpCoeffs<vec2cd>(shiftedCoeffs, outCoeffs, level, level+1);
 
     return outCoeffs;
 }
 
+template <typename T>
 void Stem::addInterpCoeffs(
-    const std::vector<vec2cd>& inCoeffs,
-    std::vector<vec2cd>& outCoeffs,
-    int srcLvl, int tgtLvl)
+    const std::vector<T>& inCoeffs, std::vector<T>& outCoeffs, int srcLvl, int tgtLvl)
 {
     const int order = config.interpOrder;
 
@@ -150,7 +149,7 @@ void Stem::addInterpCoeffs(
     const int tblLvl = std::min(srcLvl, tgtLvl);
 
     // Interpolate over theta
-    std::vector<vec2cd> innerCoeffs(nth*mph, vec2cd::Zero());
+    std::vector<T> innerCoeffs(nth*mph, T{});
 
     size_t m = 0;
     for (int jth = 0; jth < nth; ++jth) {
@@ -177,7 +176,7 @@ void Stem::addInterpCoeffs(
 
                 innerCoeffs[m] +=
                     interp[k] * inCoeffs[m_shifted]
-                    * Math::sign(outOfRange); // only for spherical components!
+                    * Math::sign(outOfRange); // only for spherical vector components!
             }
 
             ++m;
@@ -207,11 +206,9 @@ void Stem::addInterpCoeffs(
     }
 }
 
-//
+template <typename T>
 void Stem::addAnterpCoeffs(
-    const std::vector<vec2cd>& inCoeffs, 
-    std::vector<vec2cd>& outCoeffs, 
-    int srcLvl, int tgtLvl)
+    const std::vector<T>& inCoeffs, std::vector<T>& outCoeffs, int srcLvl, int tgtLvl)
 {
     const int order = config.interpOrder;
 
@@ -219,12 +216,12 @@ void Stem::addAnterpCoeffs(
     const auto [nth, nph] = getNumAngles(tgtLvl);
     const int Nth = nth+2*order, Nph = nph+2*order;
 
-    assert(!(mph%2)); // mph needs to be even
+    assert(!(nph%2)); // nph needs to be even
 
     const int tblLvl = std::min(srcLvl, tgtLvl);
 
     // Anterpolate over phi
-    std::vector<vec2cd> innerCoeffs(mth*Nph, vec2cd::Zero());
+    std::vector<T> innerCoeffs(mth*Nph, T{});
     for (int iph = 0; iph < mph; ++iph) { // over parent phis anterpolating child phis
         const auto [interp, nearIdx] = tables.interpPhi[tblLvl][iph];
 
@@ -242,7 +239,7 @@ void Stem::addAnterpCoeffs(
     }
 
     // Anterpolate over theta
-    std::vector<vec2cd> longCoeffs(Nth*Nph, vec2cd::Zero());
+    std::vector<T> longCoeffs(Nth*Nph, T{});
     for (int ith = 0; ith < mth; ++ith) { // over parent thetas anterpolating child thetas
 
         const auto [interp, nearIdx] = tables.interpTheta[tblLvl][ith];
@@ -275,12 +272,13 @@ void Stem::addAnterpCoeffs(
             }
 
             // Handle nodes near poles
+            // TODO: Fix
             if (jth < order || jth >= nth-order) {
                 const int Jph_shifted = Jph + ((jph < nph/2) ? nph/2 : -nph/2);
                 const int jth_flipped = (jth < order ? -jth-1 : 2*nth-jth-1);
 
                 outCoeffs[dirIdx] += longCoeffs[(jth_flipped+order)*Nph+Jph_shifted]
-                    * Math::sign(1); // spherical components only
+                    * Math::sign(1); // spherical vector components only
             }
 
             ++dirIdx;

@@ -123,6 +123,7 @@ void Stem::tInterp(int level) {
 
     // Evaluate function at source nodes
     const auto [mth, mph] = getNumAngles(level+1);
+    const auto [nth, nph] = getNumAngles(level);
     cmplxVec vals;
 
     for (int ith = 0; ith < mth; ++ith) {
@@ -136,60 +137,8 @@ void Stem::tInterp(int level) {
     }
 
     // Interpolate function values to target nodes
-    const auto [nth, nph] = getNumAngles(level);
-    cmplxVec innerVals(nth*mph, 0.0);
-
-    size_t m = 0;
-    for (int jth = 0; jth < nth; ++jth) {
-        const auto [interp, nearIdx] = tables.interpTheta[level][jth];
-
-        for (int iph = 0; iph < mph; ++iph) {
-
-            for (int ith = nearIdx+1-order, k = 0; ith <= nearIdx+order; ++ith, ++k) {
-
-                // Flip ith if not in [0, mth-1]
-                const int ith_flipped = Math::flipIdxToRange(ith, mth);
-
-                const bool outOfRange = ith != ith_flipped; // jth < 0 || jth >= mth;
-
-                int iph_shifted = iph;
-
-                // if theta \notin [0, pi] then if:
-                // phi \in (0, pi) add pi, phi \in (pi, 2pi) subtract pi
-                if (outOfRange)
-                    iph_shifted += ((iph < mph/2) ? mph/2 : -mph/2);
-
-                const int m_shifted = ith_flipped*mph + iph_shifted;
-
-                // if (outOfRange)
-                // if (ith < ith_flipped)
-                innerVals[m] += interp[k] * vals[m_shifted];
-            }
-
-            ++m;
-        }
-    }
-
-    // Interpolate over phi
-    cmplxVec interpedVals(nth*nph, 0.0);
-    size_t n = 0;
-    for (int jth = 0; jth < nth; ++jth) {
-        const int jthmph = jth*mph;
-
-        for (int jph = 0; jph < nph; ++jph) {
-            const auto [interp, nearIdx] = tables.interpPhi[level][jph]; // TODO: don't need to lookup for every jth
-
-            for (int iph = nearIdx+1-order, k = 0; iph <= nearIdx+order; ++iph, ++k) {
-
-                // Wrap iph if not in [0, mph-1]
-                const int iph_wrapped = Math::wrapIdxToRange(iph, mph);
-
-                interpedVals[n] += interp[k] * innerVals[jthmph + iph_wrapped];
-            }
-
-            ++n;
-        }
-    }
+    cmplxVec interpVals(nth*nph, 0.0);
+    addInterpCoeffs<cmplx>(vals, interpVals, level+1, level);
 
     // Do inner product (weighted)
     const double phiWeight = 2.0*PI / static_cast<double>(nph);
@@ -202,10 +151,10 @@ void Stem::tInterp(int level) {
         for (int jph = 0; jph < nph; ++jph) {
             const double phi = phis[level][jph];
 
-            intVal += thetaWeight * phiWeight * conj(sphFunc(theta, phi)) * interpedVals[l++];
+            intVal += thetaWeight * phiWeight * conj(sphFunc(theta, phi)) * interpVals[l++];
         }
     }
-    assert(l == interpedVals.size());
+    assert(l == interpVals.size());
 
     std::cout << "Integrated val using interp: " << std::setprecision(15) << intVal << '\n';
 }
@@ -215,6 +164,7 @@ void Stem::tAnterp(int level) {
 
     // Evaluate function times weights at source nodes
     const auto [mth, mph] = getNumAngles(level);
+    const auto [nth, nph] = getNumAngles(level+1);
     cmplxVec vals;
 
     const double phiWeight = 2.0*PI / static_cast<double>(mph);
@@ -230,102 +180,8 @@ void Stem::tAnterp(int level) {
     }
 
     // Anterpolate function values to target nodes on extended grid
-    const auto [nth, nph] = getNumAngles(level+1);
-    assert(!(nph%2));
-
-    const int Nth = nth+2*order, Nph = nph+2*order;
-
-    // Anterpolate over phi
-    cmplxVec innerVals(mth*Nph, 0.0);
-
-    for (int iph = 0; iph < mph; ++iph) { // over parent phis anterpolating child phis
-        const auto [interp, nearIdx] = tables.interpPhi[level][iph];
-
-        for (int jph = -order; jph < nph+order; ++jph) { // over child phis to anterpolate
-
-            // shift from jph \in [nearIdx+1-order,nearIdx+order] to k \in [0,2*order-1]
-            const int k = jph - (nearIdx+1-order);
-
-            // if iph \notin [nearIdx+1-order,nearIdx+order], matrix element is zero
-            if (k < 0 || k >= 2*order) continue;
-
-            for (int ith = 0; ith < mth; ++ith) // over parent thetas (unanterpolated)
-                innerVals[ith*Nph+jph+order] += interp[k] * vals[ith*mph+iph];
-        }
-    }
-
-    // Anterpolate over theta
-    cmplxVec longVals(Nth*Nph, 0.0);
-
-    for (int ith = 0; ith < mth; ++ith) { // over parent thetas anterpolating child thetas
-
-        const auto [interp, nearIdx] = tables.interpTheta[level][ith];
-        for (int jth = -order; jth < nth+order; ++jth) { // over child thetas to anterpolate
-
-            // shift from ith \in [t+1-order,t+order] to k \in [0,2*order-1]   
-            const int k = jth - (nearIdx+1-order);
-
-            // if ith \notin [t+1-order,t+order], matrix element is zero
-            if (k < 0 || k >= 2*order) continue;
-
-            for (int jph = -order; jph < nph+order; ++jph) // over child phis (anterpolated)
-                longVals[(jth+order)*Nph+jph+order] += interp[k] * innerVals[ith*Nph+jph+order];
-        }
-    }
-
-    // Contract grid points in theta and phi
     cmplxVec anterpVals(nth*nph, 0.0);
-    int dirIdx = 0;
-
-    for (int jth = 0; jth < nth; ++jth) {
-        for (int jph = 0; jph < nph; ++jph) {
-            const int Jth = jth+order, Jph = jph+order;
-
-            anterpVals[dirIdx] = longVals[Jth*Nph+Jph];
-
-            // Handle nodes near prime meridian
-            if (jph < order || jph >= nph-order) {
-                const int Jph_wrapped = Jph + (jph < order ? nph : -nph);
-                anterpVals[dirIdx] += longVals[(jth+order)*Nph+Jph_wrapped];
-            }
-
-            // Handle nodes near poles
-            if (jth < order || jth >= nth-order) {
-                int Jph_shifted = Jph + ((jph < nph/2) ? nph/2 : -nph/2);
-                // assert(jph_shifted >=0 && jph_shifted < nph);
-
-                const int jth_flipped = (jth < order ? -jth-1 : 2*nth-jth-1);
-
-                anterpVals[dirIdx] += longVals[(jth_flipped+order)*Nph+Jph_shifted];
-            }
-            
-            //if (jth < order) {
-            //    int jth_flipped = -jth-1;
-            //    assert(jth_flipped+order >= 0);
-
-            //}
-            //else if (jth >= nth-order) {
-            //    int jth_flipped = 2*nth-jth-1;
-            //    anterpVals[dirIdx] += longVals[(jth_flipped+order)*Nph+jph_shifted+order];
-            //}
-
-
-            ++dirIdx;
-        }
-    }
-
-
-    /*
-    for (int jph = 0; jph < nph; ++jph) {
-        const int ithnph = ith*nph;
-
-        innerVals[ithnph+jph] = innerLongVals[ithnph+jph+order];
-
-        if (jph < order)
-            innerVals[ithnph+jph] += innerLongVals[ithnph+jph+order+nph];
-        else if (jph >= nph-order)
-            innerVals[ithnph+jph] += innerLongVals[ithnph+jph+order-nph];
-    }*/
+    addAnterpCoeffs<cmplx>(vals, anterpVals, level, level+1);
 
     // Do inner product
     cmplx intVal = 0.0;

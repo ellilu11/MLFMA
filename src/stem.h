@@ -17,9 +17,11 @@ public:
 
     std::vector<vec2cd> getShiftedLocalCoeffs(int) const;
 
-    static void addInterpCoeffs(const std::vector<vec2cd>&, std::vector<vec2cd>&, int, int);
+    template <typename T>
+    static void addInterpCoeffs(const std::vector<T>&, std::vector<T>&, int, int);
 
-    static void addAnterpCoeffs(const std::vector<vec2cd>&, std::vector<vec2cd>&, int, int);
+    template <typename T>
+    static void addAnterpCoeffs(const std::vector<T>&, std::vector<T>&, int, int);
 
     void buildLocalCoeffs() override;
 
