@@ -37,7 +37,9 @@ public:
 
     static void tAnterpTheta(int, int);
 
+    template <typename T>
     static void tInterp(int, int);
 
+    template <typename T>
     static void tAnterp(int, int);
 };

@@ -114,7 +114,6 @@ std::vector<interpPair> Tables::getInterpPhiAtLvl(int srcLvl, int tgtLvl) {
 void Tables::buildInterpTables() {
 
     for (int lvl = 0; lvl < maxLevel; ++lvl) {
-
         // M2M interpolation tables
         interpTheta.push_back(getInterpThetaAtLvl(lvl+1, lvl));
         interpPhi.push_back(getInterpPhiAtLvl(lvl+1, lvl));
@@ -122,7 +121,6 @@ void Tables::buildInterpTables() {
         // L2L interpolation tables
         invInterpTheta.push_back(getInterpThetaAtLvl(lvl, lvl+1));
         invInterpPhi.push_back(getInterpPhiAtLvl(lvl, lvl+1));
-
     }
 }
 

@@ -19,7 +19,7 @@ public:
         
         buildInterpTables();
         
-        // buildTranslationTable();
+        buildTranslationTable();
     }
     
     // Angular tables

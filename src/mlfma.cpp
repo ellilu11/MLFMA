@@ -78,13 +78,13 @@ int main() {
 
     start = Clock::now();
 
-    solver->solve();
+    solver->evalRvec(0);
 
     end = Clock::now();
     duration_ms = end - start;
     cout << "   Total elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    solver->printSols("curr_nq7.txt");
+    solver->printSols("rvec.txt");
     //root->printFarSols("ff_nq7.txt");
     //root->printAngles();
 
@@ -107,9 +107,9 @@ int main() {
     solver = make_unique<Solver>(srcs, root, MAX_ITER, EPS);
     Node::linkStates(solver);
 
-    solver->solve();
+    solver->evalRvec(0);
 
-    solver->printSols("currDir_nq7.txt");
+    solver->printSols("rvecDir.txt");
 
     return 0;
 }

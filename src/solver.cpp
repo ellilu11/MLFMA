@@ -154,8 +154,8 @@ void Solver::printSols(const std::string& fname) {
 
     file << std::setprecision(15) << std::scientific;
 
-    // for (const auto& sol : *rvec) file << sol << '\n';
-    for (const auto& curr : *currents) file << curr << '\n';
+    for (const auto& sol : *rvec) file << sol << '\n';
+    // for (const auto& curr : *currents) file << curr << '\n';
 }
 
 /*

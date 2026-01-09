@@ -173,20 +173,6 @@ void Leaf::buildRadPats() {
 
             leaf->radPats.push_back(radPat);
         }
-
-        // Do polar radpats
-        for (int dirIdx = 0; dirIdx < 2; ++dirIdx) {
-            const auto& kvec = poles[dirIdx] * wavenum;
-
-            std::vector<vec2cd> radPat(leaf->srcs.size(), vec2cd::Zero());
-
-            int srcIdx = 0;
-            for (const auto& src : leaf->srcs)
-                // x,y components only
-                radPat[srcIdx++] = src->getRadAlongDir(center, kvec).head(2);
-
-            leaf->polarRadPats[dirIdx] = radPat;
-        }
     }
 }
 
@@ -210,19 +196,7 @@ void Leaf::buildMpoleCoeffs() {
         coeffs[dirIdx] = coeff;
     }
 
-    // Build polar coeffs
-    for (int dirIdx = 0; dirIdx < 2; ++dirIdx) {
-        vec2cd coeff = vec2cd::Zero();
-
-        int srcIdx = 0;
-        for (const auto& src : srcs)
-            coeff += (*lvec)[src->getIdx()] * polarRadPats[dirIdx][srcIdx++];
-
-        polarCoeffs[dirIdx] = coeff;
-    }
-
     t.S2M += Clock::now() - start;
-
 }
 
 /* buildLocalCoeffs()

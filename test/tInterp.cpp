@@ -21,6 +21,10 @@ cmplx sphFunc(double th, double ph) {
     return 0.345494149471336 * sin(th) * exp(iu*ph);
 };
 
+vec2cd vecSphFunc(double th, double ph) {
+    return vec2cd{ sphFunc(th,ph),thetaFunc(th) };
+}
+
 void Stem::tInterpPhi(int srcLvl, int tgtLvl) {
     const int order = config.interpOrder;
 
@@ -225,13 +229,14 @@ void Stem::tAnterpTheta(int srcLvl, int tgtLvl) {
     std::cout << "Integrated val using anterp: " << std::setprecision(15) << 2.0*PI*intVal << '\n';
 }
 
+template <typename T>
 void Stem::tInterp(int srcLvl, int tgtLvl) {
     const int order = config.interpOrder;
 
     // Evaluate function at source nodes
     const auto [mth, mph] = getNumAngles(srcLvl);
     const auto [nth, nph] = getNumAngles(tgtLvl);
-    cmplxVec vals;
+    std::vector<T> vals;
 
     for (int ith = 0; ith < mth; ++ith) {
         const double theta = thetas[srcLvl].first[ith];
@@ -239,12 +244,12 @@ void Stem::tInterp(int srcLvl, int tgtLvl) {
         for (int iph = 0; iph < mph; ++iph) {
             const double phi = phis[srcLvl][iph];
 
-            vals.push_back(sphFunc(theta, phi));
+            vals.push_back(vecSphFunc(theta, phi));
         }
     }
 
     // Interpolate function values to target nodes
-    cmplxVec interpVals(nth*nph, 0.0);
+    std::vector<T> interpVals(nth*nph, T{});
     addInterpCoeffs(vals, interpVals, srcLvl, tgtLvl);
 
     // Do inner product (weighted)
@@ -259,15 +264,7 @@ void Stem::tInterp(int srcLvl, int tgtLvl) {
             const double phi = phis[tgtLvl][jph];
 
             // intVal += thetaWeight * phiWeight * conj(sphFunc(theta, phi)) * interpVals[l];
-
-            const cmplx prod = thetaWeight * phiWeight * conj(sphFunc(theta, phi)) * interpVals[l];
-            intVal += prod;
-
-            // std::cout << std::setprecision(15)
-            //    << jth << ' ' << jph << ' ' << theta << ' ' << phi << ' ' << prod << '\n';
-
-            // std::cout << std::setprecision(15) 
-            //    << sphFunc(theta, phi) << ' ' << interpVals[l] << ' ' << prod << '\n';
+            intVal += thetaWeight * phiWeight * vecSphFunc(theta, phi).dot(interpVals[l]);
 
             ++l;
         }
@@ -277,13 +274,14 @@ void Stem::tInterp(int srcLvl, int tgtLvl) {
     std::cout << "Integrated val using interp: " << std::setprecision(15) << intVal << '\n';
 }
 
+template <typename T>
 void Stem::tAnterp(int srcLvl, int tgtLvl) {
     const int order = config.interpOrder;
 
     // Evaluate function times weights at source nodes
     const auto [mth, mph] = getNumAngles(srcLvl);
     const auto [nth, nph] = getNumAngles(tgtLvl);
-    cmplxVec vals;
+    std::vector<T> vals;
 
     const double phiWeight = 2.0*PI / static_cast<double>(mph);
     for (int ith = 0; ith < mth; ++ith) {
@@ -293,12 +291,12 @@ void Stem::tAnterp(int srcLvl, int tgtLvl) {
         for (int iph = 0; iph < mph; ++iph) {
             const double phi = phis[srcLvl][iph];
 
-            vals.push_back(phiWeight*thetaWeight*sphFunc(theta, phi));
+            vals.push_back(phiWeight*thetaWeight*vecSphFunc(theta, phi));
         }
     }
 
     // Anterpolate function values to target nodes on extended grid
-    cmplxVec anterpVals(nth*nph, 0.0);
+    std::vector<T> anterpVals(nth*nph, T{});
     addAnterpCoeffs(vals, anterpVals, srcLvl, tgtLvl);
 
     // Do inner product
@@ -310,13 +308,9 @@ void Stem::tAnterp(int srcLvl, int tgtLvl) {
         for (int jph = 0; jph < nph; ++jph) {
             const double phi = phis[tgtLvl][jph];
 
-            const cmplx prod = conj(anterpVals[l]) * sphFunc(theta, phi);
-            intVal += prod;
+            // intVal += conj(anterpVals[l]) * sphFunc(theta, phi);
 
-            //std::cout << std::setprecision(15)
-            //    << sphFunc(theta, phi) << ' ' << anterpVals[l] << ' ' << prod << '\n';
-
-            // std::cout << std::setprecision(15) << jth << ' ' << jph << ' ' << theta << ' ' << phi << ' ' << prod << '\n';
+            intVal += anterpVals[l].dot(vecSphFunc(theta, phi));
 
             ++l;
         }
@@ -374,8 +368,8 @@ int main() {
     // Stem::tAnterpPhi(lvl,lvl+1);
     // Stem::tInterpTheta(lvl+1,lvl);
     // Stem::tAnterpTheta(lvl,lvl+1);
-    Stem::tInterp(lvl+1,lvl);
-    Stem::tAnterp(lvl,lvl+1);
+    Stem::tInterp<vec2cd>(lvl+1,lvl);
+    Stem::tAnterp<vec2cd>(lvl,lvl+1);
 
     return 0;
 }

@@ -57,10 +57,9 @@ void Node::buildAngularSamples() {
         const double nodeLeng = config.rootLeng / pow(2.0, lvl);
 
         // Use excess bandwidth formula
-        const int tau = // 2-lvl;
-             ceil((1.73*wavenum*nodeLeng +
+        const int tau = ceil((1.73*wavenum*nodeLeng +
                 2.16*pow(config.digits, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0)));
-                
+             
         Ls.push_back(floor(0.50*tau)); // TODO: Find optimal formula
 
         // Construct thetas

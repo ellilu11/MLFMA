@@ -53,7 +53,6 @@ namespace Maps {
     };
 }
 
-// TODO: Concepts
 template <typename T>
 using Map = std::map<double, T, Maps::DoubleComp>;
 

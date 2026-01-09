@@ -361,27 +361,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/plt/plotFarfieldInterp.m
-/plt/plotLocalCoeffs.asv
-/plt/plotFarfield_1box.m
-/plt/plotFarfieldInterp_L.asv
-/plt/plotFarfield_interp.m
-/plt/plotFarfieldForBox.m
-/plt/plotSols.asv
-/plt/plotL2LCoeffs.m
-/plt/imag_l2lerr.fig
-/plt/plotCoeffs.m
-/plt/plotFarfieldFor1Box.m
-/plt/plotLocalCoeffs.m
-/plt/plotNodes.m
-/plt/testInterp.asv
-/plt/testInterp.m
-/plt/plotVals.m
-/plt/plotSols.m
-/plt/dip_n2000_master.fig
-/plt/plotSol.asv
-/plt/testRWGs.m
-/plt/plotFarfield.asv
-/plt/quiver3InLogScale.m
-/plt/rwg_n480_iter.fig
-/plt/tRWGs.m
+plt/
