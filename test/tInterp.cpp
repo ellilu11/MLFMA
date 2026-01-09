@@ -258,7 +258,18 @@ void Stem::tInterp(int srcLvl, int tgtLvl) {
         for (int jph = 0; jph < nph; ++jph) {
             const double phi = phis[tgtLvl][jph];
 
-            intVal += thetaWeight * phiWeight * conj(sphFunc(theta, phi)) * interpVals[l++];
+            // intVal += thetaWeight * phiWeight * conj(sphFunc(theta, phi)) * interpVals[l];
+
+            const cmplx prod = thetaWeight * phiWeight * conj(sphFunc(theta, phi)) * interpVals[l];
+            intVal += prod;
+
+            // std::cout << std::setprecision(15)
+            //    << jth << ' ' << jph << ' ' << theta << ' ' << phi << ' ' << prod << '\n';
+
+            // std::cout << std::setprecision(15) 
+            //    << sphFunc(theta, phi) << ' ' << interpVals[l] << ' ' << prod << '\n';
+
+            ++l;
         }
     }
     assert(l == interpVals.size());
@@ -299,13 +310,17 @@ void Stem::tAnterp(int srcLvl, int tgtLvl) {
         for (int jph = 0; jph < nph; ++jph) {
             const double phi = phis[tgtLvl][jph];
 
-            intVal += conj(anterpVals[l++]) * sphFunc(theta, phi);
+            const cmplx prod = conj(anterpVals[l]) * sphFunc(theta, phi);
+            intVal += prod;
 
-            // std::cout << std::setprecision(6) << anterpVals[jth*nph+jph]/phiWeight << ' ';
+            //std::cout << std::setprecision(15)
+            //    << sphFunc(theta, phi) << ' ' << anterpVals[l] << ' ' << prod << '\n';
+
+            // std::cout << std::setprecision(15) << jth << ' ' << jph << ' ' << theta << ' ' << phi << ' ' << prod << '\n';
+
+            ++l;
         }
-        // std::cout << '\n';
     }
-
 
     assert(l == anterpVals.size());
 
@@ -354,7 +369,7 @@ int main() {
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     // Do test
-    const int lvl = 0;
+    const int lvl = 2;
     // Stem::tInterpPhi(lvl+1,lvl);
     // Stem::tAnterpPhi(lvl,lvl+1);
     // Stem::tInterpTheta(lvl+1,lvl);

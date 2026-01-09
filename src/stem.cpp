@@ -183,22 +183,18 @@ void Stem::addInterpCoeffs(
         for (int ith = nearIdx+1-order, k = 0; ith <= nearIdx+order; ++ith, ++k) {
             const int ith_flipped = Math::flipIdxToRange(ith, mth);
 
-            const bool isNearPole = ith != ith_flipped; // jth < 0 || jth >= mth;
+            const bool outOfRange = ith != ith_flipped; // jth < 0 || jth >= mth;
 
             for (int iph = 0; iph < mph; ++iph) {
                 int iph_shifted = iph;
 
-                // if theta \notin [0, pi] then if:
-                // phi \in (0, pi) add pi, phi \in (pi, 2pi) subtract pi
-                if (isNearPole)
-                    iph_shifted += ((iph < mph/2) ? mph/2 : -mph/2);
+                if (outOfRange) iph_shifted += ((iph < mph/2) ? mph/2 : -mph/2);
 
                 const int idx_shifted = ith_flipped*mph + iph_shifted;
 
-                // if (ith < ith_flipped) //
                 innerCoeffs[jthmph+iph] +=
                     interp[k] * inCoeffs[idx_shifted]
-                    * Math::sign(isNearPole) // spherical vector components only
+                    // * Math::sign(outOfRange) // spherical vector components only
                     ; 
             }
         }
@@ -243,11 +239,37 @@ void Stem::addAnterpCoeffs(
             // if iph \notin [nearIdx+1-order,nearIdx+order], matrix element is zero
             if (k < 0 || k >= 2*order) continue;
 
-            const int Jph = jph+order;
+            const int Jph_wrapped = Math::wrapIdxToRange(jph, nph)+order; // wrap jph when using it to index!!!
             for (int ith = 0; ith < mth; ++ith)
-                innerCoeffs[ith*Nph+Jph] += interp[k] * inCoeffs[ith*mph+iph];
+                innerCoeffs[ith*Nph+Jph_wrapped] += interp[k] * inCoeffs[ith*mph+iph];
         }
     }
+    
+    /*
+    for (int jph = -order; jph < nph+order; ++jph) {
+
+        const int Jph = jph+order;
+        const int Jph_wrapped = Math::wrapIdxToRange(jph, nph)+order;
+
+        for (int iph = 0; iph < mph; ++iph) {
+            const auto [interp, nearIdx] = tables.interpPhi[tblLvl][iph];
+
+            const int k = jph - (nearIdx+1-order);
+
+            // if iph \notin [nearIdx+1-order,nearIdx+order], matrix element is zero
+            if (k < 0 || k >= 2*order) continue;
+
+            for (int ith = 0; ith < mth; ++ith) {
+                innerCoeffs[ith*Nph+Jph_wrapped] += interp[k] * inCoeffs[ith*mph+iph];
+
+                // if (!ith) std::cout << Math::wrapIdxToRange(jph, nph) << ' ' << iph << ' ' << interp[k] * inCoeffs[ith*mph+iph] << '\n';
+            }
+        }
+    }*/
+
+    //for (int ith = 0; ith < mth; ++ith)
+    //    for (int Jph = order; Jph < nph+order; ++Jph)
+    //        std::cout << ith << ' ' << Jph-order << ' ' << innerCoeffs[ith*mph+Jph] << '\n';
 
     // Anterpolate over extended theta
     std::vector<T> longCoeffs(Nth*Nph, T{});
@@ -264,9 +286,14 @@ void Stem::addAnterpCoeffs(
             for (int jph = -order; jph < nph+order; ++jph) {
                 const int Jph = jph+order;
                 longCoeffs[Jth*Nph+Jph] += interp[k] * innerCoeffs[ith*Nph+Jph];
+
             }
         }
     }
+
+    //for (int Jth = 0; Jth < Nth; ++Jth)
+    //    for (int Jph = order; Jph < nph+order; ++Jph)
+    //        std::cout << Jth << ' ' << Jph << ' ' << longCoeffs[Jth*Nph+Jph] << '\n';
 
     // Contract extended theta and phi
     int dirIdx = 0;
@@ -283,20 +310,19 @@ void Stem::addAnterpCoeffs(
             }
           
             // Handle nodes near poles
-            // TODO: Fix!!!
             if (jth < order || jth >= nth-order) {
-            // if (jth < order) {
-            // if (jth < order && jph >= order && jph < nph-order) {
                 const int Jph_shifted = Jph + ((jph < nph/2) ? nph/2 : -nph/2);
                 const int jth_flipped = (jth < order ? -jth-1 : 2*nth-jth-1);
 
                 outCoeffs[dirIdx] +=
                     longCoeffs[(jth_flipped+order)*Nph+Jph_shifted]
-                    * Math::sign(1) // spherical vector components only
+                    // * Math::sign(1) // spherical vector components only
                     ;
 
-                // std::cout << longCoeffs[(jth_flipped+order)*Nph+Jph] << ' ';
+                // if (jph == 0 || jph == nph/2)
+                // std::cout << Jph << ' ' << jth_flipped+order << ' ' << Jph_shifted << ' ' << longCoeffs[(jth_flipped+order)*Nph+Jph_shifted] << '\n';
             }
+            //
 
             ++dirIdx;
         }
