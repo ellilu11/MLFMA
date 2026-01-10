@@ -18,6 +18,11 @@ void FMM::Node::initParams(
     wavenum = Einc->wavenum;
 }
 
+void FMM::Node::buildTables() { 
+    angles = Angles(wavenum, config.rootLeng, config.digits, maxLevel);
+    tables = Tables(angles, config, wavenum, maxLevel); 
+}
+
 void FMM::Node::linkStates(const std::unique_ptr<Solver>& solver) {
     lvec = std::move(solver->getLvec());
     rvec = std::move(solver->getRvec());
@@ -40,49 +45,6 @@ FMM::Node::Node(
         base->center + nodeLeng/2.0 * Math::idx2pm(branchIdx))
 {
     ++numNodes;
-}
-
-/* buildAngularSamples()
- * Compute theta and phi samples at each level
- */
-void FMM::Node::buildAngularSamples() {
-
-    constexpr double EPS_NR = 1.0E-9; // Newton-Raphson precision
-
-    std::cout << "   (Lvl,Nth,Nph) =\n";
-
-    for (int lvl = 0; lvl <= maxLevel; ++lvl) {
-        const double nodeLeng = config.rootLeng / pow(2.0, lvl);
-
-        // Use excess bandwidth formula
-        const int tau = ceil((1.73*wavenum*nodeLeng +
-                2.16*pow(config.digits, 2.0/3.0)*pow(wavenum*nodeLeng, 1.0/3.0)));
-             
-        angles.Ls.push_back(floor(0.50*tau)); // TODO: Find optimal formula
-
-        // Construct thetas
-        const int nth = tau+1;
-        auto [nodes, weights] = Interp::gaussLegendre(nth, EPS_NR, 0.0, PI);
-
-        // Absorb sin(theta) into weights
-        std::transform(weights.begin(), weights.end(), nodes.begin(), weights.begin(),
-            [](double weight, double theta) { return weight * sin(theta); }
-        );
-
-        angles.thetas.push_back(nodes);
-        angles.thetaWeights.push_back(weights);
-
-        // Construct phis
-        const int nph = 2*nth;
-        realVec phis_lvl(nph);
-
-        for (int iph = 0; iph < nph; ++iph)
-            phis_lvl[iph] = 2.0*PI*iph/static_cast<double>(nph);
-
-        angles.phis.push_back(phis_lvl);
-
-        std::cout << "   (" << lvl << "," << nth << "," << nph << ")\n";
-    }
 }
 
 void FMM::Node::resizeCoeffs() {

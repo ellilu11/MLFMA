@@ -7,6 +7,7 @@
 #include "../config.h"
 #include "../interp.h"
 #include "../phys.h"
+#include "angles.h"
 #include "fmm.h"
 #include "tables.h"
 
@@ -24,9 +25,9 @@ public:
 
     static void linkStates(const std::unique_ptr<Solver>&);
 
-    Node(const SrcVec&, const int, Node* const);
+    static void buildTables();
 
-    static void buildAngularSamples();
+    Node(const SrcVec&, const int, Node* const);
 
     virtual void initNode() = 0;
 
@@ -37,8 +38,6 @@ public:
     void printFarSols(const std::string&);
 
     void printAngles();
-
-    static void buildTables() { tables = Tables(angles, config, wavenum, maxLevel); }
 
     static int getMaxLvl() { return maxLevel; }
 

@@ -38,7 +38,6 @@ int main() {
 
     auto start = Clock::now();
 
-    FMM::Node::buildAngularSamples();
     FMM::Node::buildTables();
     root->initNode();
 

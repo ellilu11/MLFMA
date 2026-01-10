@@ -9,26 +9,15 @@ namespace FMM {
     constexpr int DIM = 3;
     constexpr int numDir = 26;
 
+    constexpr double EPS_NR = 1.0E-9; // Newton-Raphson precision
+
     enum class Dir {
         W, E, S, N, D, U,
         SW, SE, NW, NE, DW, DE, UW, UE, DS, DN, US, UN,
         DSW, DSE, DNW, DNE, USW, USE, UNW, UNE
     };
 
-    // TODO: Move to angles.h
-    struct Angles {
-        Angles() = default;
-
-        pair2i getNumAngles(const int level) const {
-            return std::make_pair(thetas[level].size(), phis[level].size());
-        }
-
-        std::vector<realVec> thetas;
-        std::vector<realVec> thetaWeights;
-        std::vector<realVec> phis;
-        std::vector<int> Ls;
-    };
-
+    struct Angles;
 
     class Node;
     class Stem;
