@@ -10,7 +10,7 @@ std::shared_ptr<vecXcd> FMM::Node::lvec;
 std::shared_ptr<vecXcd> FMM::Node::rvec;
 std::shared_ptr<vecXcd> FMM::Node::currents;
 
-void FMM::Node::initParams(
+void FMM::Node::initStatic(
     const Config& config_,
     const std::shared_ptr<Excitation::PlaneWave>& Einc,
     int nsrcs)
@@ -23,18 +23,6 @@ void FMM::Node::initParams(
     currents = std::make_shared<vecXcd>(vecXcd::Zero(nsrcs)); // assume I = 0 initially
 
     Leaf::resetLeaves();
-}
-
-void FMM::Node::buildTables() { 
-    std::cout << "   (Lvl,Nth,Nph) =\n";
-    angles.reserve(maxLevel+1);
-    for (int level = 0; level <= maxLevel; ++level)
-        angles.emplace_back(level);
-
-    Tables::buildDists();
-    tables.reserve(maxLevel+1);
-    for (int level = 0; level <= maxLevel; ++level)
-        tables.emplace_back(level, maxLevel);
 }
 
 /* Node(particles,branchIdx,base)
@@ -55,11 +43,16 @@ FMM::Node::Node(
     ++numNodes;
 }
 
-void FMM::Node::resizeCoeffs() {
-    const auto [nth, nph] = angles[level].getNumAngles();
+void FMM::Node::buildTables() {
+    std::cout << "   (Lvl,Nth,Nph) =\n";
+    angles.reserve(maxLevel+1);
+    for (int level = 0; level <= maxLevel; ++level)
+        angles.emplace_back(level);
 
-    coeffs.resize(nth*nph, vec2cd::Zero());
-    localCoeffs.resize(nth*nph, vec2cd::Zero());
+    Tables::buildDists();
+    tables.reserve(maxLevel+1);
+    for (int level = 0; level <= maxLevel; ++level)
+        tables.emplace_back(level, maxLevel);
 }
 
 /* buildInteractionList()
@@ -106,7 +99,8 @@ void FMM::Node::pushSelfToNearNonNbors() {
 }
 
 /* buildMpoleToLocalCoeffs()
- * (M2L) Translate mpole coeffs of interaction nodes into local coeffs at center
+ * (M2L) Translate mpole coeffs of interaction nodes into local coeffs at center,
+ * then apply integration weights for anterpolation
  */
 void FMM::Node::buildMpoleToLocalCoeffs() {
     if (iList.empty()) return;
@@ -130,9 +124,12 @@ void FMM::Node::buildMpoleToLocalCoeffs() {
     const double phiWeight = 2.0*PI / static_cast<double>(nph);
 
     size_t iDir = 0;
-    for (int ith = 0; ith < nth; ++ith) 
+    for (int ith = 0; ith < nth; ++ith) {
+        const double thetaWeight = angles_lvl.weights[ith];
+
         for (int iph = 0; iph < nph; ++iph)
-            localCoeffs[iDir++] *= phiWeight * angles_lvl.weights[ith];
+            localCoeffs[iDir++] *= thetaWeight * phiWeight;
+    }
     //
 }
 
@@ -162,6 +159,7 @@ void FMM::Node::printFarSols(const std::string& fname) {
 
     const auto& angles_lvl = angles[level];
     const auto [nth, nph] = angles_lvl.getNumAngles();
+
     for (int iDir = 0; iDir < nth*nph; ++iDir) {
         const auto& krhat = angles_lvl.khat[iDir] * wavenum;
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <iostream>
 #include <numeric>
 #include <queue>
 #include "../config.h"
@@ -19,18 +18,18 @@ class FMM::Node {
     friend class Tables;
 
 public:
-    static void initParams(
+    static void initStatic(
         const Config&, 
         const std::shared_ptr<Excitation::PlaneWave>&,
         int);
 
-    // static void linkStates(const std::unique_ptr<Solver>&);
+    Node(const SrcVec&, const int, Node* const);
 
     static void buildTables();
 
-    Node(const SrcVec&, const int, Node* const);
+    virtual void buildLists() = 0;
 
-    virtual void initNode() = 0;
+    virtual void resizeCoeffs() = 0;
 
     virtual void buildMpoleCoeffs() = 0;
 
@@ -77,8 +76,6 @@ protected:
     std::shared_ptr<Node> getNeighborGeqSize(const Dir) const;
 
     NodeVec getNeighborsLeqSize(const std::shared_ptr<Node>, const Dir) const;
-
-    void resizeCoeffs();
     
     void buildInteractionList();
     

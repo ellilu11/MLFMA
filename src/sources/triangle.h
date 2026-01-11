@@ -23,11 +23,15 @@ public:
 
     static int prec2Int(Precision);
 
+    static void buildQuadCoeffs(Precision);
+
     void buildQuads(Precision);
 
-    bool isAdjacent(const std::shared_ptr<Triangle>&);
+    // bool isAdjacent(const std::shared_ptr<Triangle>&);
 
 private:
+    static std::vector<vec3d> quadCoeffs;
+
     vec3i vIdx;
     std::array<vec3d,3> Xs; // vertices
     std::array<vec3d,3> Ds; // Ds[i] = Xs[i+1] - Xs[i]

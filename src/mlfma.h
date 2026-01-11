@@ -10,6 +10,8 @@
 #include <vector>
 #include <utility>
 
+#include "interp.cpp"
+#include "math.cpp"
 #include "solver.cpp"
 #include "fmm/angles.cpp"
 #include "fmm/leaf.cpp"

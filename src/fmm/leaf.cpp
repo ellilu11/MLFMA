@@ -42,23 +42,26 @@ void FMM::Leaf::buildNeighbors() {
     assert(nbors.size() <= numDir);
 }
 
-/* initNode()
+/* buildLists()
  * Add self to list of leaves 
  * Find neighbor and interaction lists
  * Add self as near non-neighbor (list 3 node) of any list 4 nodes
  */
-void FMM::Leaf::initNode() {
+void FMM::Leaf::buildLists() {
     leaves.push_back(shared_from_this()); 
-
-    resizeCoeffs();
 
     if (isRoot()) return;
     
     buildNeighbors();
-
     buildInteractionList();
-
     pushSelfToNearNonNbors();
+}
+
+void FMM::Leaf::resizeCoeffs() {
+    const auto [nth, nph] = angles[level].getNumAngles();
+
+    coeffs.resize(nth*nph, vec2cd::Zero());
+    localCoeffs.resize(nth*nph, vec2cd::Zero());
 }
 
 /* findNearNborPairs()
@@ -75,6 +78,32 @@ void FMM::Leaf::findNearNborPairs() {
         }
     }
 }
+
+/*
+void FMM::Leaf::buildPairNearRads(const std::vector<NodePair>& pairs, bool isNearPair) {
+
+    for (const auto& [obsNode, srcNode] : pairs) {
+        assert(obsNode < srcNode);
+
+        const size_t nObs = obsNode->srcs.size(), nSrcs = srcNode->srcs.size();
+
+        auto leafPairRads = cmplxVec(nObs*nSrcs);
+
+        int pairIdx = 0;
+        for (size_t iObs = 0; iObs < nObs; ++iObs) {
+            for (size_t iSrc = 0; iSrc < nSrcs; ++iSrc) {
+                const auto obs = obsNode->srcs[iObs], src = srcNode->srcs[iSrc];
+
+                leafPairRads[pairIdx++] = obs->getIntegratedRad(src);
+            }
+        }
+
+        if (isNearPair)
+            obsNode->nearRads.push_back(leafPairRads);
+        else
+            obsNode->nonNearRads.push_back(leafPairRads);
+    }
+}*/
 
 void FMM::Leaf::buildNearRads() {
 

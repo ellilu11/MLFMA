@@ -158,9 +158,9 @@ HashMap<interpPair> FMM::Tables::getInterpPsi() {
         const int nearIdx = std::floor((nps-1) * psi / PI);
 
         // Assemble psis interpolating this psi
-        realVec psis;
-        for (int ips = nearIdx+1-order; ips <= nearIdx+order; ++ips)
-            psis.push_back(PI*ips/static_cast<double>(nps-1));
+        realVec psis(2*order);
+        for (int ips = nearIdx+1-order, k = 0; ips <= nearIdx+order; ++ips, ++k)
+            psis[k] = PI*ips/static_cast<double>(nps-1);
 
         // CONSIDER: Use barycentric coordinates
         vecXd coeffs(2*order);
@@ -168,12 +168,9 @@ HashMap<interpPair> FMM::Tables::getInterpPsi() {
             coeffs[k] = Interp::evalLagrangeBasis(psi, psis, k); 
 
         interpPairs.emplace(psi, std::make_pair(coeffs, nearIdx));
-
-        // if (!level) std::cout << std::setprecision(15) << psi << '\n';
     }
 
     // assert(interpPairs.size() == psis.size());
-    // std::cout << interpPairs.size() << ' ' << psis.size() << '\n';
 
     return interpPairs;
 }
@@ -202,15 +199,12 @@ void FMM::Tables::buildTranslationTable() {
 
         for (int iDir = 0; iDir < nDir; ++iDir) {
             const auto& khat = angles_lvl.khat[iDir];
-
             const double psi = acos(khat.dot(rhat));
+            const auto [interpPsi, nearIdx] = interpPsis.at(psi);
 
             cmplx translCoeff = 0.0;
 
-            const auto [interpPsi, nearIdx] = interpPsis.at(psi);
-
             for (int ips = nearIdx+1-order, k = 0; k < 2*order; ++ips, ++k) {
-
                 const int ips_flipped = Math::flipIdxToRange(ips, nps);
 
                 translCoeff += alpha_dX[ips_flipped] * interpPsi[k];

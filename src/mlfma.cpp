@@ -18,7 +18,7 @@ int main() {
     auto [srcs, Einc] = importFromConfig(config);
     auto nsrcs = srcs.size();
 
-    Node::initParams(config, Einc, nsrcs);
+    Node::initStatic(config, Einc, nsrcs);
 
     // ==================== Set up nodes ==================== //
     std::cout << " Setting up nodes...\n";
@@ -29,29 +29,27 @@ int main() {
     else
         root = make_shared<Leaf>(srcs, 0, nullptr);
 
+    root->buildLists();
+
     std::cout << "   # Nodes: " << Node::getNumNodes() << '\n';
-    // std::cout << "   # Leaves: " << Leaf::getNumLeaves() << '\n';
+    std::cout << "   # Leaves: " << Leaf::getNumLeaves() << '\n';
     std::cout << "   Max node level: " << Node::getMaxLvl() << "\n\n";
-
-    // ==================== Build tables ===================== //
-    std::cout << " Building tables...\n";
-
-    auto start = Clock::now();
-
-    Node::buildTables();
-    root->initNode();
-
-    auto end = Clock::now();
-    Time duration_ms = end - start;
-    std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     // ==================== Build nearfield ===================== //
     std::cout << " Building nearfield interactions...\n";
 
-    start = Clock::now();
-
+    auto start = Clock::now();
     Leaf::buildNearRads();
+    auto end = Clock::now();
+    Time duration_ms = end - start;
+    std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
+    // ==================== Build tables ======================== //
+    std::cout << " Building translation operators...\n";
+
+    start = Clock::now();
+    Node::buildTables();
+    root->resizeCoeffs(); // TODO: Hide this call
     end = Clock::now();
     duration_ms = end - start;
     std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
@@ -60,9 +58,7 @@ int main() {
     std::cout << " Building radiation patterns...\n";
 
     start = Clock::now();
-
     Leaf::buildRadPats();
-
     end = Clock::now();
     duration_ms = end - start;
     std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
@@ -77,9 +73,7 @@ int main() {
         Node::lvec, Node::rvec, Node::currents);
 
     start = Clock::now();
-
     solver->solve();
-
     end = Clock::now();
     duration_ms = end - start;
     std::cout << "   Total elapsed time: " << duration_ms.count() << " ms\n\n";
@@ -90,25 +84,27 @@ int main() {
     if (!config.evalDirect) return 0;
 
     // ================== Solve iterative direct ================ //
-    Node::initParams(config, Einc, nsrcs);
+    Node::initStatic(config, Einc, nsrcs);
+
     root = make_shared<Leaf>(srcs, 0, nullptr);
-    root->initNode();
+    root->buildLists();
 
     std::cout << " Building nearfield interactions...\n";
 
     start = Clock::now();
     Leaf::buildNearRads();
     end = Clock::now();
+    
     duration_ms = end - start;
     std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     std::cout << " Solving w/ direct...\n";
-    auto solverDir = make_unique<Solver>(srcs, root, MAX_ITER, EPS,
+    solver = make_unique<Solver>(srcs, root, MAX_ITER, EPS,
         Node::lvec, Node::rvec, Node::currents);
 
-    solverDir->solve();
+    solver->solve();
 
-    solverDir->printSols("currDir_nq7.txt");
+    solver->printSols("currDir_nq7.txt");
 
     return 0;
 }

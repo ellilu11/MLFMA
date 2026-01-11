@@ -26,15 +26,15 @@ target_link_libraries(MLFMA PRIVATE eigen)
 # Add test executable
 # add_executable (test "test/tFarfield.cpp" "src/mlfma.h")
 # add_executable (test "test/tInterp.cpp" "src/mlfma.h")
-# add_executable (test "test/tMath.cpp" "src/mlfma.h")
+add_executable (test "test/tMath.cpp")
 # add_executable (test "test/tNearfield.cpp" "src/mlfma.h")
 # add_executable (test "test/tNodes.cpp" "src/mlfma.h")
 # add_executable (test "test/tRwg.cpp" "src/mlfma.h")
 
-# target_link_libraries(test PRIVATE eigen)
+target_link_libraries(test PRIVATE eigen)
 
 # Specify C++20 standard
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET MLFMA PROPERTY CXX_STANDARD 20)
-  # set_property(TARGET test PROPERTY CXX_STANDARD 20)
+  set_property(TARGET test PROPERTY CXX_STANDARD 20)
 endif()

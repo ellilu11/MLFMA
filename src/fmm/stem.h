@@ -9,7 +9,9 @@ public:
 
     void buildNeighbors() override;
 
-    void initNode() override;
+    void buildLists() override;
+
+    void resizeCoeffs() override;
 
     void buildMpoleCoeffs() override;
 

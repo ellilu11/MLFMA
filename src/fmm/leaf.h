@@ -13,7 +13,11 @@ class FMM::Leaf final : public Node, public std::enable_shared_from_this<Leaf> {
 public:
     Leaf(const SrcVec&, const int, Stem* const);
 
-    void initNode() override;
+    void buildLists() override;
+
+    void resizeCoeffs() override;
+
+    static void buildPairNearRads(const std::vector<NodePair>&, bool);
 
     static void buildNearRads();
 

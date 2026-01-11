@@ -7,7 +7,6 @@ struct FMM::Angles {
 
     Angles(int level) {
         buildAngularSamples(level);
-
         buildAngularMatrices();
     }
 

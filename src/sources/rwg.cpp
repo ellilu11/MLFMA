@@ -26,7 +26,6 @@ RWG::RWG(
 };
 
 vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
-
     using namespace Math;
 
     vec3cd rad = vec3cd::Zero();
@@ -34,7 +33,6 @@ vec3cd RWG::getIntegratedPlaneWave(const vec3d& kvec, bool doNumeric) const {
 
     if (doNumeric) {
         for (const auto& tri : tris) {
-
             for (const auto& [node, weight] : tri->getQuads())
                 rad += weight * exp(iu*kvec.dot(node))
                         * (node - Xpm[triIdx])

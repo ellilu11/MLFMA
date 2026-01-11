@@ -15,6 +15,8 @@ Triangle::Triangle(
         Ds[i] = Xs[ipp] - Xs[i];
     }
 
+    nhat = (Ds[0].cross(Ds[1])).normalized();
+
     buildQuads(quadPrec);
 };
 
@@ -30,14 +32,27 @@ int Triangle::prec2Int(Precision quadPrec) {
         } ();
 }
 
+/*
+void Triangle::buildQuadCoeffs(Precision quadPrec) {
+
+    switch (quadPrec) {
+        case Precision::VERYLOW:
+            quadCoeffs.reserve(1);
+
+    }
+}*/
+
 void Triangle::buildQuads(Precision quadPrec) {
 
     auto baryPt = [&](double w0, double w1, double w2) {
         return w0*Xs[0] + w1*Xs[1] + w2*Xs[2];
-    };
+        };
+
+    //auto baryPt = [&](const vec3d& ws) {
+    //    return ws[0]*Xs[0] + ws[1]*Xs[1] + ws[2]*Xs[2];
+    //};
 
     // TODO: use permutation function
-
     switch (quadPrec) {
         case Precision::VERYLOW:
             quads.reserve(1);

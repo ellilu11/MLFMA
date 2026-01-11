@@ -41,23 +41,29 @@ void FMM::Stem::buildNeighbors() {
     assert(nbors.size() <= numDir);
 }
 
-/* initNode()
+/* buildLists()
  * Find neighbor and interaction lists.
  * Add self as near non-neighbor (list 3 node) of any list 4 nodes
  */
-void FMM::Stem::initNode() {
-    resizeCoeffs();
-
+void FMM::Stem::buildLists() {
     if (!isRoot()) {
         buildNeighbors();
-
         buildInteractionList();
-
         pushSelfToNearNonNbors();
     }
 
     for (const auto& branch : branches)
-        branch->initNode();
+        branch->buildLists();
+}
+
+void FMM::Stem::resizeCoeffs() {
+    const auto [nth, nph] = angles[level].getNumAngles();
+
+    coeffs.resize(nth*nph, vec2cd::Zero());
+    localCoeffs.resize(nth*nph, vec2cd::Zero());
+
+    for (const auto& branch : branches)
+        branch->resizeCoeffs();
 }
 
 /* buildMpoleCoeffs()
