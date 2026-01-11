@@ -3,18 +3,21 @@
 #include "fmm/node.h"
 
 Solver::Solver(
-    SrcVec& srcs, 
-    std::shared_ptr<FMM::Node> root, 
-    int maxIter, double EPS)
+    SrcVec& srcs,
+    std::shared_ptr<FMM::Node> root,
+    int maxIter, double EPS,
+    std::shared_ptr<vecXcd> lvec_,
+    std::shared_ptr<vecXcd> rvec_,
+    std::shared_ptr<vecXcd> currents_)
     : root(std::move(root)),
+      lvec(std::move(lvec_)),
+      rvec(std::move(rvec_)),
+      currents(std::move(currents_)),
       numSrcs(srcs.size()),
       maxIter(maxIter),
       EPS(EPS),
       Qmat(matXcd(numSrcs, 1)),
-      gvec(vecXcd::Zero(maxIter+1)),
-      lvec(std::make_shared<vecXcd>(vecXcd::Zero(numSrcs))),
-      rvec(std::make_shared<vecXcd>(vecXcd::Zero(numSrcs))),
-      currents(std::make_shared<vecXcd>(vecXcd::Zero(numSrcs))) // assume I = 0 initially
+      gvec(vecXcd::Zero(maxIter+1))
 {
     /* Sort sources by srcIdx
     std::sort(srcs.begin(), srcs.end(),
@@ -127,7 +130,7 @@ void Solver::solve() {
 
         updateGvec(vcos, vsin, iter);
 
-        resetRvec();
+        if (iter < maxIter-1) resetRvec();
 
         Time fmm_duration_ms = Clock::now() - iter_start;
         // std::cout << "   Elapsed time: " << fmm_duration_ms.count() << " ms\n";

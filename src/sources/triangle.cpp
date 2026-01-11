@@ -40,10 +40,13 @@ void Triangle::buildQuads(Precision quadPrec) {
 
     switch (quadPrec) {
         case Precision::VERYLOW:
+            quads.reserve(1);
             quads.emplace_back(center, 1.0/2.0);
             break;
 
         case Precision::LOW: {
+            quads.reserve(3);
+
             constexpr double weight = 1.0/6.0;
             quads.emplace_back(baryPt(2.0/3.0, 1.0/6.0, 1.0/6.0), weight);
             quads.emplace_back(baryPt(1.0/6.0, 2.0/3.0, 1.0/6.0), weight);
@@ -52,8 +55,9 @@ void Triangle::buildQuads(Precision quadPrec) {
         }
 
         case Precision::MEDIUM: {
-            constexpr double weight0 = 0.1125;
+            quads.reserve(7);
 
+            constexpr double weight0 = 0.1125;
             quads.emplace_back(center, weight0);
 
             constexpr double weight1 = 0.066197076394253;
@@ -71,12 +75,14 @@ void Triangle::buildQuads(Precision quadPrec) {
             constexpr double weightErr = weight0 + 3.0*(weight1+weight2) - 0.5;
             static_assert(weightErr > -Math::FEPS && weightErr < Math::FEPS);
 
+            assert(quads.size() == 7);
             break;
         }
 
         case Precision::HIGH: {
-            constexpr double weight0 = -0.074785022233841;
+            quads.reserve(13);
 
+            constexpr double weight0 = -0.074785022233841;
             quads.emplace_back(center, weight0);
 
             constexpr double weight1 = 0.087807628716604;

@@ -12,17 +12,22 @@ std::shared_ptr<vecXcd> FMM::Node::currents;
 
 void FMM::Node::initParams(
     const Config& config_,
-    const std::shared_ptr<Excitation::PlaneWave>& Einc)
+    const std::shared_ptr<Excitation::PlaneWave>& Einc,
+    int nsrcs)
 {
     config = config_;
     wavenum = Einc->wavenum;
+
+    lvec = std::make_shared<vecXcd>(vecXcd::Zero(nsrcs));
+    rvec = std::make_shared<vecXcd>(vecXcd::Zero(nsrcs));
+    currents = std::make_shared<vecXcd>(vecXcd::Zero(nsrcs)); // assume I = 0 initially
 }
 
 void FMM::Node::buildTables() { 
     std::cout << "   (Lvl,Nth,Nph) =\n";
     angles.resize(maxLevel+1);
     for (int level = 0; level <= maxLevel; ++level)
-        angles[level] = Angles(wavenum, config.rootLeng, config.digits, level);
+        angles[level] = Angles(level);
 
     Tables::buildDists();
     tables.resize(maxLevel+1);
@@ -30,11 +35,11 @@ void FMM::Node::buildTables() {
         tables[level] = Tables(level, maxLevel);
 }
 
-void FMM::Node::linkStates(const std::unique_ptr<Solver>& solver) {
-    lvec = std::move(solver->getLvec());
-    rvec = std::move(solver->getRvec());
-    currents = std::move(solver->getCurrents());
-}
+//void FMM::Node::linkStates(const std::unique_ptr<Solver>& solver) {
+//    lvec = std::move(solver->getLvec());
+//    rvec = std::move(solver->getRvec());
+//    currents = std::move(solver->getCurrents());
+//}
 
 /* Node(particles,branchIdx,base)
  * particles : list of particles contained in this node
@@ -74,7 +79,7 @@ void FMM::Node::buildInteractionList() {
     };
 
     for (const auto& baseNbor : base->nbors) {
-        if (baseNbor->isSrcless()) continue; // TODO: double check
+        if (baseNbor->isSrcless()) continue;
 
         if (baseNbor->isNodeType<Leaf>() && notContains(nbors, baseNbor)) {
             leafIlist.push_back(baseNbor);
@@ -82,7 +87,7 @@ void FMM::Node::buildInteractionList() {
         }
 
         for (const auto& branch : baseNbor->branches)
-            if (notContains(nbors, branch) && !branch->isSrcless()) // TODO: double check
+            if (notContains(nbors, branch) && !branch->isSrcless())
                 iList.push_back(branch);
     }
 
@@ -113,26 +118,25 @@ void FMM::Node::buildMpoleToLocalCoeffs() {
     std::fill(localCoeffs.begin(), localCoeffs.end(), vec2cd::Zero());
 
     const auto& transl = tables[level].transl;
-    const size_t numAngles = localCoeffs.size();
+    const size_t nDir = localCoeffs.size();
 
     for (const auto& node : iList) {
         const auto& dX = center - node->center;
         const auto& transl_dX = transl.at(dX/nodeLeng);
 
-        for (int idx = 0; idx < numAngles; ++idx) // TODO: use Eigen::Array
-            localCoeffs[idx] += transl_dX[idx] * node->coeffs[idx];
+        for (int iDir = 0; iDir < nDir; ++iDir) // TODO: use Eigen::Array
+            localCoeffs[iDir] += transl_dX[iDir] * node->coeffs[iDir];
     }
 
     // Apply integration weights
-    const auto [nth, nph] = angles[level].getNumAngles();
+    const auto& angles_lvl = angles[level];
+    const auto [nth, nph] = angles_lvl.getNumAngles();
     const double phiWeight = 2.0*PI / static_cast<double>(nph);
-    size_t dirIdx = 0;
-    for (int ith = 0; ith < nth; ++ith) {
-        const double weight = phiWeight * angles[level].thetaWeights[ith];
 
+    size_t iDir = 0;
+    for (int ith = 0; ith < nth; ++ith) 
         for (int iph = 0; iph < nph; ++iph)
-            localCoeffs[dirIdx++] *= weight;
-    }
+            localCoeffs[iDir++] *= phiWeight * angles_lvl.weights[ith];
     //
 }
 
@@ -161,20 +165,19 @@ void FMM::Node::printFarSols(const std::string& fname) {
     farfile << std::setprecision(15) << std::scientific;
 
     const auto [nth, nph] = angles[level].getNumAngles();
-    for (int dirIdx = 0; dirIdx < nth*nph; ++dirIdx) {
-        const auto& krhat = tables[level].khat[dirIdx] * wavenum;
+    for (int iDir = 0; iDir < nth*nph; ++iDir) {
+        const auto& krhat = tables[level].khat[iDir] * wavenum;
 
         vec3cd dirFar = vec3cd::Zero();
         for (const auto& src : srcs)
             dirFar += (*currents)[src->getIdx()] * src->getFarAlongDir(krhat);
 
-        const vec3cd& far = Phys::C * wavenum * tables[level].ImRR[dirIdx] * dirFar;
+        const vec3cd& far = Phys::C * wavenum * tables[level].ImRR[iDir] * dirFar;
 
         farfile << far << '\n';
     }
 
     // Also print out angles (coordinates of farsols)
     std::ofstream thfile(dir/"thetas.txt"), phfile(dir/"phis.txt");
-
     angles[level].printAngles(thfile, phfile);
 }

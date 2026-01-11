@@ -18,7 +18,7 @@ int main() {
     auto [srcs, Einc] = importFromConfig(config);
     auto nsrcs = srcs.size();
 
-    FMM::Node::initParams(config, Einc);
+    FMM::Node::initParams(config, Einc, nsrcs);
 
     // ==================== Set up nodes ==================== //
     cout << " Setting up nodes...\n";
@@ -70,15 +70,16 @@ int main() {
     // ==================== Solve iterative FMM ================ //
     cout << " Solving w/ FMM...\n";
 
-    constexpr int MAX_ITER = 1000;
+    constexpr int MAX_ITER = 2;
     constexpr double EPS = 1.0E-6;
 
-    auto solver = make_unique<Solver>(srcs, root, MAX_ITER, EPS);
-    FMM::Node::linkStates(solver);
+    auto solver = make_unique<Solver>(srcs, root, MAX_ITER, EPS,
+        FMM::Node::lvec, FMM::Node::rvec, FMM::Node::currents);
+    // FMM::Node::linkStates(solver);
 
     start = Clock::now();
 
-    solver->evalRvec(0);
+    solver->solve();
 
     end = Clock::now();
     duration_ms = end - start;
@@ -91,6 +92,7 @@ int main() {
 
     // ================== Solve iterative direct ================ //
     FMM::Leaf::resetLeaves();
+    FMM::Node::initParams(config, Einc, nsrcs);
     root = make_shared<FMM::Leaf>(srcs, 0, nullptr);
     root->initNode();
 
@@ -103,12 +105,13 @@ int main() {
     cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     cout << " Solving w/ direct...\n";
-    solver = make_unique<Solver>(srcs, root, MAX_ITER, EPS);
-    FMM::Node::linkStates(solver);
+    auto solverDir = make_unique<Solver>(srcs, root, MAX_ITER, EPS,
+        FMM::Node::lvec, FMM::Node::rvec, FMM::Node::currents);
+    // FMM::Node::linkStates(solver);
 
-    solver->evalRvec(0);
+    solverDir->solve();
 
-    solver->printSols("rvecDir.txt");
+    solverDir->printSols("rvecDir.txt");
 
     return 0;
 }

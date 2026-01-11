@@ -84,10 +84,9 @@ void FMM::Stem::buildMpoleCoeffs() {
 
         std::vector<vec2cd> shiftedCoeffs(mth*mph, vec2cd::Zero());
 
-        for (int idx = 0; idx < mth*mph; ++idx) {
-            const auto& kvec = tables[level+1].khat[idx] * wavenum;
-
-            shiftedCoeffs[idx] = exp(iu*kvec.dot(dX)) * branchCoeffs[idx];
+        for (int iDir = 0; iDir < mth*mph; ++iDir) {
+            const auto& kvec = tables[level+1].khat[iDir] * wavenum;
+            shiftedCoeffs[iDir] = exp(iu*kvec.dot(dX)) * branchCoeffs[iDir];
         }
 
         // Interpolate shifted coeffs to this node's angular grid
@@ -114,10 +113,9 @@ std::vector<vec2cd> FMM::Stem::getShiftedLocalCoeffs(int branchIdx) const {
 
     std::vector<vec2cd> shiftedCoeffs(mth*mph, vec2cd::Zero());
 
-    for (int idx = 0; idx < mth*mph; ++idx) {
-        const auto& kvec = tables[level].khat[idx] * wavenum;
-
-        shiftedCoeffs[idx] = exp(iu*kvec.dot(dX)) * localCoeffs[idx];
+    for (int iDir = 0; iDir < mth*mph; ++iDir) {
+        const auto& kvec = tables[level].khat[iDir] * wavenum;
+        shiftedCoeffs[iDir] = exp(iu*kvec.dot(dX)) * localCoeffs[iDir];
     }
 
     // Anterpolate shifted coeffs to branch's angular grid

@@ -9,7 +9,13 @@
 class Solver {
 
 public :
-    Solver(SrcVec& srcs, std::shared_ptr<FMM::Node>, int, double);
+    Solver(
+        SrcVec& srcs, 
+        std::shared_ptr<FMM::Node>, 
+        int, double,
+        std::shared_ptr<vecXcd>,
+        std::shared_ptr<vecXcd>,
+        std::shared_ptr<vecXcd>);
 
     void evalRvec(int);
 
@@ -38,6 +44,10 @@ private :
     
     std::shared_ptr<FMM::Node> root;
 
+    std::shared_ptr<vecXcd> lvec;
+    std::shared_ptr<vecXcd> rvec;
+    std::shared_ptr<vecXcd> currents;
+
     int numSrcs;
     int maxIter;
     double EPS;
@@ -46,8 +56,4 @@ private :
     matXcd Hmat;
     vecXcd gvec;
     double g0;
-
-    std::shared_ptr<vecXcd> lvec;
-    std::shared_ptr<vecXcd> rvec;
-    std::shared_ptr<vecXcd> currents;
 };

@@ -13,18 +13,18 @@ void FMM::Tables::buildAngularTables() {
     toThPh.resize(nDirs);
     ImRR.resize(nDirs);
 
-    size_t idx = 0;
+    size_t iDir = 0;
     for (int ith = 0; ith < nth; ++ith) {
-        const double th = angles.thetas[ith];
+        const double theta = angles.thetas[ith];
 
         for (int iph = 0; iph < nph; ++iph) {
-            const double ph = angles.phis[iph];
+            const double phi = angles.phis[iph];
 
-            khat[idx] = Math::fromSph(vec3d(1.0, th, ph));
-            toThPh[idx] = Math::toThPh(th, ph);
-            ImRR[idx] = Math::ImRR(khat[idx]);
+            khat[iDir] = Math::fromSph(vec3d(1.0, theta, phi));
+            toThPh[iDir] = Math::toThPh(theta, phi);
+            ImRR[iDir] = Math::ImRR(khat[iDir]);
 
-            ++idx;
+            ++iDir;
         }
     }
 }
@@ -44,8 +44,8 @@ std::vector<interpPair> FMM::Tables::getInterpTheta(int srcLvl, int tgtLvl)
         const int nearIdx = Interp::getNearGLNodeIdx(tgtTheta, mth, 0.0, PI);
 
         // Assemble source thetas interpolating target theta
-        realVec interpThetas;
-        for (int ith = nearIdx+1-order; ith <= nearIdx+order; ++ith) {
+        realVec interpThetas(2*order);
+        for (int ith = nearIdx+1-order, k = 0; ith <= nearIdx+order; ++ith, ++k) {
 
             // Flip ith if not in [0, mth-1]
             int ith_flipped = Math::flipIdxToRange(ith, mth);
@@ -53,12 +53,10 @@ std::vector<interpPair> FMM::Tables::getInterpTheta(int srcLvl, int tgtLvl)
             double srcTheta = srcThetas[ith_flipped];
 
             // Extend source thetas to outside [0, pi] as needed
-            if (ith < 0)
-                srcTheta *= -1.0;
-            else if (ith >= mth)
-                srcTheta = 2.0*PI - srcTheta;
+            if (ith < 0) srcTheta *= -1.0;
+            else if (ith >= mth) srcTheta = 2.0*PI - srcTheta;
 
-            interpThetas.push_back(srcTheta);
+            interpThetas[k] = srcTheta;
         }
 
         vecXd coeffs(2*order);
@@ -88,9 +86,9 @@ std::vector<interpPair> FMM::Tables::getInterpPhi(int srcLvl, int tgtLvl)
         const int nearIdx = std::floor(mph * tgtPhi / (2.0*PI));
 
         // Assemble source phis interpolating target phi
-        realVec interpPhis;
-        for (int iph = nearIdx+1-order; iph <= nearIdx+order; ++iph)
-            interpPhis.push_back(2.0*PI*iph/static_cast<double>(mph));
+        realVec interpPhis(2*order);
+        for (int iph = nearIdx+1-order, k = 0; iph <= nearIdx+order; ++iph, ++k)
+            interpPhis[k] = 2.0*PI*iph/static_cast<double>(mph);
 
         vecXd coeffs(2*order);
         for (int k = 0; k < 2*order; ++k)
@@ -109,18 +107,18 @@ void FMM::Tables::buildInterpTables() {
     interpPhi = getInterpPhi(level+1, level);
 
     // L2L interpolation tables
-    invInterpTheta = getInterpTheta(level, level+1);
-    invInterpPhi = getInterpPhi(level, level+1);
+    //invInterpTheta = getInterpTheta(level, level+1);
+    //invInterpPhi = getInterpPhi(level, level+1);
 }
 
 Map<vecXcd> FMM::Tables::getAlpha() {
     using namespace Math;
 
     const double wavenum = Node::wavenum;
+
     const int L = Node::angles[level].L;
     const int nth = Node::angles[level].getNumAngles().first;
     const int nps = std::floor(Node::config.overInterp*(nth-1));
-
     const double nodeLeng = Node::config.rootLeng / pow(2.0, level);
 
     Map<vecXcd> alpha;
@@ -157,13 +155,13 @@ HashMap<interpPair> FMM::Tables::getInterpPsi() {
 
     // Find all unique psi = acos(khat.dot(rhat))
     const auto [nth, nph] = Node::angles[level].getNumAngles();
+    const int nDir = nth*nph;
 
-    realVec psis(nth*nph*rhats.size());
+    realVec psis(nDir*rhats.size());
 
     size_t m = 0;
-    for (size_t l = 0; l < nth*nph; ++l) {
-
-        const auto& khat = this->khat[l];
+    for (size_t iDir = 0; iDir < nDir; ++iDir) {
+        const auto& khat = this->khat[iDir];
 
         for (const auto& rhat : rhats)
             psis[m++] = acos(khat.dot(rhat));
@@ -210,6 +208,7 @@ void FMM::Tables::buildTranslationTable() {
     const auto& interpPsis = getInterpPsi(); 
 
     const auto [nth, nph] = Node::angles[level].getNumAngles();
+    const int nDir = nth*nph;
 
     const int nps = std::floor(Node::config.overInterp*(nth-1));
 
@@ -221,8 +220,8 @@ void FMM::Tables::buildTranslationTable() {
 
         vecXcd transl_dX(nth*nph);
 
-        for (int idx = 0; idx < nth*nph; ++idx) {
-            const auto& khat = this->khat[idx];
+        for (int iDir = 0; iDir < nDir; ++iDir) {
+            const auto& khat = this->khat[iDir];
 
             const double psi = acos(khat.dot(rhat));
 
@@ -237,7 +236,7 @@ void FMM::Tables::buildTranslationTable() {
                 translCoeff += alpha_dX[ips_flipped] * interpPsi[k];
             }
 
-            transl_dX[idx] = translCoeff;
+            transl_dX[iDir] = translCoeff;
         }
 
         transl.emplace(dX, transl_dX);

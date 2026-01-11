@@ -11,21 +11,20 @@
 #include "fmm.h"
 #include "tables.h"
 
-class Solver;
-
 using NodeVec = std::vector<std::shared_ptr<FMM::Node>>;
 using NodePair = std::pair<std::shared_ptr<FMM::Node>, std::shared_ptr<FMM::Node>>;
 
 class FMM::Node {
-    // friend struct Angles;
+    friend struct Angles;
     friend class Tables;
 
 public:
     static void initParams(
         const Config&, 
-        const std::shared_ptr<Excitation::PlaneWave>&);
+        const std::shared_ptr<Excitation::PlaneWave>&,
+        int);
 
-    static void linkStates(const std::unique_ptr<Solver>&);
+    // static void linkStates(const std::unique_ptr<Solver>&);
 
     static void buildTables();
 
@@ -48,22 +47,14 @@ public:
     SrcVec getSrcs() const { return srcs; }
     
     int getBranchIdx() const { return branchIdx; }
+
+    Node* getBase() const { return base; }
     
-    double getLeng() const { return nodeLeng; }
+    double getNodeLeng() const { return nodeLeng; }
     
     int getLevel() const { return level; }
 
     vec3d getCenter() const { return center; }
-    
-    Node* getBase() const { return base; }
-    
-    NodeVec getBranches() const { return branches; }
-    
-    NodeVec getNbors() const { return nbors; }
-
-    NodeVec getIlist() const { return iList; }
-
-    NodeVec getLeafIlist() const { return leafIlist; }
     
     std::vector<vec2cd> getMpoleCoeffs() const { return coeffs; }
     
@@ -71,19 +62,16 @@ public:
 
     bool isRoot() const { return base == nullptr; }
     
+    bool isSrcless() const { return srcs.empty(); }
+
     template <typename T>
     bool isNodeType() const { return typeid(*this) == typeid(T); }
 
-    bool isSrcless() const { return srcs.empty(); }
+    //void testFarfield(double);
 
-    // ========== Test methods ==========
-    void testFarfield(double);
+    //static std::shared_ptr<Node> getNode();
 
-    static void printAngularSamples(int);
-
-    static std::shared_ptr<Node> getNode();
-
-    std::vector<vec3cd> getFarSolsFromCoeffs(double);
+    //std::vector<vec3cd> getFarSolsFromCoeffs(double);
 
 protected:
     std::shared_ptr<Node> getNeighborGeqSize(const Dir) const;
@@ -104,16 +92,17 @@ protected:
     
     virtual void buildNeighbors() = 0;
 
+public:
+    static std::shared_ptr<vecXcd> lvec;
+    static std::shared_ptr<vecXcd> rvec;
+    static std::shared_ptr<vecXcd> currents;
+
 protected:
     static Config config;
     static double wavenum;
     static std::vector<Angles> angles;
     static std::vector<Tables> tables;
     static std::vector<NodePair> nonNearPairs;
-
-    static std::shared_ptr<vecXcd> lvec;
-    static std::shared_ptr<vecXcd> rvec;
-    static std::shared_ptr<vecXcd> currents;
 
     inline static int numNodes = 0;
     inline static int maxLevel = 0;

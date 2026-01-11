@@ -13,9 +13,7 @@ public:
         : level(level)
     {
         buildAngularTables();
-
         if (level < maxLevel) buildInterpTables();
-
         buildTranslationTable();
     }
 
