@@ -5,77 +5,76 @@
 #include "fileio.h"
 #include "fmm/fmm.h"
 
-using namespace std;
+using namespace FMM;
 
 extern auto t = ClockTimes();
 
 int main() {
     // ===================== Read config ==================== //
-    cout << " Importing sources...\n";
+    std::cout << " Importing sources...\n";
 
     Config config("config/config.txt");
 
     auto [srcs, Einc] = importFromConfig(config);
     auto nsrcs = srcs.size();
 
-    FMM::Node::initParams(config, Einc, nsrcs);
+    Node::initParams(config, Einc, nsrcs);
 
     // ==================== Set up nodes ==================== //
-    cout << " Setting up nodes...\n";
+    std::cout << " Setting up nodes...\n";
 
-    shared_ptr<FMM::Node> root;
+    shared_ptr<Node> root;
     if (nsrcs > config.maxNodeSrcs)
-        root = make_shared<FMM::Stem>(srcs, 0, nullptr);
+        root = make_shared<Stem>(srcs, 0, nullptr);
     else
-        root = make_shared<FMM::Leaf>(srcs, 0, nullptr);
+        root = make_shared<Leaf>(srcs, 0, nullptr);
 
-    cout << "   # Nodes: " << FMM::Node::getNumNodes() << '\n';
-    // cout << "   # Leaves: " << Leaf::getNumLeaves() << '\n';
-    cout << "   Max node level: " << FMM::Node::getMaxLvl() << "\n\n";
+    std::cout << "   # Nodes: " << Node::getNumNodes() << '\n';
+    // std::cout << "   # Leaves: " << Leaf::getNumLeaves() << '\n';
+    std::cout << "   Max node level: " << Node::getMaxLvl() << "\n\n";
 
     // ==================== Build tables ===================== //
-    cout << " Building tables...\n";
+    std::cout << " Building tables...\n";
 
     auto start = Clock::now();
 
-    FMM::Node::buildTables();
+    Node::buildTables();
     root->initNode();
 
     auto end = Clock::now();
     Time duration_ms = end - start;
-    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
+    std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     // ==================== Build nearfield ===================== //
-    cout << " Building nearfield interactions...\n";
+    std::cout << " Building nearfield interactions...\n";
 
     start = Clock::now();
 
-    FMM::Leaf::buildNearRads();
+    Leaf::buildNearRads();
 
     end = Clock::now();
     duration_ms = end - start;
-    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
+    std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     // ==================== Build radpats ===================== //
-    cout << " Building radiation patterns...\n";
+    std::cout << " Building radiation patterns...\n";
 
     start = Clock::now();
 
-    FMM::Leaf::buildRadPats();
+    Leaf::buildRadPats();
 
     end = Clock::now();
     duration_ms = end - start;
-    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
+    std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
     // ==================== Solve iterative FMM ================ //
-    cout << " Solving w/ FMM...\n";
+    std::cout << " Solving w/ FMM...\n";
 
-    constexpr int MAX_ITER = 2;
+    constexpr int MAX_ITER = 500;
     constexpr double EPS = 1.0E-6;
 
     auto solver = make_unique<Solver>(srcs, root, MAX_ITER, EPS,
-        FMM::Node::lvec, FMM::Node::rvec, FMM::Node::currents);
-    // FMM::Node::linkStates(solver);
+        Node::lvec, Node::rvec, Node::currents);
 
     start = Clock::now();
 
@@ -83,35 +82,33 @@ int main() {
 
     end = Clock::now();
     duration_ms = end - start;
-    cout << "   Total elapsed time: " << duration_ms.count() << " ms\n\n";
+    std::cout << "   Total elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    solver->printSols("rvec.txt");
+    solver->printSols("curr_nq7.txt");
     //root->printFarSols("ff_nq7.txt");
 
     if (!config.evalDirect) return 0;
 
     // ================== Solve iterative direct ================ //
-    FMM::Leaf::resetLeaves();
-    FMM::Node::initParams(config, Einc, nsrcs);
-    root = make_shared<FMM::Leaf>(srcs, 0, nullptr);
+    Node::initParams(config, Einc, nsrcs);
+    root = make_shared<Leaf>(srcs, 0, nullptr);
     root->initNode();
 
-    cout << " Building nearfield interactions...\n";
+    std::cout << " Building nearfield interactions...\n";
 
     start = Clock::now();
-    FMM::Leaf::buildNearRads();
+    Leaf::buildNearRads();
     end = Clock::now();
     duration_ms = end - start;
-    cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
+    std::cout << "   Elapsed time: " << duration_ms.count() << " ms\n\n";
 
-    cout << " Solving w/ direct...\n";
+    std::cout << " Solving w/ direct...\n";
     auto solverDir = make_unique<Solver>(srcs, root, MAX_ITER, EPS,
-        FMM::Node::lvec, FMM::Node::rvec, FMM::Node::currents);
-    // FMM::Node::linkStates(solver);
+        Node::lvec, Node::rvec, Node::currents);
 
     solverDir->solve();
 
-    solverDir->printSols("rvecDir.txt");
+    solverDir->printSols("currDir_nq7.txt");
 
     return 0;
 }

@@ -1,6 +1,6 @@
 #include "angles.h"
 
-FMM::Angles::Angles(int level)
+void FMM::Angles::buildAngularSamples(int level)
 {
     const double wavenum = Node::wavenum;
     const double nodeLeng = Node::config.rootLeng / pow(2.0, level);
@@ -28,6 +28,30 @@ FMM::Angles::Angles(int level)
         phis[iph] = 2.0*PI*iph/static_cast<double>(nph);
 
     std::cout << "   (" << level << "," << thetas.size() << "," << phis.size() << ")\n";
+}
+
+void FMM::Angles::buildAngularMatrices() {
+    const auto [nth, nph] = getNumAngles();
+    const size_t nDirs = nth*nph;
+
+    khat.resize(nDirs);
+    toThPh.resize(nDirs);
+    ImRR.resize(nDirs);
+
+    size_t iDir = 0;
+    for (int ith = 0; ith < nth; ++ith) {
+        const double theta = thetas[ith];
+
+        for (int iph = 0; iph < nph; ++iph) {
+            const double phi = phis[iph];
+
+            khat[iDir] = Math::fromSph(vec3d(1.0, theta, phi));
+            toThPh[iDir] = Math::toThPh(theta, phi);
+            ImRR[iDir] = Math::ImRR(khat[iDir]);
+
+            ++iDir;
+        }
+    }
 }
 
 void FMM::Angles::printAngles(std::ofstream& thfile, std::ofstream& phfile) {

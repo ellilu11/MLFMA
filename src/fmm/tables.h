@@ -12,7 +12,6 @@ public:
     Tables(int level, int maxLevel)
         : level(level)
     {
-        buildAngularTables();
         if (level < maxLevel) buildInterpTables();
         buildTranslationTable();
     }
@@ -22,11 +21,6 @@ public:
         rhats = Math::getINodeDirections();
         dXs = Math::getINodeDistVecs();
     }
-
-    // Angular tables
-    std::vector<vec3d> khat;
-    std::vector<mat23d> toThPh;
-    std::vector<mat3d> ImRR;
 
     // M2M interpolation tables
     std::vector<interpPair> interpTheta;
@@ -47,8 +41,6 @@ private:
     Map<vecXcd> getAlpha();
 
     HashMap<interpPair> getInterpPsi();
-
-    void buildAngularTables();
 
     void buildInterpTables();
 

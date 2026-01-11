@@ -159,12 +159,12 @@ void FMM::Leaf::buildRadPats() {
         const int level = leaf->level;
         const auto& center = leaf->center;
 
-        const auto [nth, nph] = angles[level].getNumAngles();
-        const auto& tables_lvl = tables[level];
+        const auto& angles_lvl = angles[level];
+        const auto [nth, nph] = angles_lvl.getNumAngles();
 
         for (int iDir = 0; iDir < nth*nph; ++iDir) {
-            const auto& kvec = tables_lvl.khat[iDir] * wavenum;
-            const auto& toThPh = tables_lvl.toThPh[iDir];
+            const auto& kvec = angles_lvl.khat[iDir] * wavenum;
+            const auto& toThPh = angles_lvl.toThPh[iDir];
 
             std::vector<vec2cd> radPat(leaf->srcs.size(), vec2cd::Zero());
 

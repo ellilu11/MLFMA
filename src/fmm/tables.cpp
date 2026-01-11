@@ -4,31 +4,6 @@ realVec FMM::Tables::dists;
 std::vector<vec3d> FMM::Tables::rhats;
 std::array<vec3d,316> FMM::Tables::dXs;
 
-void FMM::Tables::buildAngularTables() {
-    const auto& angles = Node::angles[level];
-    const auto [nth, nph] = angles.getNumAngles();
-    const size_t nDirs = nth*nph;
-
-    khat.resize(nDirs);
-    toThPh.resize(nDirs);
-    ImRR.resize(nDirs);
-
-    size_t iDir = 0;
-    for (int ith = 0; ith < nth; ++ith) {
-        const double theta = angles.thetas[ith];
-
-        for (int iph = 0; iph < nph; ++iph) {
-            const double phi = angles.phis[iph];
-
-            khat[iDir] = Math::fromSph(vec3d(1.0, theta, phi));
-            toThPh[iDir] = Math::toThPh(theta, phi);
-            ImRR[iDir] = Math::ImRR(khat[iDir]);
-
-            ++iDir;
-        }
-    }
-}
-
 std::vector<interpPair> FMM::Tables::getInterpTheta(int srcLvl, int tgtLvl) 
 {
     const int order = Node::config.interpOrder;
@@ -37,6 +12,7 @@ std::vector<interpPair> FMM::Tables::getInterpTheta(int srcLvl, int tgtLvl)
     const int mth = srcThetas.size(), nth = tgtThetas.size();
 
     std::vector<interpPair> interpPairs;
+    interpPairs.reserve(nth);
 
     for (size_t jth = 0; jth < nth; ++jth) {
         const double tgtTheta = tgtThetas[jth];
@@ -65,7 +41,6 @@ std::vector<interpPair> FMM::Tables::getInterpTheta(int srcLvl, int tgtLvl)
                 Interp::evalLagrangeBasis(tgtTheta, interpThetas, k);
 
         interpPairs.emplace_back(coeffs, nearIdx);
-
     }
 
     return interpPairs;
@@ -79,6 +54,7 @@ std::vector<interpPair> FMM::Tables::getInterpPhi(int srcLvl, int tgtLvl)
     const int mph = srcPhis.size(), nph = tgtPhis.size();
 
     std::vector<interpPair> interpPairs;
+    interpPairs.reserve(nph);
 
     for (size_t jph = 0; jph < nph; ++jph) {
         const double tgtPhi = tgtPhis[jph];
@@ -154,14 +130,15 @@ HashMap<interpPair> FMM::Tables::getInterpPsi() {
     const int order = Node::config.interpOrder;
 
     // Find all unique psi = acos(khat.dot(rhat))
-    const auto [nth, nph] = Node::angles[level].getNumAngles();
+    const auto& angles_lvl = Node::angles[level];
+    const auto [nth, nph] = angles_lvl.getNumAngles();
     const int nDir = nth*nph;
 
     realVec psis(nDir*rhats.size());
 
     size_t m = 0;
     for (size_t iDir = 0; iDir < nDir; ++iDir) {
-        const auto& khat = this->khat[iDir];
+        const auto& khat = angles_lvl.khat[iDir];
 
         for (const auto& rhat : rhats)
             psis[m++] = acos(khat.dot(rhat));
@@ -207,10 +184,13 @@ void FMM::Tables::buildTranslationTable() {
     const auto& alphas = getAlpha();
     const auto& interpPsis = getInterpPsi(); 
 
-    const auto [nth, nph] = Node::angles[level].getNumAngles();
+    const auto& angles_lvl = Node::angles[level];
+    const auto [nth, nph] = angles_lvl.getNumAngles();
     const int nDir = nth*nph;
 
     const int nps = std::floor(Node::config.overInterp*(nth-1));
+
+    transl.reserve(dXs.size());
 
     for (const auto& dX : dXs) {
         const double r = dX.norm();
@@ -221,7 +201,7 @@ void FMM::Tables::buildTranslationTable() {
         vecXcd transl_dX(nth*nph);
 
         for (int iDir = 0; iDir < nDir; ++iDir) {
-            const auto& khat = this->khat[iDir];
+            const auto& khat = angles_lvl.khat[iDir];
 
             const double psi = acos(khat.dot(rhat));
 
@@ -243,5 +223,4 @@ void FMM::Tables::buildTranslationTable() {
     }
 
     assert(transl.size() == dXs.size());
-
 }

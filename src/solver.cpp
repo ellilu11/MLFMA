@@ -130,7 +130,8 @@ void Solver::solve() {
 
         updateGvec(vcos, vsin, iter);
 
-        if (iter < maxIter-1) resetRvec();
+        // if (iter < maxIter-1) 
+        resetRvec();
 
         Time fmm_duration_ms = Clock::now() - iter_start;
         // std::cout << "   Elapsed time: " << fmm_duration_ms.count() << " ms\n";
@@ -159,31 +160,9 @@ void Solver::printSols(const std::string& fname) {
 
     file << std::setprecision(15) << std::scientific;
 
-    for (const auto& sol : *rvec) file << sol << '\n';
-    // for (const auto& curr : *currents) file << curr << '\n';
+    // for (const auto& sol : *rvec) file << sol << '\n';
+    for (const auto& curr : *currents) file << curr << '\n';
 }
-
-/*
-void Solver::solve() {
-    constexpr int MAX_ITER = 1;
-
-    int iter = 0;
-    for (int iter = 0; iter < MAX_ITER; ++iter) {
-        std::cout << " Do iteration #" << iter << '\n';
-        auto iter_start = Clock::now();
-
-        updateSols(iter);
-
-        if (iter == MAX_ITER-1) printSols("sol.txt");
-
-        resetSols();
-
-        Time fmm_duration_ms = Clock::now() - iter_start;
-        std::cout << "   Elapsed time: " << fmm_duration_ms.count() << " ms\n";
-
-    }
-}*/
-
 
 /*void Solver::solve() {
 

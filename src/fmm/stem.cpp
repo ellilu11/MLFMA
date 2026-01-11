@@ -85,7 +85,7 @@ void FMM::Stem::buildMpoleCoeffs() {
         std::vector<vec2cd> shiftedCoeffs(mth*mph, vec2cd::Zero());
 
         for (int iDir = 0; iDir < mth*mph; ++iDir) {
-            const auto& kvec = tables[level+1].khat[iDir] * wavenum;
+            const auto& kvec = angles[level+1].khat[iDir] * wavenum;
             shiftedCoeffs[iDir] = exp(iu*kvec.dot(dX)) * branchCoeffs[iDir];
         }
 
@@ -114,7 +114,7 @@ std::vector<vec2cd> FMM::Stem::getShiftedLocalCoeffs(int branchIdx) const {
     std::vector<vec2cd> shiftedCoeffs(mth*mph, vec2cd::Zero());
 
     for (int iDir = 0; iDir < mth*mph; ++iDir) {
-        const auto& kvec = tables[level].khat[iDir] * wavenum;
+        const auto& kvec = angles[level].khat[iDir] * wavenum;
         shiftedCoeffs[iDir] = exp(iu*kvec.dot(dX)) * localCoeffs[iDir];
     }
 

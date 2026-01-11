@@ -21,25 +21,21 @@ void FMM::Node::initParams(
     lvec = std::make_shared<vecXcd>(vecXcd::Zero(nsrcs));
     rvec = std::make_shared<vecXcd>(vecXcd::Zero(nsrcs));
     currents = std::make_shared<vecXcd>(vecXcd::Zero(nsrcs)); // assume I = 0 initially
+
+    Leaf::resetLeaves();
 }
 
 void FMM::Node::buildTables() { 
     std::cout << "   (Lvl,Nth,Nph) =\n";
-    angles.resize(maxLevel+1);
+    angles.reserve(maxLevel+1);
     for (int level = 0; level <= maxLevel; ++level)
-        angles[level] = Angles(level);
+        angles.emplace_back(level);
 
     Tables::buildDists();
-    tables.resize(maxLevel+1);
+    tables.reserve(maxLevel+1);
     for (int level = 0; level <= maxLevel; ++level)
-        tables[level] = Tables(level, maxLevel);
+        tables.emplace_back(level, maxLevel);
 }
-
-//void FMM::Node::linkStates(const std::unique_ptr<Solver>& solver) {
-//    lvec = std::move(solver->getLvec());
-//    rvec = std::move(solver->getRvec());
-//    currents = std::move(solver->getCurrents());
-//}
 
 /* Node(particles,branchIdx,base)
  * particles : list of particles contained in this node
@@ -164,15 +160,16 @@ void FMM::Node::printFarSols(const std::string& fname) {
     std::ofstream farfile(dir/fname);
     farfile << std::setprecision(15) << std::scientific;
 
-    const auto [nth, nph] = angles[level].getNumAngles();
+    const auto& angles_lvl = angles[level];
+    const auto [nth, nph] = angles_lvl.getNumAngles();
     for (int iDir = 0; iDir < nth*nph; ++iDir) {
-        const auto& krhat = tables[level].khat[iDir] * wavenum;
+        const auto& krhat = angles_lvl.khat[iDir] * wavenum;
 
         vec3cd dirFar = vec3cd::Zero();
         for (const auto& src : srcs)
             dirFar += (*currents)[src->getIdx()] * src->getFarAlongDir(krhat);
 
-        const vec3cd& far = Phys::C * wavenum * tables[level].ImRR[iDir] * dirFar;
+        const vec3cd& far = Phys::C * wavenum * angles_lvl.ImRR[iDir] * dirFar;
 
         farfile << far << '\n';
     }

@@ -5,7 +5,15 @@
 struct FMM::Angles {
     Angles() = default;
 
-    Angles(int);
+    Angles(int level) {
+        buildAngularSamples(level);
+
+        buildAngularMatrices();
+    }
+
+    void buildAngularSamples(int);
+
+    void buildAngularMatrices();
 
     void printAngles(std::ofstream&, std::ofstream&);
 
@@ -16,6 +24,10 @@ struct FMM::Angles {
     size_t getNumAllAngles() const {
         return thetas.size() * phis.size();
     }
+
+    std::vector<vec3d> khat;
+    std::vector<mat23d> toThPh;
+    std::vector<mat3d> ImRR;
 
     realVec thetas;  // theta samples
     realVec weights; // weights of theta samples
