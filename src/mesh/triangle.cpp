@@ -46,7 +46,7 @@ void Mesh::Triangle::buildTriQuads() {
  */
 void Mesh::Triangle::reverseOrient() {
     if ((center-rootCenter).dot(nhat) < 0.0) {
-        std::cout << "   Reversing normals of triangle " << iTri << '\n';
+        // std::cout << "   Reversing normals of triangle " << iTri << '\n';
         nhat *= -1.0;
         std::swap(this->iVerts[0], this->iVerts[2]); // Swap verts per right-hand rule
     }

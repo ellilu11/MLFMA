@@ -15,7 +15,8 @@ GMRES::GMRES(
       vcos(vecXcd::Zero(config.maxIter)),
       vsin(vecXcd::Zero(config.maxIter))
 {
-    doILU = !this->root->isLeaf() && config.maxIter;
+    // doILU = !this->root->isLeaf() && config.maxIter;
+    doILU = config.maxIter;
     if (doILU) {
         buildILU();
         lvec = ilu.solve(lvec); // apply M^(-1) to lvec

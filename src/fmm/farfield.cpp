@@ -283,7 +283,6 @@ void FMM::Farfield::evalFarSols(const std::shared_ptr<FMM::Node>& node) {
     int lvl = node->lvl;
     if (node->isSrcless() || lvl <= 1) return;
 
-    double k = config.k;
     size_t nDir = levels[lvl].getNumDirs();
     Eigen::Map<arrXcd> localTheta(node->localCoeffs.theta.data(), nDir);
     Eigen::Map<arrXcd> localPhi(node->localCoeffs.phi.data(), nDir);
