@@ -1,5 +1,6 @@
 #pragma once
 
+#include <omp.h>
 #include "node.h"
 
 class FMM::Nearfield {

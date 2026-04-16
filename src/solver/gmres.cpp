@@ -15,8 +15,8 @@ GMRES::GMRES(
       vcos(vecXcd::Zero(config.maxIter)),
       vsin(vecXcd::Zero(config.maxIter))
 {
-    // doILU = !this->root->isLeaf() && config.maxIter;
-    doILU = config.maxIter;
+    doILU = !this->root->isLeaf() && config.maxIter;
+    // doILU = config.maxIter;
     if (doILU) {
         buildILU();
         lvec = ilu.solve(lvec); // apply M^(-1) to lvec
@@ -137,6 +137,7 @@ void GMRES::solve(const std::string& fname) {
         return;
     }
 
+    std::ofstream resfile("out/sol/" + std::string(root->isLeaf() ? "resDir" : "res") + ".txt");
     std::string method = root->isLeaf() ? "direct... " : "FMM...    ";
     std::cout << " Solving for current w/ " << method;
     auto start = Clock::now();
@@ -148,6 +149,7 @@ void GMRES::solve(const std::string& fname) {
         iterateArnoldi(iter);
         updateGvec(iter);
         rvec = vecXcd::Zero(nsols); // reset rvec for next iteration
+        resfile << abs(gvec[iter+1])/g0 << '\n'; // log the relative residual
     } while (abs(gvec[++iter])/g0 > config.epsIter && iter < config.maxIter); // careful
 
     Time duration_ms = Clock::now() - start;

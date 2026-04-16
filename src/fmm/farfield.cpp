@@ -4,9 +4,7 @@ FMM::Farfield::Farfield(const std::shared_ptr<FMM::Node>& root) {
     if (root->isLeaf()) return;
 
     buildLevels();
-
     buildGlRadPats();
-
     resizeCoeffs(root);
 }
 
@@ -29,15 +27,7 @@ void FMM::Farfield::buildLevels() {
         levels[lvl].buildInterpTables(levels[lvl+1]);
 
     Time duration_ms = Clock::now() - start;
-    std::cout << " in " << duration_ms.count() << " ms\n";
-
-    /* Print number of angular samples at each level
-    for (const auto& level : levels)
-        std::cout << "   (" << level.lvl << "," 
-            << level.thetas.size() << "," << level.phis.size() << ")\n";
-    */
-
-    std::cout << '\n';
+    std::cout << " in " << duration_ms.count() << " ms\n\n";
 }
 
 /* buildGlRadPats()
@@ -120,9 +110,10 @@ void FMM::Farfield::buildMpoleCoeffs(const std::shared_ptr<FMM::Node>& node) {
     Eigen::Map<arrXcd> coeffsTheta(coeffs.theta.data(), nDir);
     Eigen::Map<arrXcd> coeffsPhi(coeffs.phi.data(), nDir);
 
-    size_t iSrc = 0;
-    for (const auto& src : node->srcs) {
-        Coeffs& radPat = node->radPats[iSrc++];
+    // #pragma omp parallel for reduction(+:coeffsTheta,coeffsPhi)
+    for (int iSrc = 0; iSrc < node->srcs.size(); ++iSrc) {
+        const auto& src = node->srcs[iSrc];
+        Coeffs& radPat = node->radPats[iSrc];
 
         Eigen::Map<arrXcd> radPatTheta(radPat.theta.data(), nDir);
         Eigen::Map<arrXcd> radPatPhi(radPat.phi.data(), nDir);

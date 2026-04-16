@@ -35,6 +35,9 @@ struct Config {
     double iluTol;      // Drop tolerance for ILU preconditioner
     int iluFactor;      // Fill factor for ILU preconditioner
 
+    // OpenMP
+    int numThreads;     // Number of OpenMP threads
+
     // CFIE (from alpha)
     IE ie;              // Integral equation type
     cmplx C_efie;       // -eta * alpha * ik

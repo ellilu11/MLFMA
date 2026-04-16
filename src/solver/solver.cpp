@@ -44,14 +44,14 @@ void Solver::printScattered(const SrcVec& srcs,
     double E0 = Exct::Eincs[0]->amplitude;
     double k = config.k, k2 = k*k;
     double rcsSum = 0.0;
-    //for (int ith = 0; ith < nangles; ++ith) { // 2*nth to cover great circle
-    //    double alpha = (ith+0.5)*PI/static_cast<double>(nangles); // in [0, 2*pi]
-    //    double theta = (alpha < PI) ? alpha : 2*PI - alpha; // fold back to [0, pi]
-    //    double phi = (alpha < PI) ? 0.0 : PI; // fold back to [0, 2pi]
-    //    assert(theta >= 0.0 && theta <= PI);
-    for (int iph = 0; iph < nangles; ++iph) {
-        double theta = PI / 2.0;
-        double phi = (iph+0.5)*PI/static_cast<double>(nangles); // in [0, pi]
+    for (int ith = 0; ith < nangles; ++ith) { // 2*nth to cover great circle
+        double alpha = (ith+0.5)*PI/static_cast<double>(nangles); // in [0, 2*pi]
+        double theta = (alpha < PI) ? alpha : 2*PI - alpha; // fold back to [0, pi]
+        double phi = (alpha < PI) ? 0.0 : PI; // fold back to [0, 2pi]
+        assert(theta >= 0.0 && theta <= PI);
+    //for (int iph = 0; iph < nangles; ++iph) {
+    //    double theta = PI / 2.0;
+    //    double phi = (iph+0.5)*PI/static_cast<double>(nangles); // in [0, pi]
 
         vec3d rhat = Math::fromSph(vec3d(1.0, theta, phi));
         vec3cd dirFar = vec3cd::Zero();
@@ -64,8 +64,8 @@ void Solver::printScattered(const SrcVec& srcs,
 
         rcsSum += rcs;
         farfile << rcs << '\n'; 
-        // thfile << alpha << ' ' << theta << ' ' << phi << '\n';
-        thfile << phi << ' ' << phi << ' ' << theta << '\n';
+        thfile << alpha << ' ' << theta << ' ' << phi << '\n';
+        // thfile << phi << ' ' << phi << ' ' << theta << '\n';
     }
 
     std::cout << "   Mean RCS: "

@@ -54,6 +54,8 @@ Config::Config(const std::filesystem::path& fileName) {
     iluTol = configVals[12];
     iluFactor = static_cast<int>(configVals[13]);
 
+    numThreads = configVals[14];
+
     if (alpha < 0.0 || alpha > 1.0)
         throw std::runtime_error("Alpha must be in [0,1]");
     ie = (alpha == 0.0) ? IE::MFIE : (alpha == 1.0) ? IE::EFIE : IE::CFIE;
@@ -80,7 +82,8 @@ Config::Config(const std::filesystem::path& fileName) {
     std::cout << "   Overinterp:      " << overInterp << '\n';
     std::cout << "   Tri quad rule:   " << getNumQuads(quadPrec) << "-point\n";
     std::cout << "   ILU drop tol:    " << iluTol << '\n';
-    std::cout << "   ILU fill factor: " << iluFactor << "\n\n";
+    std::cout << "   ILU fill factor: " << iluFactor << "\n";
+    std::cout << "   Num threads:     " << numThreads << "\n\n";
 }
 
 std::array<double, 16> Config::importConfig(const std::filesystem::path& path) {

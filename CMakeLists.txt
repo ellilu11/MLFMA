@@ -10,7 +10,7 @@ if (POLICY CMP0141)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo,Release>:ProgramDatabase>")
 endif()
 
-project ("MLFMA")
+project ("MLFMA" CXX)
 
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/DEBUG")
 
@@ -21,10 +21,14 @@ target_include_directories(eigen
         ${CMAKE_CURRENT_SOURCE_DIR}/eigen-3.4.0
 )
 
+# Add OpenMP support
+find_package(OpenMP REQUIRED)
+
 # Add source executable
 add_executable (MLFMA "src/main.cpp" "src/main.h")
 
 target_link_libraries(MLFMA PRIVATE eigen)
+target_link_libraries(MLFMA PRIVATE OpenMP::OpenMP_CXX)
 
 # target_compile_options(MLFMA PRIVATE $<$<CONFIG:Release>:/Wall>)
 
