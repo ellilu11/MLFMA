@@ -42,6 +42,7 @@ namespace Mesh {
         std::vector<int> nCommons;  // number of common vertices
 
     private:
+        std::vector<std::pair<pair2i, size_t>> pairsToIdx;
         size_t nPair; // number of triangle pairs
     };
 

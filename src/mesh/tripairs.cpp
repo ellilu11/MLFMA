@@ -1,6 +1,7 @@
 #include "tripairs.h"
 
 Mesh::TriPairs::TriPairs(size_t nPair) :
+    pairsToIdx(glPairsToIdx.begin(), glPairsToIdx.end()),
     nPair(nPair)
 {
     assert(nPair > 0);
@@ -49,7 +50,9 @@ void Mesh::TriPairs::buildMomentsEFIE() {
     momentsEFIE.resize(nPair);
     double k = config.k;
 
-    for (const auto& [iTris, iPair] : glPairsToIdx) {
+    #pragma omp parallel for num_threads(config.numThreads)
+    for (int i = 0; i < pairsToIdx.size(); ++i) {
+        const auto& [iTris, iPair] = pairsToIdx[i];
         auto& [m00, m10, m01, m11] = momentsEFIE[iPair];
         int nCommon = nCommons[iPair];
 
@@ -84,7 +87,9 @@ void Mesh::TriPairs::buildMomentsMFIE() {
     momentsMFIE2.resize(nPair);
     double k = config.k, k2 = k*k;
 
-    for (const auto& [iTris, iPair] : glPairsToIdx) {
+    #pragma omp parallel for num_threads(config.numThreads)
+    for (int i = 0; i < pairsToIdx.size(); ++i) {
+        const auto& [iTris, iPair] = pairsToIdx[i];
         auto& [m000, m001, m10, m01, m11] = momentsMFIE[iPair];
         auto& [n000, n001, n10, n01, n11] = momentsMFIE2[iPair];
         int nCommon = nCommons[iPair];
@@ -133,7 +138,9 @@ void Mesh::TriPairs::buildIntegratedInvR() {
     intsInvR.resize(nPair);
     intsInvR2.resize(nPair);
 
-    for (const auto& [iTris, iPair] : glPairsToIdx) {
+    #pragma omp parallel for num_threads(config.numThreads)
+    for (int i = 0; i < pairsToIdx.size(); ++i) {
+        const auto& [iTris, iPair] = pairsToIdx[i];
         if (nCommons[iPair] < nCommonThres) continue;
 
         const auto [obsTri, srcTri] = getTriPair(iTris);
@@ -157,7 +164,9 @@ void Mesh::TriPairs::buildIntegratedInvRcubed() {
     intsInvRcubed.resize(nPair);
     intsInvRcubed2.resize(nPair);
 
-    for (const auto& [iTris, iPair] : glPairsToIdx) {
+    #pragma omp parallel for num_threads(config.numThreads)
+    for (int i = 0; i < pairsToIdx.size(); ++i) {
+        const auto& [iTris, iPair] = pairsToIdx[i];
         if (nCommons[iPair] < nCommonThres) continue;
 
         const auto [obsTri, srcTri] = getTriPair(iTris);
