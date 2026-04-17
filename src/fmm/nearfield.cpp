@@ -107,11 +107,11 @@ void FMM::Nearfield::buildNearMatrix() {
     trips.reserve(getNearCapacity());
 
     // Build pair-node contributions to near matrix
-    std::vector<std::vector<Eigen::Triplet<cmplx>>> tripsPair(config.numThreads);
+    std::vector<std::vector<Eigen::Triplet<cmplx>>> tripss(config.numThreads);
     #pragma omp parallel num_threads(config.numThreads) 
     {
         int tid = omp_get_thread_num();
-        auto& local = tripsPair[tid];
+        auto& localTrips = tripss[tid];
 
         #pragma omp for
         for (int iPair = 0; iPair < nearPairs.size(); ++iPair) {
@@ -131,21 +131,11 @@ void FMM::Nearfield::buildNearMatrix() {
                         mfieObs = config.C_mfie * (obs->getIntegratedMFIE(src) + mass),
                         mfieSrc = config.C_mfie * (src->getIntegratedMFIE(obs) + mass);
 
-                    local.emplace_back(obsIdx, srcIdx, efie+mfieObs);
-                    local.emplace_back(srcIdx, obsIdx, efie+mfieSrc);
+                    localTrips.emplace_back(obsIdx, srcIdx, efie+mfieObs);
+                    localTrips.emplace_back(srcIdx, obsIdx, efie+mfieSrc);
                 }
             }
         }
-    }
-    for (const auto& local : tripsPair)
-        trips.insert(trips.end(), local.begin(), local.end());
-
-    // Build self-node contributions to near matrix
-    std::vector<std::vector<Eigen::Triplet<cmplx>>> tripsSelf(config.numThreads);
-    #pragma omp parallel num_threads(config.numThreads)
-    {
-        int tid = omp_get_thread_num();
-        auto& local = tripsSelf[tid];
 
         #pragma omp for
         for (int iPair = 0; iPair < selfPairs.size(); ++iPair) {
@@ -165,19 +155,22 @@ void FMM::Nearfield::buildNearMatrix() {
                     cmplx efie = config.C_efie * obs->getIntegratedEFIE(src);
                     cmplx mfieObs = config.C_mfie * (obs->getIntegratedMFIE(src) + mass);
 
-                    local.emplace_back(obsIdx, srcIdx, efie+mfieObs);
+                    localTrips.emplace_back(obsIdx, srcIdx, efie+mfieObs);
 
                     if (iSrc != iObs) { // Only add self-term contribution once!
                         cmplx mfieSrc = config.C_mfie * (src->getIntegratedMFIE(obs) + mass);
-                        local.emplace_back(srcIdx, obsIdx, efie+mfieSrc);
+                        localTrips.emplace_back(srcIdx, obsIdx, efie+mfieSrc);
                     }
                 }
             }
         }
     }
-    for (const auto& local : tripsSelf)
-        trips.insert(trips.end(), local.begin(), local.end());
 
+    // Join triplets from all threads
+    for (const auto& localTrips : tripss)
+        trips.insert(trips.end(), localTrips.begin(), localTrips.end());
+
+    // Build near matrix from triplets
     nearMat.setFromTriplets(trips.begin(), trips.end());
     nearMat.makeCompressed();
 

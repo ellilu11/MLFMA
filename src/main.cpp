@@ -46,13 +46,6 @@ void mainLoop(const SrcVec& srcs, bool doFMM, bool doIter = true) {
 }
 
 int main() {
-    //std::cout << "Start\n";
-    //#pragma omp parallel num_threads(8)
-    //{
-    //    printf("Hello from thread %d\n", omp_get_thread_num());
-    //}
-    //std::cout << "End\n";
-
     importVec<vec3d>("config/pwave.txt", Exct::Eincs);
     auto srcs = Mesh::importMesh("config/rwg/sph_r5.0/sph_r5.0_n"+std::to_string(config.nsrcs));
     // auto srcs = Mesh::importMesh("config/rwg/rect/rect_g"+config.lengStr+"_n"+std::to_string(config.nsrcs));

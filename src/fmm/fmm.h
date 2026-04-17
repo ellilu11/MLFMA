@@ -35,17 +35,19 @@ namespace FMM {
     };
 
     // Global data
+    NodeVec glNodes;
     NodeVec glLeaves;
+    std::vector<NodeVec> glNodesByLvl;
     std::vector<NodePair> glNonNearPairs;
-    inline int numNodes = 0;
     inline int maxLevel = 0;
     inline int glSrcIdx = 0;
 
     // Functions
     void reset() {
+        glNodes.clear();
         glLeaves.clear(); 
+        glNodesByLvl.clear();
         glNonNearPairs.clear();
-        numNodes = 0;
         maxLevel = 0;
         glSrcIdx = 0;
     }

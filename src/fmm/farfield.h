@@ -7,9 +7,13 @@ class FMM::Farfield {
 public:
     Farfield(const std::shared_ptr<Node>&);
 
+    void buildGlMpoleCoeffs();
+
     void buildMpoleCoeffs(const std::shared_ptr<Node>&);
 
     void buildMpoleCoeffs(const std::shared_ptr<Node>&, bool);
+
+    void glTranslateCoeffs();
 
     void buildLocalCoeffs(const std::shared_ptr<Node>&);
 

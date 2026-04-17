@@ -212,8 +212,9 @@ HashMap<FMM::interpPair> FMM::Level::getInterpPsi() {
 
     #pragma omp parallel for collapse(2) num_threads(config.numThreads)
     for (int iDir = 0; iDir < nDir; ++iDir) {
+        const vec3d& khat = this->khat[iDir];
+
         for (int iRhat = 0; iRhat < nRhat; ++iRhat) {
-            const vec3d& khat = this->khat[iDir];
             const vec3d& rhat = rhats[iRhat];
 
             psis[iDir*nRhat+iRhat] = acos(khat.dot(rhat));
@@ -232,7 +233,7 @@ HashMap<FMM::interpPair> FMM::Level::getInterpPsi() {
     #pragma omp parallel num_threads(config.numThreads)
     {
         int tid = omp_get_thread_num();
-        auto& local = interpPairss[tid];
+        auto& localPairs = interpPairss[tid];
 
         #pragma omp for
         for (int i = 0; i < psis.size(); ++i) {
@@ -251,11 +252,12 @@ HashMap<FMM::interpPair> FMM::Level::getInterpPsi() {
             for (size_t k = 0; k < 2*order; ++k)
                 coeffs[k] = Math::evalLagrangeBasis(psi, psis, k);
 
-            local.emplace(psi, std::make_pair(coeffs, nearIdx));
+            localPairs.emplace(psi, std::make_pair(coeffs, nearIdx));
         }
     }
-    for (const auto& local : interpPairss)
-        interpPairs.insert(local.begin(), local.end());
+
+    for (const auto& localPairs : interpPairss)
+        interpPairs.insert(localPairs.begin(), localPairs.end());
 
     // assert(interpPairs.size() == psis.size());
     return interpPairs;
@@ -281,7 +283,7 @@ void FMM::Level::buildTranslationTable() {
     #pragma omp parallel num_threads(config.numThreads)
     {
         int tid = omp_get_thread_num();
-        auto& local = transls[tid];
+        auto& localTransl = transls[tid];
 
         #pragma omp for
         for (int i = 0; i < dXs.size(); ++i) {
@@ -306,11 +308,12 @@ void FMM::Level::buildTranslationTable() {
                 transl_dX(iDir) = translCoeff;
             }
 
-            local.emplace(dX, transl_dX);
+            localTransl.emplace(dX, transl_dX);
         }
     }
-    for (const auto& local : transls)
-        transl.insert(local.begin(), local.end());
+
+    for (const auto& localTransl : transls)
+        transl.insert(localTransl.begin(), localTransl.end());
 
     assert(transl.size() == dXs.size());
 }

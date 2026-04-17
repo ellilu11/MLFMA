@@ -31,8 +31,6 @@ FMM::Node::Node(
     // Find unique triangles of RWGs in this node
     // TODO: Only call for leaves and non-near stems
     findTris();
-
-    ++numNodes;
 }
 
 /* subdivide()
@@ -126,9 +124,13 @@ void FMM::Node::pushSelfToNearNonNbors() {
  * Add self as near non-neighbor (list 3 node) of any list 4 nodes
  */
 void FMM::Node::postProcess() {
-    // If leaf, add to global list of leaves
-    if (isLeaf()) glLeaves.push_back(shared_from_this()); 
-
+    // If node has sources, add to global list of nodes/leaves
+    if (!isSrcless()) {
+        glNodes.push_back(shared_from_this());
+        glNodesByLvl[lvl].push_back(shared_from_this());
+        if (isLeaf()) glLeaves.push_back(shared_from_this());
+    }
+ 
     // Find neighbor and interaction lists, and add self as near non-neighbor
     if (!isRoot()) {
         buildNeighbors();
@@ -141,7 +143,7 @@ void FMM::Node::postProcess() {
         branch->postProcess();
 
     if (isRoot()) {
-        std::cout << "   # Nodes:         " << numNodes << '\n';
+        std::cout << "   # Nodes:         " << glNodes.size() << '\n';
         std::cout << "   # Leaves:        " << glLeaves.size() << '\n';
         std::cout << "   Max node level:  " << maxLevel << "\n\n";
     }

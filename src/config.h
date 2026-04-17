@@ -37,6 +37,7 @@ struct Config {
 
     // OpenMP
     int numThreads;     // Number of OpenMP threads
+    int pivotLvl;       // Level at which to switch from parallel nodes to parallel angles
 
     // CFIE (from alpha)
     IE ie;              // Integral equation type

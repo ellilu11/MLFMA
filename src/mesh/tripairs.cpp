@@ -53,6 +53,7 @@ void Mesh::TriPairs::buildMomentsEFIE() {
     #pragma omp parallel for num_threads(config.numThreads)
     for (int i = 0; i < pairsToIdx.size(); ++i) {
         const auto& [iTris, iPair] = pairsToIdx[i];
+
         auto& [m00, m10, m01, m11] = momentsEFIE[iPair];
         int nCommon = nCommons[iPair];
 
@@ -90,6 +91,7 @@ void Mesh::TriPairs::buildMomentsMFIE() {
     #pragma omp parallel for num_threads(config.numThreads)
     for (int i = 0; i < pairsToIdx.size(); ++i) {
         const auto& [iTris, iPair] = pairsToIdx[i];
+
         auto& [m000, m001, m10, m01, m11] = momentsMFIE[iPair];
         auto& [n000, n001, n10, n01, n11] = momentsMFIE2[iPair];
         int nCommon = nCommons[iPair];
