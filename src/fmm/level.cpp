@@ -207,15 +207,17 @@ HashMap<FMM::interpPair> FMM::Level::getInterpPsi() {
 
     // Find all unique psi = acos(khat.dot(rhat))
     auto [nth, nph] = getNumAngles();
-    size_t nDir = nth*nph;
-    std::vector<double> psis(nDir*rhats.size());
+    size_t nDir = nth*nph, nRhat = rhats.size();
+    std::vector<double> psis(nDir*nRhat);
 
-    size_t m = 0;
-    for (size_t iDir = 0; iDir < nDir; ++iDir) {
-        vec3d khat = this->khat[iDir];
+    #pragma omp parallel for collapse(2) num_threads(config.numThreads)
+    for (int iDir = 0; iDir < nDir; ++iDir) {
+        for (int iRhat = 0; iRhat < nRhat; ++iRhat) {
+            const vec3d& khat = this->khat[iDir];
+            const vec3d& rhat = rhats[iRhat];
 
-        for (const auto& rhat : rhats)
-            psis[m++] = acos(khat.dot(rhat));
+            psis[iDir*nRhat+iRhat] = acos(khat.dot(rhat));
+        }
     }
 
     std::sort(psis.begin(), psis.end());
@@ -225,25 +227,37 @@ HashMap<FMM::interpPair> FMM::Level::getInterpPsi() {
     int nps = std::floor(config.overInterp*(nth-1));
 
     HashMap<interpPair> interpPairs;
-    for (auto psi : psis) {
-        // Find idx of psi node nearest this psi
-        int nearIdx = std::floor((nps-1) * psi / PI);
+    std::vector<HashMap<interpPair>> interpPairss(config.numThreads);
 
-        // Assemble psis interpolating this psi
-        std::vector<double> psis(2*order);
-        for (int ips = nearIdx+1-order, k = 0; ips <= nearIdx+order; ++ips, ++k)
-            psis[k] = PI*ips/static_cast<double>(nps-1);
+    #pragma omp parallel num_threads(config.numThreads)
+    {
+        int tid = omp_get_thread_num();
+        auto& local = interpPairss[tid];
 
-        // CONSIDER: Barycentric coordinates
-        std::vector<double> coeffs(2*order);
-        for (size_t k = 0; k < 2*order; ++k)
-            coeffs[k] = Math::evalLagrangeBasis(psi, psis, k);
+        #pragma omp for
+        for (int i = 0; i < psis.size(); ++i) {
+            double psi = psis[i];
 
-        interpPairs.emplace(psi, std::make_pair(coeffs, nearIdx));
+            // Find idx of psi node nearest this psi
+            int nearIdx = std::floor((nps-1) * psi / PI);
+
+            // Assemble psis interpolating this psi
+            std::vector<double> psis(2*order);
+            for (int ips = nearIdx+1-order, k = 0; ips <= nearIdx+order; ++ips, ++k)
+                psis[k] = PI*ips/static_cast<double>(nps-1);
+
+            // CONSIDER: Barycentric coordinates
+            std::vector<double> coeffs(2*order);
+            for (size_t k = 0; k < 2*order; ++k)
+                coeffs[k] = Math::evalLagrangeBasis(psi, psis, k);
+
+            local.emplace(psi, std::make_pair(coeffs, nearIdx));
+        }
     }
+    for (const auto& local : interpPairss)
+        interpPairs.insert(local.begin(), local.end());
 
     // assert(interpPairs.size() == psis.size());
-
     return interpPairs;
 }
 
@@ -262,29 +276,41 @@ void FMM::Level::buildTranslationTable() {
     int nps = std::floor(config.overInterp*(nth-1));
 
     transl.reserve(dXs.size());
-    for (const auto& dX : dXs) {
-        double r = dX.norm();
-        vec3d rhat = dX / r;
-        auto alpha_dX = alphas.at(r);
+    std::vector<VecHashMap<arrXcd>> transls(config.numThreads);
+    
+    #pragma omp parallel num_threads(config.numThreads)
+    {
+        int tid = omp_get_thread_num();
+        auto& local = transls[tid];
 
-        arrXcd transl_dX(nDir);
-        for (int iDir = 0; iDir < nDir; ++iDir) {
-            vec3d khat = this->khat[iDir];
-            double psi = acos(khat.dot(rhat));
-            const auto [interpPsi, nearIdx] = interpPsis.at(psi);
+        #pragma omp for
+        for (int i = 0; i < dXs.size(); ++i) {
+            vec3d dX = dXs[i];
+            double r = dX.norm();
+            vec3d rhat = dX / r;
+            auto alpha_dX = alphas.at(r);
 
-            cmplx translCoeff = 0.0;
-            for (int ips = nearIdx+1-order, k = 0; k < 2*order; ++ips, ++k) {
-                int ips_flipped = Math::flipIdxToRange(ips, nps);
+            arrXcd transl_dX(nDir);
+            for (int iDir = 0; iDir < nDir; ++iDir) {
+                vec3d khat = this->khat[iDir];
+                double psi = acos(khat.dot(rhat));
+                const auto [interpPsi, nearIdx] = interpPsis.at(psi);
 
-                translCoeff += alpha_dX[ips_flipped] * interpPsi[k];
+                cmplx translCoeff = 0.0;
+                for (int ips = nearIdx+1-order, k = 0; k < 2*order; ++ips, ++k) {
+                    int ips_flipped = Math::flipIdxToRange(ips, nps);
+
+                    translCoeff += alpha_dX[ips_flipped] * interpPsi[k];
+                }
+
+                transl_dX(iDir) = translCoeff;
             }
 
-            transl_dX(iDir) = translCoeff;
+            local.emplace(dX, transl_dX);
         }
-
-        transl.emplace(dX, transl_dX);
     }
+    for (const auto& local : transls)
+        transl.insert(local.begin(), local.end());
 
     assert(transl.size() == dXs.size());
 }
