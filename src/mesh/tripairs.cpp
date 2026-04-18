@@ -50,7 +50,7 @@ void Mesh::TriPairs::buildMomentsEFIE() {
     momentsEFIE.resize(nPair);
     double k = config.k;
 
-    #pragma omp parallel for num_threads(config.numThreads)
+    #pragma omp parallel for
     for (int i = 0; i < pairsToIdx.size(); ++i) {
         const auto& [iTris, iPair] = pairsToIdx[i];
 
@@ -88,7 +88,7 @@ void Mesh::TriPairs::buildMomentsMFIE() {
     momentsMFIE2.resize(nPair);
     double k = config.k, k2 = k*k;
 
-    #pragma omp parallel for num_threads(config.numThreads)
+    #pragma omp parallel for
     for (int i = 0; i < pairsToIdx.size(); ++i) {
         const auto& [iTris, iPair] = pairsToIdx[i];
 
@@ -140,7 +140,7 @@ void Mesh::TriPairs::buildIntegratedInvR() {
     intsInvR.resize(nPair);
     intsInvR2.resize(nPair);
 
-    #pragma omp parallel for num_threads(config.numThreads)
+    #pragma omp parallel for
     for (int i = 0; i < pairsToIdx.size(); ++i) {
         const auto& [iTris, iPair] = pairsToIdx[i];
         if (nCommons[iPair] < nCommonThres) continue;
@@ -166,7 +166,7 @@ void Mesh::TriPairs::buildIntegratedInvRcubed() {
     intsInvRcubed.resize(nPair);
     intsInvRcubed2.resize(nPair);
 
-    #pragma omp parallel for num_threads(config.numThreads)
+    #pragma omp parallel for
     for (int i = 0; i < pairsToIdx.size(); ++i) {
         const auto& [iTris, iPair] = pairsToIdx[i];
         if (nCommons[iPair] < nCommonThres) continue;

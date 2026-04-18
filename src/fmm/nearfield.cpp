@@ -108,7 +108,7 @@ void FMM::Nearfield::buildNearMatrix() {
 
     // Build pair-node contributions to near matrix
     std::vector<std::vector<Eigen::Triplet<cmplx>>> tripss(config.numThreads);
-    #pragma omp parallel num_threads(config.numThreads) 
+    #pragma omp parallel
     {
         int tid = omp_get_thread_num();
         auto& localTrips = tripss[tid];

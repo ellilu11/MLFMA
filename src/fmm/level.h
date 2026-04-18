@@ -16,8 +16,8 @@ public:
         buildAngularMatrices();
         buildTranslationTable();
 
-        /*std::cout << "   (" << lvl << ","
-            << thetas.size() << "," << phis.size() << ") ";*/
+        //std::cout << "   (" << lvl << ","
+        //    << thetas.size() << "," << phis.size() << ") ";
     }
 
     void buildInterpTables(const Level& srcLevel) {

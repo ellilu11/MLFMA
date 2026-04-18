@@ -210,7 +210,7 @@ HashMap<FMM::interpPair> FMM::Level::getInterpPsi() {
     size_t nDir = nth*nph, nRhat = rhats.size();
     std::vector<double> psis(nDir*nRhat);
 
-    #pragma omp parallel for collapse(2) num_threads(config.numThreads)
+    #pragma omp parallel for collapse(2)
     for (int iDir = 0; iDir < nDir; ++iDir) {
         const vec3d& khat = this->khat[iDir];
 
@@ -230,7 +230,7 @@ HashMap<FMM::interpPair> FMM::Level::getInterpPsi() {
     HashMap<interpPair> interpPairs;
     std::vector<HashMap<interpPair>> interpPairss(config.numThreads);
 
-    #pragma omp parallel num_threads(config.numThreads)
+    #pragma omp parallel
     {
         int tid = omp_get_thread_num();
         auto& localPairs = interpPairss[tid];
@@ -280,7 +280,7 @@ void FMM::Level::buildTranslationTable() {
     transl.reserve(dXs.size());
     std::vector<VecHashMap<arrXcd>> transls(config.numThreads);
     
-    #pragma omp parallel num_threads(config.numThreads)
+    #pragma omp parallel
     {
         int tid = omp_get_thread_num();
         auto& localTransl = transls[tid];

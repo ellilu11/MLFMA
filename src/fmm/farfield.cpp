@@ -37,7 +37,7 @@ void FMM::Farfield::buildGlRadPats() {
     std::cout << " Building plane wave expansions...";
     auto start = Clock::now();
 
-    #pragma omp parallel for num_threads(config.numThreads)
+    #pragma omp parallel for
     for (int iLeaf = 0; iLeaf < glLeaves.size(); ++iLeaf)
         buildRadPats(glLeaves[iLeaf]);
 
@@ -96,20 +96,6 @@ void FMM::Farfield::buildRadPats(const std::shared_ptr<FMM::Node>& node) {
     }
 }
 
-/* buildGlMpoleCoeffs()
- * (S2M) Build multipole coefficients for all leaf nodes by applying 
- * S2M to plane wave expansions
- */
-void FMM::Farfield::buildGlMpoleCoeffs() {
-    auto start = Clock::now();
-
-    #pragma omp parallel for num_threads(config.numThreads)
-    for (int iLeaf = 0; iLeaf < glLeaves.size(); ++iLeaf)
-        buildMpoleCoeffs(glLeaves[iLeaf]);
-
-    t.S2M += Clock::now() - start;
-}
-
 /* buildMpoleCoeffs()
  * (S2M) Build multipole coefficients from sources in this leaf
  */
@@ -140,6 +126,8 @@ void FMM::Farfield::buildMpoleCoeffs(const std::shared_ptr<FMM::Node>& node) {
  * (M2M) Build mpole coeffs by merging branch mpole coeffs
  */
 void FMM::Farfield::buildMpoleCoeffs(const std::shared_ptr<FMM::Node>& node, bool isStem) {
+    if (node->isLeaf()) return;
+
     int order = config.interpOrder;
     int lvl = node->lvl;
     size_t mDir = levels[lvl+1].getNumDirs();
@@ -149,10 +137,8 @@ void FMM::Farfield::buildMpoleCoeffs(const std::shared_ptr<FMM::Node>& node, boo
     for (const auto& branch : node->branches) {
         if (branch->isSrcless()) continue;
 
-        if (!branch->isLeaf()) buildMpoleCoeffs(branch, true);
+        // if (!branch->isLeaf()) buildMpoleCoeffs(branch, true);
         const Coeffs& branchCoeffs = branch->coeffs;
-
-        auto start = Clock::now();
 
         // Shift branch coeffs to center of this node
         vec3d dX = node->center - branch->center;
@@ -168,23 +154,7 @@ void FMM::Farfield::buildMpoleCoeffs(const std::shared_ptr<FMM::Node>& node, boo
 
         // Interpolate shifted coeffs to this node's angular grid
         addInterpCoeffs(shiftedCoeffs, node->coeffs, lvl+1, lvl);
-
-        t.M2M += Clock::now() - start;
     }
-}
-
-/* glTranslateCoeffs()
- * (M2L) Translate mpole coeffs of interaction nodes into local coeffs at center
- * for all nodes
- */
-void FMM::Farfield::glTranslateCoeffs() {
-    auto start = Clock::now();
-
-    #pragma omp parallel for num_threads(config.numThreads)
-    for (int iNode = 0; iNode < glNodes.size(); ++iNode)
-        translateCoeffs(glNodes[iNode]);
-    
-    t.M2L += Clock::now() - start;
 }
 
 /* translateCoeffs()
@@ -267,7 +237,6 @@ FMM::Coeffs FMM::Farfield::getShiftedLocalCoeffs(
 }
 
 /* buildLocalCoeffs()
- * (M2L) Translate mpole coeffs of interaction nodes into local coeffs at center
  * (L2L) Shift base local coeffs to center and add to local coeffs
  */
 void FMM::Farfield::buildLocalCoeffs(const std::shared_ptr<FMM::Node>& node) {
@@ -275,15 +244,10 @@ void FMM::Farfield::buildLocalCoeffs(const std::shared_ptr<FMM::Node>& node) {
 
     if (!node->isRoot()) {
         // Add L2L to M2L
-        auto start = Clock::now();
         if (!node->base->isRoot()) // TODO: Avoid adding Coeffs directly
             node->localCoeffs += 
                 getShiftedLocalCoeffs(node->base, node->branchIdx);
-        t.L2L += Clock::now() - start;
     }
-
-    for (const auto& branch : node->branches)
-        buildLocalCoeffs(branch);
 }
 
 /* evalFarSols()
@@ -330,14 +294,49 @@ void FMM::Farfield::evalFarSols(const std::shared_ptr<FMM::Node>& node) {
 }
 
 /* evaluateSols()
- * (L2T) Evaluate sols from local expansion due to far nodes for all leaves
+ * Do FMM main loop to evaluate farfield contributions to sols, and add to rvec
  */
 void FMM::Farfield::evaluateSols() {
+    // S2M
     auto start = Clock::now();
+    #pragma omp parallel for
+    for (int iLeaf = 0; iLeaf < glLeaves.size(); ++iLeaf)
+        buildMpoleCoeffs(glLeaves[iLeaf]);
+    t.S2M += Clock::now() - start;
 
-    #pragma omp parallel for num_threads(config.numThreads)
+    // M2M
+    start = Clock::now();
+    for (int lvl = maxLevel-1; lvl >= 0; --lvl) {
+        auto& nodes = glNodesByLvl[lvl];
+
+        #pragma omp parallel for if (lvl >= config.pivotLvl)
+        for (int iNode = 0; iNode < nodes.size(); ++iNode)
+            buildMpoleCoeffs(nodes[iNode], true);
+    }
+    t.M2M += Clock::now() - start;
+
+    // M2L
+    start = Clock::now();
+    #pragma omp parallel for
+    for (int iNode = 0; iNode < glNodes.size(); ++iNode)
+        translateCoeffs(glNodes[iNode]);
+    t.M2L += Clock::now() - start;
+
+    // L2L
+    start = Clock::now();
+    for (int lvl = 1; lvl <= maxLevel; ++lvl) {
+        auto& nodes = glNodesByLvl[lvl];
+
+        #pragma omp parallel for if (lvl >= config.pivotLvl)
+        for (int iNode = 0; iNode < nodes.size(); ++iNode)
+            buildLocalCoeffs(nodes[iNode]);
+    }
+    t.L2L += Clock::now() - start;
+
+    // L2T
+    start = Clock::now();
+    #pragma omp parallel for
     for (int iLeaf = 0; iLeaf < glLeaves.size(); ++iLeaf)
         evalFarSols(glLeaves[iLeaf]);
-
     t.L2T += Clock::now() - start;
 }

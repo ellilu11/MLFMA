@@ -49,20 +49,8 @@ void GMRES::buildILU() {
  * Then apply preconditioner M^(-1) to rvec
  */
 void GMRES::updateRvec(int k) {
-    // FMM main loop: upward pass, downward pass, evaluate sols
-    if (!root->isLeaf()) {
-        // Upward pass
-        ff->buildGlMpoleCoeffs();
-        ff->buildMpoleCoeffs(root, true);
-
-        // Downward pass
-        ff->glTranslateCoeffs();
-        ff->buildLocalCoeffs(root);
-
-        // Evaluate far sols
+    if (!root->isLeaf())
         ff->evaluateSols();
-    }
-    // Evaluate near sols
     nf->evaluateSols();
 
     if (doILU) rvec = ilu.solve(rvec); // apply M^(-1) to rvec = Z * lvec

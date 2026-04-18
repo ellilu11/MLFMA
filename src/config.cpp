@@ -55,6 +55,7 @@ Config::Config(const std::filesystem::path& fileName) {
     iluFactor = static_cast<int>(configVals[13]);
 
     numThreads = configVals[14];
+    pivotLvl = configVals[15];
 
     if (alpha < 0.0 || alpha > 1.0)
         throw std::runtime_error("Alpha must be in [0,1]");
@@ -62,7 +63,7 @@ Config::Config(const std::filesystem::path& fileName) {
     C_efie = -Phys::eta * alpha * iu * k;
     C_mfie = Phys::eta * (1.0 - alpha);
 
-    eleng = configVals[14];
+    eleng = configVals[16];
     std::ostringstream ss;
     ss << std::fixed << std::setprecision(2) << eleng;
     lengStr = ss.str();
@@ -86,8 +87,8 @@ Config::Config(const std::filesystem::path& fileName) {
     std::cout << "   Num threads:     " << numThreads << "\n\n";
 }
 
-std::array<double, 16> Config::importConfig(const std::filesystem::path& path) {
-    std::array<double, 16> arr;
+std::array<double, 17> Config::importConfig(const std::filesystem::path& path) {
+    std::array<double, 17> arr;
     std::ifstream file(path);
     std::string line;
     size_t i = 0;

@@ -7,16 +7,6 @@ class FMM::Farfield {
 public:
     Farfield(const std::shared_ptr<Node>&);
 
-    void buildGlMpoleCoeffs();
-
-    void buildMpoleCoeffs(const std::shared_ptr<Node>&);
-
-    void buildMpoleCoeffs(const std::shared_ptr<Node>&, bool);
-
-    void glTranslateCoeffs();
-
-    void buildLocalCoeffs(const std::shared_ptr<Node>&);
-
     void evaluateSols();
 
 private:
@@ -28,9 +18,15 @@ private:
 
     void resizeCoeffs(const std::shared_ptr<Node>&);
 
-    Coeffs getShiftedLocalCoeffs(Node*, int) const;
+    void buildMpoleCoeffs(const std::shared_ptr<Node>&);
+
+    void buildMpoleCoeffs(const std::shared_ptr<Node>&, bool);
 
     void translateCoeffs(const std::shared_ptr<Node>&);
+
+    Coeffs getShiftedLocalCoeffs(Node*, int) const;
+
+    void buildLocalCoeffs(const std::shared_ptr<Node>&);
 
     void evalFarSols(const std::shared_ptr<Node>&);
 

@@ -14,7 +14,7 @@ struct Config {
     
     Config(const std::filesystem::path&);
     
-    static std::array<double, 16> importConfig(const std::filesystem::path&);
+    static std::array<double, 17> importConfig(const std::filesystem::path&);
 
     // General
     Mode mode;          // FMM, direct, or FMM+direct
@@ -35,7 +35,7 @@ struct Config {
     double iluTol;      // Drop tolerance for ILU preconditioner
     int iluFactor;      // Fill factor for ILU preconditioner
 
-    // OpenMP
+    // Parallel
     int numThreads;     // Number of OpenMP threads
     int pivotLvl;       // Level at which to switch from parallel nodes to parallel angles
 

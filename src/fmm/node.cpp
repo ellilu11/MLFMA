@@ -124,6 +124,8 @@ void FMM::Node::pushSelfToNearNonNbors() {
  * Add self as near non-neighbor (list 3 node) of any list 4 nodes
  */
 void FMM::Node::postProcess() {
+    if (lvl == glNodesByLvl.size()) glNodesByLvl.emplace_back(); 
+
     // If node has sources, add to global list of nodes/leaves
     if (!isSrcless()) {
         glNodes.push_back(shared_from_this());
