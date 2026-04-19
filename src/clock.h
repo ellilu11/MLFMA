@@ -14,7 +14,8 @@ struct ClockTimes {
                   << "   M2L: " << M2L.count() << " ms\n"
                   << "   L2L: " << L2L.count() << " ms\n"
                   << "   L2T: " << L2T.count() << " ms\n"
-                  << "   S2T: " << S2T.count() << " ms\n";
+                  << "   S2T: " << S2T.count() << " ms\n"
+                  << "   ILU: " << ILU.count() << " ms\n";
     }
 
     void resetTimes() { *this = {}; }
@@ -25,4 +26,5 @@ struct ClockTimes {
     Time L2L{};
     Time L2T{};
     Time S2T{};
+    Time ILU{};
 };

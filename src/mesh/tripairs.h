@@ -1,5 +1,6 @@
 #pragma once
 
+#include <omp.h>
 #include "triangle.h"
 #include "../types/types.h"
 

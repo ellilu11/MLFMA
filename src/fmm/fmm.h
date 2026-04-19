@@ -1,5 +1,6 @@
 #pragma once
 
+#include <omp.h>
 #include "../clock.h"
 #include "../config.h"
 #include "../exct.h"

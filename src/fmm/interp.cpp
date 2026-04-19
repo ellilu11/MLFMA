@@ -20,7 +20,6 @@ void FMM::Farfield::addInterpCoeffs(
 
     // Interpolate over theta
     Coeffs innerCoeffs(nth*mph);
-    // #pragma omp parallel for if (tgtLvl < config.pivotLvl)
     for (int jth = 0; jth < nth; ++jth) {
         const auto [interp, nearIdx] = interpTheta[jth];
 
@@ -45,7 +44,6 @@ void FMM::Farfield::addInterpCoeffs(
     }
 
     // Interpolate over phi
-    // #pragma omp parallel for if (tgtLvl < config.pivotLvl)
     for (int jph = 0; jph < nph; ++jph) {
         const auto [interp, nearIdx] = interpPhi[jph];
 

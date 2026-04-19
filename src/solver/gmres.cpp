@@ -53,7 +53,9 @@ void GMRES::updateRvec(int k) {
         ff->evaluateSols();
     nf->evaluateSols();
 
+    auto start = Clock::now();
     if (doILU) rvec = ilu.solve(rvec); // apply M^(-1) to rvec = Z * lvec
+    t.ILU += Clock::now() - start;
 }
 
 /* iterateArnoldi()
@@ -159,6 +161,7 @@ void GMRES::solve(const std::string& fname) {
     const matXcd& Hp = Hmat.block(0, 0, Hmat.rows()-1, Hmat.cols());
     vecXcd yvec = Hp.lu().solve(gvec.segment(0, iter));
     currents = Qmat.leftCols(iter) * yvec;
+
     std::cout << "   Current norm: " 
         << std::setprecision(9) << currents.norm() << std::setprecision(3) << "\n";
 
