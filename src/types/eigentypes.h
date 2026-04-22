@@ -20,7 +20,7 @@ using mat23d = Eigen::Matrix<double, 2, 3>;
 using matXcd = Eigen::MatrixXcd;
 
 template <typename T>
-using sparseMat = Eigen::SparseMatrix<T, Eigen::ColMajor>;
+using sparseMat = Eigen::SparseMatrix<T, Eigen::RowMajor>;
 
 vec3i operator> (const vec3d& X, const vec3d& Y) {
     vec3i bools{ X[0] > Y[0], X[1] > Y[1], X[2] > Y[2] };

@@ -37,7 +37,7 @@ void FMM::Farfield::buildGlRadPats() {
     std::cout << " Building plane wave expansions...";
     auto start = Clock::now();
 
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic)
     for (int iLeaf = 0; iLeaf < glLeaves.size(); ++iLeaf)
         buildRadPats(glLeaves[iLeaf]);
 
@@ -299,7 +299,7 @@ void FMM::Farfield::evalFarSols(const std::shared_ptr<FMM::Node>& node) {
 void FMM::Farfield::evaluateSols() {
     // S2M
     auto start = Clock::now();
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic)
     for (int iLeaf = 0; iLeaf < glLeaves.size(); ++iLeaf)
         buildMpoleCoeffs(glLeaves[iLeaf]);
     t.S2M += Clock::now() - start;
@@ -316,8 +316,8 @@ void FMM::Farfield::evaluateSols() {
     t.M2M += Clock::now() - start;
 
     // M2L
-    start = Clock::now();
-    #pragma omp parallel for
+    start = Clock::now(); 
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int iNode = 0; iNode < glNodes.size(); ++iNode)
         translateCoeffs(glNodes[iNode]);
     t.M2L += Clock::now() - start;
@@ -335,7 +335,7 @@ void FMM::Farfield::evaluateSols() {
 
     // L2T
     start = Clock::now();
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic)
     for (int iLeaf = 0; iLeaf < glLeaves.size(); ++iLeaf)
         evalFarSols(glLeaves[iLeaf]);
     t.L2T += Clock::now() - start;

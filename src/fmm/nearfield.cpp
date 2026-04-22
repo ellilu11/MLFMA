@@ -182,13 +182,13 @@ void FMM::Nearfield::buildNearMatrix() {
  * (S2T) Multiply near matrix by lvec and add to rvec to get nearfield contribution to rvec
  */
 void FMM::Nearfield::evaluateSols() {
-    auto start = Clock::now();
-
     assert(nearMat.cols() == Solver::lvec.rows());
     assert(nearMat.rows() == Solver::rvec.rows());
 
-    Solver::rvec += nearMat * Solver::lvec;
-
+    auto start = Clock::now();
+    #pragma omp parallel for
+    for (int i = 0; i < nearMat.outerSize(); ++i)
+        Solver::rvec[i] += nearMat.innerVector(i) * Solver::lvec;
     t.S2T += Clock::now() - start;
 }
 
