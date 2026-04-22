@@ -53,9 +53,12 @@ void GMRES::updateRvec(int k) {
         ff->evaluateSols();
     nf->evaluateSols();
 
-    auto start = Clock::now();
-    if (doILU) rvec = ilu.solve(rvec); // apply M^(-1) to rvec = Z * lvec
-    t.ILU += Clock::now() - start;
+    if (doILU) {
+        // Apply M^(-1) to rvec = Z * lvec
+        auto start = Clock::now();
+        rvec = ilu.solve(rvec);
+        t.ILU += Clock::now() - start;
+    }
 }
 
 /* iterateArnoldi()
