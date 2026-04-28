@@ -34,6 +34,8 @@ private:
 
     void addAnterpCoeffs(const Coeffs&, Coeffs&, int, int) const;
 
+    void addInterpCoeffAlongTh(const NodeVec&, int, int, int) const;
+
 private:
     std::vector<Level> levels;
 };

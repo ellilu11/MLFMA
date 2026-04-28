@@ -102,6 +102,7 @@ void FMM::Farfield::buildRadPats(const std::shared_ptr<FMM::Node>& node) {
 void FMM::Farfield::buildMpoleCoeffs(const std::shared_ptr<FMM::Node>& node) {
     Coeffs& coeffs = node->coeffs;
 
+    // Zero out coeffs before accumulation
     coeffs.fillZero();
     if (node->isSrcless() || node->isRoot()) return;
 
@@ -132,13 +133,11 @@ void FMM::Farfield::buildMpoleCoeffs(const std::shared_ptr<FMM::Node>& node, boo
     int lvl = node->lvl;
     size_t mDir = levels[lvl+1].getNumDirs();
 
+    // Zero out coeffs before merging
     node->coeffs.fillZero();
 
     for (const auto& branch : node->branches) {
         if (branch->isSrcless()) continue;
-
-        // if (!branch->isLeaf()) buildMpoleCoeffs(branch, true);
-        const Coeffs& branchCoeffs = branch->coeffs;
 
         // Shift branch coeffs to center of this node
         vec3d dX = node->center - branch->center;
@@ -148,8 +147,8 @@ void FMM::Farfield::buildMpoleCoeffs(const std::shared_ptr<FMM::Node>& node, boo
             const vec3d& kvec = levels[lvl+1].khat[iDir] * config.k;
             cmplx shift = exp(iu*kvec.dot(dX));
 
-            shiftedCoeffs.theta[iDir] = shift * branchCoeffs.theta[iDir];
-            shiftedCoeffs.phi[iDir] = shift * branchCoeffs.phi[iDir];
+            shiftedCoeffs.theta[iDir] = shift * branch->coeffs.theta[iDir];
+            shiftedCoeffs.phi[iDir] = shift * branch->coeffs.phi[iDir];
         }
 
         // Interpolate shifted coeffs to this node's angular grid

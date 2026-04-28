@@ -7,6 +7,7 @@
 #include "math.cpp"
 #include "solver/gmres.cpp"
 #include "solver/solver.cpp"
+#include "fmm/anterp.cpp"
 #include "fmm/farfield.cpp"
 #include "fmm/interp.cpp"
 #include "fmm/level.cpp"
